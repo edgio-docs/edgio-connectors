@@ -1,15 +1,15 @@
 {
   "name": "@xdn/vue-storefront",
-  "version": "2.35.2",
+  "version": "2.37.2",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
-    "@xdn/nuxt": "^2.35.2",
+    "@xdn/nuxt": "^2.37.2",
     "fs-extra": "^8.1.0",
     "jscodeshift": "^0.11.0"
   },
   "devDependencies": {
-    "@xdn/core": "^2.35.2",
+    "@xdn/core": "^2.37.2",
     "webpack": "^4.41.5",
     "webpack-cli": "^3.3.10"
   },

@@ -14,15 +14,6 @@ const PUBLIC_CACHE_CONFIG = {
   },
 }
 
-const FAR_FUTURE_CACHE_CONFIG = {
-  browser: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-  edge: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-}
-
 export default class AngularRoutes extends PluginBase {
   angularRouteGroupName = 'angular_routes_group'
 
@@ -46,8 +37,7 @@ export default class AngularRoutes extends PluginBase {
         handler: () => res => res.cache(PUBLIC_CACHE_CONFIG),
         glob: `*`,
       })
-      group.match('/:path*', async ({ proxy, cache }) => {
-        cache(FAR_FUTURE_CACHE_CONFIG)
+      group.match('/:path*', async ({ proxy }) => {
         proxy(BACKENDS.js)
       })
     })

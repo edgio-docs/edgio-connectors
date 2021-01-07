@@ -35,7 +35,7 @@ describe('renderNextPage', () => {
     const proxy = jest.fn()
     const setRequestHeader = jest.fn()
     const updateUpstreamResponseHeader = jest.fn()
-    const params = { id: 1 }
+    const params = { productId: 1 }
     const request = { url: '/p/1', query: { foo: 'bar' }, params }
 
     renderNextPage('/p/[productId]', {
@@ -53,7 +53,7 @@ describe('renderNextPage', () => {
       },
     })
 
-    expect(proxy.mock.calls[0][1].path()).toBe('/p/1?foo=bar&id=1')
+    expect(proxy.mock.calls[0][1].path()).toBe('/p/1?foo=bar&productId=1')
   })
 
   it('should accept a function for params', () => {
@@ -99,5 +99,58 @@ describe('renderNextPage', () => {
     })
 
     expect(proxy.mock.calls[0][1].path()).toBe('/')
+  })
+
+  it('should properly rewrite data urls', () => {
+    const proxy = jest.fn()
+    const setRequestHeader = jest.fn()
+    const updateUpstreamResponseHeader = jest.fn()
+
+    const request = {
+      path: '/_next/data/123/catalog/1',
+      url: '/_next/data/123/catalog/1',
+      query: {},
+      params: { productId: '1', __build__: '123' },
+    }
+
+    renderNextPage('products/[productId]', {
+      proxy,
+      setRequestHeader,
+      updateUpstreamResponseHeader,
+      request,
+    })
+
+    expect(proxy.mock.calls[0][1].path()).toBe(
+      '/_next/data/123/products/1.json?productId=1&__build__=123'
+    )
+  })
+
+  it('should accept an options object', () => {
+    const proxy = jest.fn()
+    const setRequestHeader = jest.fn()
+    const updateUpstreamResponseHeader = jest.fn()
+
+    const request = {
+      path: '/_next/data/123/catalog/1.json',
+      url: '/_next/data/123/catalog/1.json',
+      query: {},
+      params: { productId: '1', __build__: '123' },
+    }
+
+    renderNextPage(
+      'products/[productId]',
+      {
+        proxy,
+        setRequestHeader,
+        updateUpstreamResponseHeader,
+        request,
+      },
+      params => params,
+      { rewritePath: false }
+    )
+
+    expect(proxy.mock.calls[0][1].path()).toBe(
+      '/_next/data/123/catalog/1.json?productId=1&__build__=123'
+    )
   })
 })

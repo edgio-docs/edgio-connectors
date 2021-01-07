@@ -244,7 +244,12 @@ describe('NextRoutes', () => {
       process.nextTick(async () => {
         request.path = '/no-route-matched'
         await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalledWith('404', expect.anything())
+        expect(renderNextPage).toHaveBeenCalledWith(
+          '404',
+          expect.anything(),
+          expect.any(Function),
+          { rewritePath: false }
+        )
         done()
       })
     })
@@ -279,7 +284,10 @@ describe('NextRoutes', () => {
         browser: { maxAgeSeconds: 315360000 },
         edge: { maxAgeSeconds: 315360000 },
       })
-      expect(serveStatic).toHaveBeenCalledWith('.next/static/:path*')
+      expect(serveStatic).toHaveBeenCalledWith('.next/static/:path*', {
+        permanent: true,
+        exclude: ['.next/static/service-worker.js'],
+      })
     })
 
     it('should add routes getServerSideProps', async () => {
@@ -329,7 +337,12 @@ describe('NextRoutes', () => {
         loadingPage: '.next/serverless/pages/:locale/static/[id].html',
       })
       serveStatic.mock.calls[0][1].onNotFound()
-      expect(renderNextPage).toHaveBeenCalledWith('/static/[id]', expect.anything())
+      expect(renderNextPage).toHaveBeenCalledWith(
+        '/static/[id]',
+        expect.anything(),
+        expect.any(Function),
+        { rewritePath: false }
+      )
     })
 
     it('should add localized routes for all static pages with getStaticPaths', async () => {
@@ -340,7 +353,12 @@ describe('NextRoutes', () => {
         loadingPage: '.next/serverless/pages/:locale/static/[id].html',
       })
       serveStatic.mock.calls[0][1].onNotFound()
-      expect(renderNextPage).toHaveBeenCalledWith('/static/[id]', expect.anything())
+      expect(renderNextPage).toHaveBeenCalledWith(
+        '/static/[id]',
+        expect.anything(),
+        expect.any(Function),
+        { rewritePath: false }
+      )
     })
 
     it('should add routes for all static pages without getStaticProps', async () => {
@@ -470,7 +488,9 @@ describe('NextRoutes', () => {
     it('should SSR the 404 page', async () => {
       request.path = '/no-page-here'
       await router.run(request, response)
-      expect(renderNextPage).toHaveBeenCalledWith('404', expect.anything())
+      expect(renderNextPage).toHaveBeenCalledWith('404', expect.anything(), expect.any(Function), {
+        rewritePath: false,
+      })
     })
   })
 
@@ -503,7 +523,10 @@ describe('NextRoutes', () => {
         browser: { maxAgeSeconds: 315360000 },
         edge: { maxAgeSeconds: 315360000 },
       })
-      expect(serveStatic).toHaveBeenCalledWith('.next/static/:path*')
+      expect(serveStatic).toHaveBeenCalledWith('.next/static/:path*', {
+        permanent: true,
+        exclude: ['.next/static/service-worker.js'],
+      })
     })
 
     it('should add routes getServerSideProps', async () => {
@@ -566,7 +589,12 @@ describe('NextRoutes', () => {
     it('should not add a data route for pages with getInitialProps', async () => {
       request.path = '/initial-props/1'
       await router.run(request, response)
-      expect(renderNextPage).toHaveBeenCalledWith('initial-props/[id]', expect.anything())
+      expect(renderNextPage).toHaveBeenCalledWith(
+        'initial-props/[id]',
+        expect.anything(),
+        expect.any(Function),
+        { rewritePath: false }
+      )
 
       request.path = '/_next/data/development/initial-props/1.json'
       await router.run(request, response)

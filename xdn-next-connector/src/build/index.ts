@@ -34,9 +34,6 @@ export default async function build(options: BuildOptions) {
   }
 
   builder
-    // next.js client assets
-    .addStaticAsset(join(nextDir, 'static'), join(distDir, 'static'))
-
     // React components and api endpoints
     .addJSAsset(join(nextDir, 'serverless', 'pages'))
 
@@ -58,7 +55,7 @@ export default async function build(options: BuildOptions) {
     `module.exports=${JSON.stringify({ distDir })}`
   )
 
-  setStaticAssetExpiration(builder)
+  setSsgStaticAssetExpiration(builder)
 
   await builder.build()
 
@@ -102,7 +99,7 @@ export default async function build(options: BuildOptions) {
  * Configure SSG pages to expire based on the revalidate time returned by getStaticProps, which
  * is stored in .next/prerender-manifest.json
  */
-function setStaticAssetExpiration(builder: DeploymentBuilder) {
+function setSsgStaticAssetExpiration(builder: DeploymentBuilder) {
   const prerenderManifest = <{ [key: string]: any }>(
     nonWebpackRequire(join(nextDir, 'prerender-manifest.json'))
   )

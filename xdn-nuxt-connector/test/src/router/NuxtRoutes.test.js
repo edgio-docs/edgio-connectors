@@ -169,7 +169,10 @@ describe('NuxtRoutes', () => {
       router.use(new NuxtRoutes())
       request.path = '/_nuxt/pages/index.js'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.nuxt/dist/client/:path*')
+      expect(serveStatic).toHaveBeenCalledWith('.nuxt/dist/client/:path*', {
+        exclude: ['service-worker.js', 'LICENSES'],
+        permanent: true,
+      })
     })
 
     it('should far future cache in production mode', async () => {
@@ -183,7 +186,10 @@ describe('NuxtRoutes', () => {
       router.use(new NuxtRoutes())
       request.path = '/_nuxt/pages/index.js'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.nuxt/dist/client/:path*')
+      expect(serveStatic).toHaveBeenCalledWith('.nuxt/dist/client/:path*', {
+        exclude: ['service-worker.js', 'LICENSES'],
+        permanent: true,
+      })
     })
 
     it('should add routes for all public assets', async () => {

@@ -134,7 +134,10 @@ export default class NuxtRoutes extends PluginBase {
     group.match('/_nuxt/:path*', async ({ proxy, serveStatic, cache }) => {
       if (isProductionBuild()) {
         cache(FAR_FUTURE_CACHE_CONFIG)
-        serveStatic('.nuxt/dist/client/:path*')
+        serveStatic('.nuxt/dist/client/:path*', {
+          permanent: true,
+          exclude: ['service-worker.js', 'LICENSES'],
+        })
       } else {
         // since Nuxt doesn't add a hash to asset file names in dev, we need to prevent caching,
         // otherwise Nuxt is prone to getting stuck in a browser refresh loop after making changes due to assets

@@ -1,9 +1,11 @@
-import qs from 'qs'
 import addPreloadHeaders from '@xdn/core/router/addPreloadHeaders'
 import { BACKENDS } from '@xdn/core/constants'
 import ResponseWriter from '@xdn/core/router/ResponseWriter'
 import Request from '@xdn/core/router/Request'
 import Params from './Params'
+import { toRouteSyntax } from './nextPathFormatter'
+import qs from 'qs'
+import bindParamsToPath from '@xdn/core/utils/bindParamsToPath'
 
 /**
  * Creates a function that proxies a request to next.js.
@@ -18,15 +20,17 @@ import Params from './Params'
  *      return renderNextPage('/p/[productId]', res, (params, request) => ({ productId: params.withVar }))
  *    })
  *
- * @param {String} page The next page route - for example /p/[productId]
- * @param {ResponseWriter} responseWriter The response writer passed into your route handler
- * @param {Object|Function|undefined} params An optional object containing query params to provide to the next page, or a function that takes the route's path params and the request and returns a params object.
+ * @param page The next page route - for example /p/[productId]
+ * @param responseWriter The response writer passed into your route handler
+ * @param params An optional object containing query params to provide to the next page, or a function that takes the route's path params and the request and returns a params object.
+ * @param options
  * @return Promise A promise that resolves when the response has been received from Next.js
  */
 export default async function renderNextPage(
   page: string,
   responseWriter: ResponseWriter,
-  params?: Params | ((p: Params, request: Request) => Params)
+  params?: Params | ((p: Params, request: Request) => Params),
+  options: RenderOptions = { rewritePath: true }
 ) {
   const { request, proxy, updateUpstreamResponseHeader } = responseWriter
 
@@ -36,8 +40,7 @@ export default async function renderNextPage(
     },
     path: () => {
       // will get here when generating the cache manifest for prefetching
-      let { url, query } = request
-      let path = url.split(/\?/)[0]
+      let { query } = request
 
       // params can be an object or a function
       if (typeof params === 'function') {
@@ -58,6 +61,8 @@ export default async function renderNextPage(
         search = `?${search}`
       }
 
+      const path = options.rewritePath ? rewritePath(request, page, params) : request.path
+
       return `${path}${search}`
     },
     transformResponse: addPreloadHeaders,
@@ -67,4 +72,29 @@ export default async function renderNextPage(
   // If the user wants the responses to be truly private, they will need to add `cache({ browser: false })`
   // to their routes.
   updateUpstreamResponseHeader('cache-control', /(,\s*\bprivate\b\s*)|(^\s*private,\s*)/g, '')
+}
+
+/**
+ * Rewrites the request path so that users can use renderNextPage to render a response
+ * body using a page that doesn't match the request path.
+ * @param request
+ * @param page
+ * @param params
+ */
+function rewritePath(request: Request, page: string, params: any) {
+  let destinationRoute = toRouteSyntax(page)
+
+  if (request.path && request.path.startsWith('/_next/data/')) {
+    destinationRoute = `/_next/data/:__build__/${destinationRoute.replace(/^\//, '')}.json`
+  }
+
+  return bindParamsToPath(destinationRoute, params)
+}
+
+export interface RenderOptions {
+  /**
+   * Set to false to skip path rewriting. Use this only when the XDN route matches the next.js route.
+   * This slightly reduces the amount of work that needs to be done on every request.
+   */
+  rewritePath: boolean
 }

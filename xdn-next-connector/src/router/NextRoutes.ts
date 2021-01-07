@@ -7,7 +7,7 @@ import getDistDir from '../util/getDistDir'
 import nonWebpackRequire from '@xdn/core/utils/nonWebpackRequire'
 import { join } from 'path'
 import PluginBase from '@xdn/core/plugins/PluginBase'
-import renderNextPage from './renderNextPage'
+import render from './renderNextPage'
 import Request from '@xdn/core/router/Request'
 import ResponseWriter from '@xdn/core/router/ResponseWriter'
 import RouteGroup from '@xdn/core/router/RouteGroup'
@@ -31,6 +31,9 @@ const PUBLIC_CACHE_CONFIG = {
 }
 
 const TYPE = 'NextRoutes'
+
+const renderNextPage = (page: string, res: ResponseWriter) =>
+  render(page, res, /* istanbul ignore next */ params => params, { rewritePath: false })
 
 export default class NextRoutes extends PluginBase {
   private nextRouteGroupName = 'next_routes_group'
@@ -311,7 +314,7 @@ export default class NextRoutes extends PluginBase {
       if (page.startsWith('/api')) {
         // api routes
         addRoute('api', path, res => renderNextPage(page.slice(1), res))
-      } else if ((<string>file)?.endsWith('.html')) {
+      } else if (file && file.endsWith('.html')) {
         // static routes
         const assetPath = pagesManifest[page].replace(/^pages\//, '').replace(/\.html$/, '')
 
@@ -465,7 +468,7 @@ export default class NextRoutes extends PluginBase {
       const notFoundPage = pagesManifest['/404'] || pagesManifest[`/${this.defaultLocale}/404`]
       const assetRoot = `${this.distDir}/serverless/pages${this.defaultLocale ? '/:locale' : ''}`
 
-      if (notFoundPage?.endsWith('.html')) {
+      if (notFoundPage && notFoundPage.endsWith('.html')) {
         // static 404
         await res.serveStatic(`${assetRoot}/404.html`, {
           statusCode: 404,
@@ -497,10 +500,18 @@ export default class NextRoutes extends PluginBase {
     }
 
     // browser js
-    group.match('/_next/static/:path*', async ({ proxy, serveStatic, cache }) => {
-      if (isCloud()) {
+    // Notes:
+    // - Assets with unique hashed filenames like JS, Css, and media are stored
+    //   in a persistent bucket to be available across builds
+    // - We can't apply that rule to the whole /static folder as it contains
+    //   non-unique filenames like 'service-worker.js'. This will
+    group.match('/_next/static/:path*', ({ proxy, serveStatic, cache }) => {
+      if (isCloud() || isProductionBuild()) {
         cache(FAR_FUTURE_CACHE_CONFIG)
-        serveStatic(`${this.distDir}/static/:path*`)
+        serveStatic(`${this.distDir}/static/:path*`, {
+          permanent: true,
+          exclude: [`${this.distDir}/static/service-worker.js`],
+        })
       } else {
         proxy(BACKENDS.js)
       }

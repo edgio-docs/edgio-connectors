@@ -81,6 +81,7 @@ describe('AngularRoutes', () => {
     it('should proxy any non static asset request to JS backend', async () => {
       request.path = '/anything_else'
       await router.run(request, response)
+      expect(cache).not.toHaveBeenCalled()
       expect(proxy).toHaveBeenCalledWith('__js__')
     })
   })
