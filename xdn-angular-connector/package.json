@@ -1,6 +1,6 @@
 {
   "name": "@xdn/angular",
-  "version": "2.38.0",
+  "version": "2.38.1",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "peerDependencies": {
@@ -8,7 +8,7 @@
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.2",
-    "@xdn/core": "^2.38.0"
+    "@xdn/core": "^2.38.1"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/angular/src/* dist;",

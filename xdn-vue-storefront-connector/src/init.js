@@ -1,4 +1,4 @@
-const nuxtInit = require('@xdn/nuxt/bin/init')
+const nuxtInit = require('@xdn/nuxt/init').default
 const { copySync, readJSONSync, writeJSONSync } = require('fs-extra')
 const { join } = require('path')
 const { spawnSync } = require('child_process')
@@ -17,7 +17,7 @@ async function init(args) {
   // - createProductURL helper for prefetching
   // - createCategoryURL helperfor prefetching
   // - createHttpLink alias for transforming Apollo requests to GET
-  copySync(join(__dirname, '../helpers'), join(process.cwd(), 'xdn'))
+  copySync(join(__dirname, './helpers'), join(process.cwd(), 'xdn'))
 
   // Apply transformations to the nuxt config required by XDN
   // Please look in ../mods/nuxt-config.js for more details on
@@ -28,8 +28,8 @@ async function init(args) {
   await nuxtInit(args)
 
   // Copy over XDN configuration files with predefined properties for VSF
-  copySync(join(__dirname, '../predefined/xdn.config.js'), join(process.cwd(), 'xdn.config.js'))
-  copySync(join(__dirname, '../predefined/routes.js'), join(process.cwd(), 'routes.js'))
+  copySync(join(__dirname, './predefined/xdn.config.js'), join(process.cwd(), 'xdn.config.js'))
+  copySync(join(__dirname, './predefined/routes.ts'), join(process.cwd(), 'routes.ts'))
 
   // NOTE: Modify build script for now... should not need to always do this
   const packageFile = join(process.cwd(), 'package.json')

@@ -65,5 +65,19 @@ module.exports = function transformNuxtConfig(fileInfo, api) {
     buildConfig.find(j.ObjectExpression).replaceWith('webpack && ' + j(buildObject).toSource())
   }
 
+  // Add check for webpack before building styles
+  const cssConfig = root.find(j.Property, node => node.key.name === 'css')
+  const cssObject = cssConfig.get().value.value
+  if (cssObject.type === 'ArrayExpression') {
+    cssConfig.find(j.ArrayExpression).replaceWith('webpack && ' + j(cssObject).toSource())
+  }
+  const styleResourcesConfig = root.find(j.Property, node => node.key.name === 'styleResources')
+  const styleResourcesObject = styleResourcesConfig.get().value.value
+  if (styleResourcesObject.type === 'ObjectExpression') {
+    styleResourcesConfig
+      .find(j.ObjectExpression)
+      .replaceWith('webpack && ' + j(styleResourcesObject).toSource())
+  }
+
   return root.toSource()
 }
