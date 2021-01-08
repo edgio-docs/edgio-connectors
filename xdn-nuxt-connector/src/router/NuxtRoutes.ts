@@ -1,11 +1,13 @@
 import PluginBase from '@xdn/core/plugins/PluginBase'
-import path from 'path'
-import { isProductionBuild } from '@xdn/core/environment'
+import { join } from 'path'
+import { isLocal, isProductionBuild } from '@xdn/core/environment'
 import { BACKENDS } from '@xdn/core/constants'
 import renderNuxtPage from './renderNuxtPage'
-import { readFileSync, watch } from 'fs'
+import { watch } from 'fs'
 import { Router, ResponseWriter } from '@xdn/core/router'
 import RouteGroup from '@xdn/core/router/RouteGroup'
+import { NuxtConfig } from './NuxtConfig'
+import { readAsset } from './assets'
 
 /**
  * A TTL for assets that never change.  10 years in seconds.
@@ -29,10 +31,19 @@ const PUBLIC_CACHE_CONFIG = {
 
 const TYPE = 'NuxtRoutes'
 
+export const XDN_NUXT_CONFIG_PATH = 'xdn-nuxt.config.json'
+
+export const browserAssetOpts = {
+  permanent: true,
+  exclude: ['service-worker.js', 'LICENSES'],
+}
+
 export default class NuxtRoutes extends PluginBase {
   private readonly nuxtRouteGroupName = 'nuxt_routes_group'
   private router?: Router
   private readonly routesJsonPath: string
+  private readonly config: NuxtConfig
+
   readonly type = TYPE
 
   /**
@@ -40,14 +51,18 @@ export default class NuxtRoutes extends PluginBase {
    */
   constructor() {
     super()
-    this.routesJsonPath = path.join(process.cwd(), '.nuxt', 'routes.json')
+    this.routesJsonPath = join(process.cwd(), '.nuxt', 'routes.json')
 
-    if (!isProductionBuild()) {
+    if (isProductionBuild()) {
+      this.config = <NuxtConfig>JSON.parse(readAsset(join(process.cwd(), XDN_NUXT_CONFIG_PATH)))
+    } else {
       watch(this.routesJsonPath, eventType => {
         if (eventType === 'change' && this.loadNuxtRoutes()) {
           this.updateRoutes()
         }
       })
+
+      this.config = {}
     }
   }
 
@@ -55,7 +70,7 @@ export default class NuxtRoutes extends PluginBase {
    * Updates the XDN router to include all routes from Nuxt (.nuxt/routes.json)
    */
   loadNuxtRoutes() {
-    const contents = readFileSync(this.routesJsonPath, 'utf8')
+    const contents = readAsset(this.routesJsonPath)
 
     if (contents.length) {
       // Note that this is sometimes empty because Nuxt clears this file before it updates it.
@@ -100,28 +115,106 @@ export default class NuxtRoutes extends PluginBase {
    * @param {RouteGroup} group
    */
   private addNuxtRoutesToGroup(group: RouteGroup) {
-    this.addStaticRoutes(group)
-    this.addDynamicRoutes(group)
+    this.addAssets(group)
+    this.addPages(group)
   }
 
   /**
    * Adds routes for vue components
    * @param group
    */
-  private addDynamicRoutes(group: RouteGroup) {
+  private addPages(group: RouteGroup) {
+    /* istanbul ignore next */
+    const fallback = this.config?.generate?.fallback
+
+    let loadingPage: string | undefined
+    let notFoundPage: string | undefined
+
+    // See spec for fallback here: https://nuxtjs.org/docs/2.x/configuration-glossary/configuration-generate/#fallback
+    if (fallback === undefined) {
+      // show the 200.html loading page and run SSR in the background
+      loadingPage = 'dist/200.html'
+    } else if (fallback === false) {
+      // The Nuxt docs are actually wrong here.  If fallback is false, no fallback page will be generated.
+      // Just let serveStatic 404
+    } else if (fallback === true) {
+      // Display the custom 404 page
+      notFoundPage = 'dist/404.html'
+    } else {
+      // Display the custom loading page and and run SSR in the background
+      loadingPage = `dist/${fallback}`
+    }
+
     for (let route of this.loadNuxtRoutes()) {
       const pattern = toXDNRoute(route.path)
-      group.match(pattern, renderNuxtPage)
+      const file = `dist${pattern.replace(/\/$/, '')}/index.html`
+
+      if (this.isStatic(route.path)) {
+        /* istanbul ignore if */
+        if (isProductionBuild() && isLocal()) {
+          console.log('[@xdn/nuxt] static ', `${pattern} => ${file}`)
+        }
+
+        group.match(pattern, res => {
+          res.serveStatic(file, {
+            loadingPage,
+            onNotFound: loadingPage
+              ? renderNuxtPage
+              : notFoundPage
+              ? () => this.render404(res, <string>notFoundPage)
+              : undefined,
+          })
+        })
+      } else {
+        /* istanbul ignore if */
+        if (isProductionBuild() && isLocal()) {
+          console.log('[@xdn/nuxt] ssr    ', pattern)
+        }
+
+        group.match(pattern, renderNuxtPage)
+      }
     }
+  }
+
+  /**
+   * Renders the generated 404 page
+   * @param res
+   * @param notFoundPage
+   */
+  private render404(res: ResponseWriter, notFoundPage: string) {
+    // static 404
+    return res.serveStatic(notFoundPage, { statusCode: 404, statusMessage: 'Not Found' })
+  }
+
+  private isStatic(route: string) {
+    const target = this.config.target
+    const exclude = this.config.generate?.exclude
+
+    if (target !== 'static') {
+      return false
+    }
+
+    /* istanbul ignore next */
+    const isExcluded = exclude?.some(entry => {
+      if (entry.type === 'RegExp') {
+        return new RegExp(entry.value).test(route)
+      } else if (entry.type === 'string') {
+        return route === entry.value
+      }
+    })
+
+    return !isExcluded
   }
 
   /**
    * Adds routes for static assets, including /static and /.nuxt/static
    * @param group
    */
-  private addStaticRoutes(group: RouteGroup) {
+  private addAssets(group: RouteGroup) {
     /* istanbul ignore next */
-    group.static('static', { handler: file => res => res.cache(PUBLIC_CACHE_CONFIG) })
+    group.static('static', {
+      handler: file => res => res.cache(PUBLIC_CACHE_CONFIG),
+    })
 
     // webpack hot loader
     if (!isProductionBuild()) {
@@ -134,10 +227,7 @@ export default class NuxtRoutes extends PluginBase {
     group.match('/_nuxt/:path*', async ({ proxy, serveStatic, cache }) => {
       if (isProductionBuild()) {
         cache(FAR_FUTURE_CACHE_CONFIG)
-        serveStatic('.nuxt/dist/client/:path*', {
-          permanent: true,
-          exclude: ['service-worker.js', 'LICENSES'],
-        })
+        serveStatic('.nuxt/dist/client/:path*', browserAssetOpts)
       } else {
         // since Nuxt doesn't add a hash to asset file names in dev, we need to prevent caching,
         // otherwise Nuxt is prone to getting stuck in a browser refresh loop after making changes due to assets

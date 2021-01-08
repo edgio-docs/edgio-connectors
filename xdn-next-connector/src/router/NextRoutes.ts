@@ -14,6 +14,7 @@ import RouteGroup from '@xdn/core/router/RouteGroup'
 import Router, { RouteHandler } from '@xdn/core/router/Router'
 import { FAR_FUTURE_TTL } from './constants'
 import { PreloadRequestConfig } from '@xdn/core/router/Preload'
+import { getSourceDir } from '@xdn/core/source'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -55,7 +56,7 @@ export default class NextRoutes extends PluginBase {
    */
   constructor() {
     super()
-    this.nextRootDir = process.cwd()
+    this.nextRootDir = getSourceDir()
     this.pagesDirRelative = 'pages'
     this.pagesDir = join(this.nextRootDir, this.pagesDirRelative)
     this.distDir = getDistDir()

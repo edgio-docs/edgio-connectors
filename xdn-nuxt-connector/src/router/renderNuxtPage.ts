@@ -19,7 +19,7 @@ import { ResponseWriter } from '@xdn/core/router'
  * @return Promise A promise that resolves when the response has been received from Next.js
  */
 export default function renderNuxtPage(res: ResponseWriter) {
-  res.proxy(BACKENDS.js, {
+  return res.proxy(BACKENDS.js, {
     transformResponse: addPreloadHeaders,
   })
 }
