@@ -1,4 +1,4 @@
-import { BACKENDS } from '@xdn/core/constants'
+import { BACKENDS, XDN_IMAGE_OPTIMIZER_PATH } from '@xdn/core/constants'
 import { isCloud, isProductionBuild } from '@xdn/core/environment'
 import { localize, toRouteSyntax } from './nextPathFormatter'
 import { watch, existsSync } from 'fs'
@@ -523,18 +523,16 @@ export default class NextRoutes extends PluginBase {
    * Adds routes for image-optimizer
    */
   addImageOptimizerRoutes(group: RouteGroup) {
-    // By default '/_next/image' indicates the image is to be optimized.
-    // When we are local, we do not need to modify the path as the
-    // local framework will, by default, optimize the image for us.
-    // But in the cloud we replace '/_next/image' the '/__xdn_image_optimizer'
-    // so XDN Buffer Proxy can route to the right lambda.
-    const XDN_IMAGE_OPTIMIZER_PREFIX = '/__xdn_image_optimizer'
-
     group.match('/_next/image', ({ proxy }) => {
-      // Once the prefix is in place, ensure it goes to the XDN backend so XBP can route
-      // this request to the XDN image-optimizer-lambda
-      // If we are not in the cloud, pass to next.js with the unmodified path.
-      proxy(BACKENDS.js, isCloud() ? { path: XDN_IMAGE_OPTIMIZER_PREFIX } : undefined)
+      // By default '/_next/image' indicates the image is to be optimized.
+      // When we are local, we do not need to modify the path as the
+      // local framework will, by default, optimize the image for us.
+      // But in the cloud we replace '/_next/image' the '/__xdn_image_optimizer'
+      // so XDN Buffer Proxy can route to the right lambda.
+      const production = isProductionBuild()
+      const backend = production ? BACKENDS.imageOptimizer : BACKENDS.js
+      const opts = production ? { path: XDN_IMAGE_OPTIMIZER_PATH } : undefined
+      proxy(backend, opts)
     })
   }
 }

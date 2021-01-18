@@ -2,6 +2,7 @@ import path, { join } from 'path'
 import { XDN_ENV_VARIABLES } from '@xdn/core/constants'
 import { BACKENDS } from '@xdn/core/constants'
 import fs from 'fs'
+import { XDN_IMAGE_OPTIMIZER_PATH } from '../../../../cli/src/constants'
 
 const originalDir = process.cwd()
 
@@ -317,7 +318,9 @@ describe('NextRoutes', () => {
     it('should call router image optimizer with xdn-buffer-proxy prefix', async () => {
       request.path = '/_next/image'
       await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { path: '/__xdn_image_optimizer' })
+      expect(proxy).toHaveBeenCalledWith(BACKENDS.imageOptimizer, {
+        path: XDN_IMAGE_OPTIMIZER_PATH,
+      })
     })
 
     it('should add localized routes for all static pages with getStaticProps only', async () => {
@@ -619,6 +622,33 @@ describe('NextRoutes', () => {
         await router.run(request, response)
         expect(redirect).not.toHaveBeenCalled()
       })
+    })
+  })
+
+  describe('in local production mode', () => {
+    const env = process.env.NODE_ENV
+
+    beforeEach(() => {
+      process.env.XDN_LOCAL = 'true'
+      process.env.NODE_ENV = 'production'
+    })
+
+    afterEach(() => {
+      process.env.NODE_ENV = env
+      delete process.env.XDN_LOCAL
+    })
+
+    it('should proxy /_next/image to the image optimizer backend', async () => {
+      try {
+        process.env.XDN_LOCAL = 'true'
+        process.env.NODE_ENV = 'production'
+      } finally {
+        request.path = '/_next/image'
+        await router.run(request, response)
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.imageOptimizer, {
+          path: '/__xdn_image_optimizer',
+        })
+      }
     })
   })
 })
