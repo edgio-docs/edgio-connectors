@@ -223,6 +223,16 @@ describe('NextRoutes', () => {
       expect(updateRoutes).toHaveBeenCalled()
     })
 
+    it('should accept directory parameter', () => {
+      new Router().use(new NextRoutes('apps/my-next-app'))
+
+      expect(watch).toHaveBeenCalledWith(
+        join(process.cwd(), 'apps/my-next-app/src/pages'),
+        { recursive: true },
+        expect.any(Function)
+      )
+    })
+
     it('should add routes for rewrites', async done => {
       process.nextTick(async () => {
         request.path = '/rewrites/1'

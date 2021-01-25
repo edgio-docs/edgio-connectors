@@ -14,7 +14,6 @@ import RouteGroup from '@xdn/core/router/RouteGroup'
 import Router, { RouteHandler } from '@xdn/core/router/Router'
 import { FAR_FUTURE_TTL } from './constants'
 import { PreloadRequestConfig } from '@xdn/core/router/Preload'
-import { getSourceDir } from '@xdn/core/source'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -54,16 +53,16 @@ export default class NextRoutes extends PluginBase {
    * Provides next registered routes to router
    * @param {Function} renderFn Next page render function
    */
-  constructor() {
+  constructor(nextRootDir: string = '.') {
     super()
-    this.nextRootDir = getSourceDir()
+    this.nextRootDir = nextRootDir
     this.pagesDirRelative = 'pages'
-    this.pagesDir = join(this.nextRootDir, this.pagesDirRelative)
+    this.pagesDir = join(process.cwd(), this.nextRootDir, this.pagesDirRelative)
     this.distDir = getDistDir()
 
     if (!existsSync(this.pagesDir)) {
       this.pagesDirRelative = join('src', 'pages')
-      this.pagesDir = join(this.nextRootDir, this.pagesDirRelative)
+      this.pagesDir = join(process.cwd(), this.nextRootDir, this.pagesDirRelative)
     }
 
     if (isProductionBuild() || isCloud()) {
@@ -160,7 +159,7 @@ export default class NextRoutes extends PluginBase {
     this.addAssets(group)
     this.addImageOptimizerRoutes(group)
 
-    if (isCloud()) {
+    if (isProductionBuild()) {
       this.addPagesInProd(group)
       this.addPrerendering()
     } else {
@@ -491,7 +490,7 @@ export default class NextRoutes extends PluginBase {
    */
   private addAssets(group: RouteGroup) {
     // public assets
-    group.static('public', {
+    group.static(join(this.nextRootDir, 'public'), {
       handler: (file: string) => (res: ResponseWriter) => res.cache(PUBLIC_CACHE_CONFIG),
     })
 
