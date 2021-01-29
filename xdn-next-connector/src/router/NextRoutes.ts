@@ -228,17 +228,7 @@ export default class NextRoutes extends PluginBase {
     if (this.rewrites) {
       for (let i = 0; i < this.rewrites.length; i++) {
         let { source, destination } = this.rewrites[i]
-
-        // html route
         this.addRewrite(group, source, destination, i)
-
-        // we need to rewrite the equivalent data route as well
-        this.addRewrite(
-          group,
-          `/_next/data/:__build__${source}.json`,
-          `/_next/data/:__build__${destination}.json`,
-          i
-        )
       }
     }
 
@@ -263,7 +253,7 @@ export default class NextRoutes extends PluginBase {
    */
   private addPagesInDev(group: RouteGroup) {
     // data
-    group.match('/_next/data/:path*', ({ proxy }) => proxy(BACKENDS.js))
+    group.match('/_next/data/:build/:path*', ({ proxy }) => proxy(BACKENDS.js))
 
     // SSR,
     group.dir(this.pagesDirRelative, {

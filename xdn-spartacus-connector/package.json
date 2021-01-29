@@ -1,20 +1,20 @@
 {
   "name": "@xdn/spartacus",
-  "version": "2.41.0",
+  "version": "2.41.1",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
     "@angular/common": "^10.2.0",
     "@types/cls-hooked": "^4.3.1",
     "@types/express-serve-static-core": "^4.17.13",
-    "@xdn/core": "^2.41.0",
-    "@xdn/prefetch": "^2.41.0",
+    "@xdn/core": "^2.41.1",
+    "@xdn/prefetch": "^2.41.1",
     "cls-hooked": "^4.2.2"
   },
   "devDependencies": {
     "@typescript-eslint/parser": "^4.5.0",
-    "@xdn/angular": "^2.41.0",
-    "@xdn/cli": "^2.41.0",
+    "@xdn/angular": "^2.41.1",
+    "@xdn/cli": "^2.41.1",
     "@xdn/core": "^2.32.2"
   },
   "peerDependencies": {
