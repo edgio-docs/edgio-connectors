@@ -1,6 +1,6 @@
 {
   "name": "@xdn/nuxt",
-  "version": "2.42.0",
+  "version": "2.42.1",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
@@ -19,8 +19,8 @@
     "@types/cross-spawn": "^6.0.2",
     "@types/lodash": "^4.14.162",
     "@types/workbox-webpack-plugin": "^5.1.1",
-    "@xdn/core": "^2.42.0",
-    "@xdn/prefetch": "^2.42.0",
+    "@xdn/core": "^2.42.1",
+    "@xdn/prefetch": "^2.42.1",
     "nuxt": "^2.13.3",
     "nuxt-start": "^2.12.2",
     "webpack": "^4.41.5",

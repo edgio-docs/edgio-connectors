@@ -452,6 +452,24 @@ export default class NextRoutes extends PluginBase {
     }
   }
 
+  /**
+   * Renders the the 404 page.
+   *
+   * Example:
+   *
+   * ```js
+   *  import { nextRoutes } from '@xdn/next'
+   *  import { Router } from '@xdn/core/router'
+   *
+   *  export default new Router()
+   *    .get('/some/missing/page', (res) => {
+   *      nextRoutes.render404(res)
+   *    })
+   *    .use(nextRoutes)
+   * ```
+   *
+   * @param res
+   */
   async render404(res: ResponseWriter) {
     if (isCloud()) {
       const pagesManifest = this.getPagesManifest()
@@ -489,13 +507,7 @@ export default class NextRoutes extends PluginBase {
       group.match('/_next/webpack-hmr', ({ stream }) => stream('__js__'))
     }
 
-    // browser js
-    // Notes:
-    // - Assets with unique hashed filenames like JS, Css, and media are stored
-    //   in a persistent bucket to be available across builds
-    // - We can't apply that rule to the whole /static folder as it contains
-    //   non-unique filenames like 'service-worker.js'. This will
-    group.match('/_next/static/:path*', ({ proxy, serveStatic, cache }) => {
+    const staticHandler: RouteHandler = ({ proxy, serveStatic, cache }) => {
       if (isCloud() || isProductionBuild()) {
         cache(FAR_FUTURE_CACHE_CONFIG)
         serveStatic(`${this.distDir}/static/:path*`, {
@@ -505,7 +517,16 @@ export default class NextRoutes extends PluginBase {
       } else {
         proxy(BACKENDS.js)
       }
-    })
+    }
+
+    // browser js
+    // Notes:
+    // - Assets with unique hashed filenames like JS, Css, and media are stored
+    //   in a persistent bucket to be available across builds
+    // - We can't apply that rule to the whole /static folder as it contains
+    //   non-unique filenames like 'service-worker.js'. This will
+    group.match('/_next/static/:path*', staticHandler)
+    group.match('/autostatic/:path*', staticHandler)
   }
 
   /**

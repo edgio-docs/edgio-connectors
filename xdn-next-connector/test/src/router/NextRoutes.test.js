@@ -264,6 +264,27 @@ describe('NextRoutes', () => {
         done()
       })
     })
+
+    it('should render a 404 page directly', async done => {
+      const nextRoutes = new NextRoutes()
+      const router = new Router()
+        .get('/missing-page', res => nextRoutes.render404(res))
+        .use(nextRoutes)
+
+      process.nextTick(async () => {
+        request.path = '/missing-page'
+        await router.run(request, response)
+        expect(renderNextPage).toHaveBeenCalledWith(
+          '404',
+          expect.anything(),
+          expect.any(Function),
+          {
+            rewritePath: false,
+          }
+        )
+        done()
+      })
+    })
   })
 
   describe('in the cloud (localized)', () => {
@@ -578,6 +599,18 @@ describe('NextRoutes', () => {
       const { onNotFound } = serveStatic.mock.calls[0][1]
       await onNotFound(responseWriter)
 
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/404.html', {
+        statusCode: 404,
+        statusMessage: 'Not Found',
+      })
+    })
+
+    it('should render a 404 page directly', async () => {
+      const nextRoutes = new NextRoutes()
+      const router = new Router()
+      router.get('/missing-page', res => nextRoutes.render404(res))
+      request.path = '/missing-page'
+      await router.run(request, response)
       expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/404.html', {
         statusCode: 404,
         statusMessage: 'Not Found',

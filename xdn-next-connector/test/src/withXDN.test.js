@@ -17,10 +17,10 @@ describe('withXDN', () => {
   it('should call the provided webpack config', () => {
     const webpack = jest.fn()
     const result = withXDN({ webpack })
-    const webpackConfig = { output: {}, optimization: {}, plugins: [] }
-    const options = { isServer: true }
+    const webpackConfig = { output: {}, optimization: {} }
+    const options = { isServer: true, webpack: { version: '5.0.0' } }
     result.webpack(webpackConfig, options)
-    result.webpack(webpackConfig, { isServer: false })
+    result.webpack(webpackConfig, { isServer: false, webpack: { version: '5.0.0' } })
     expect(webpack).toHaveBeenCalledWith(webpackConfig, options)
   })
 
@@ -33,7 +33,7 @@ describe('withXDN', () => {
 
     try {
       process.env.NODE_ENV = 'production'
-      const options = { isServer: true }
+      const options = { isServer: true, webpack: { version: '4.0.0' } }
       const webpackConfig = { output: {}, optimization: {}, plugins: [] }
       expect(() => withXDN({}).webpack(webpackConfig, options)).not.toThrowError()
     } finally {
@@ -43,12 +43,12 @@ describe('withXDN', () => {
 
   it('should work without being provided a webpack function', () => {
     const webpackConfig = { output: {}, optimization: {}, plugins: [] }
-    const options = { isServer: true }
+    const options = { isServer: true, webpack: { version: '5.0.0' } }
     expect(() => withXDN({}).webpack(webpackConfig, options)).not.toThrowError()
   })
 
   it('does not add devtools install script in client entries', async () => {
-    const options = { isServer: false }
+    const options = { isServer: false, webpack: { version: '5.0.0' } }
     const webpackConfig = {
       entry: () => Promise.resolve({ 'main.js': ['original-main'] }),
       output: {},
@@ -65,7 +65,7 @@ describe('withXDN', () => {
     })
 
     it('should add devtools install script in client entries', async () => {
-      const options = { isServer: false }
+      const options = { isServer: false, webpack: { version: '5.0.0' } }
       const webpackConfig = {
         entry: () => Promise.resolve({ 'main.js': ['original-main'] }),
         output: {},
@@ -79,7 +79,7 @@ describe('withXDN', () => {
     })
 
     it('should not add devtools install script to client entries if already present', async () => {
-      const options = { isServer: false }
+      const options = { isServer: false, webpack: { version: '5.0.0' } }
       const webpackConfig = {
         entry: () =>
           Promise.resolve({ 'main.js': ['@xdn/devtools/widget/install', 'original-main'] }),
@@ -106,7 +106,7 @@ describe('withXDN', () => {
     })
 
     it('should crash', async () => {
-      const options = { isServer: false }
+      const options = { isServer: false, webpack: { version: '5.0.0' } }
       const webpackConfig = {
         output: {},
         optimization: {},
