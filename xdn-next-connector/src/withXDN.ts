@@ -34,6 +34,16 @@ export = function withXDN({ webpack, ...config }: any = {}) {
             resourceRegExp: /^encoding$/,
           })
         )
+
+        Object.assign(config, {
+          resolve: {
+            ...config.resolve,
+            fallback: {
+              ...config.resolve?.fallback,
+              process: false,
+            },
+          },
+        })
       }
 
       if (!options.isServer) {

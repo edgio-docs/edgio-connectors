@@ -5,7 +5,6 @@ module.exports = {
   entry: {
     prod: './src/prod.ts',
   },
-  devtool: 'none',
   mode: 'production',
   module: {
     rules: [

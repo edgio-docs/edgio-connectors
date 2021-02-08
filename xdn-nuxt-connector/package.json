@@ -1,6 +1,6 @@
 {
   "name": "@xdn/nuxt",
-  "version": "2.43.0",
+  "version": "2.44.0",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
@@ -19,12 +19,11 @@
     "@types/cross-spawn": "^6.0.2",
     "@types/lodash": "^4.14.162",
     "@types/workbox-webpack-plugin": "^5.1.1",
-    "@xdn/core": "^2.43.0",
-    "@xdn/prefetch": "^2.43.0",
+    "@xdn/core": "^2.44.0",
+    "@xdn/prefetch": "^2.44.0",
     "nuxt": "^2.13.3",
     "nuxt-start": "^2.12.2",
-    "webpack": "^4.41.5",
-    "webpack-cli": "^3.3.10"
+    "webpack": "^5.0.0"
   },
   "peerDependencies": {
     "@xdn/core": "^2.0.4",
@@ -32,7 +31,7 @@
     "nuxt": "^2.13.3"
   },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt/src/* dist; webpack",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt/src/* dist; ../../node_modules/.bin/webpack",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "release": "cd ./dist; npm publish --access public",

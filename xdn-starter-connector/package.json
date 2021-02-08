@@ -1,46 +1,37 @@
 {
-  "name": "@xdn/next",
+  "name": "@xdn/starter",
   "version": "2.44.0",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
-    "chalk": "^3.0.0",
-    "cross-spawn": "^7.0.3",
-    "globby": "^11.0.1",
-    "next-offline": "^5.0.3",
-    "qs": "^6.9.4",
-    "slash": "^3.0.0",
-    "webpack-sources": "^2.2.0"
+    "chalk": "^4.1.0",
+    "cheerio": "^1.0.0-rc.5",
+    "fs-extra": "^9.1.0"
   },
   "devDependencies": {
-    "@types/cross-spawn": "^6.0.2",
-    "@types/lodash": "^4.14.162",
-    "@types/node": "^14.0.9",
-    "@types/qs": "^6.9.3",
-    "@types/webpack": "^4.41.26",
-    "@types/webpack-sources": "^1.4.0",
+    "@types/cheerio": "^0.22.23",
+    "@types/fs-extra": "^9.0.6",
     "@xdn/core": "^2.44.0",
-    "sync-files": "^1.0.3",
-    "workbox-build": "^5.1.2"
+    "webpack": "^5.18.0"
   },
   "peerDependencies": {
-    "next": "^9.3.5 || ^10.0.0"
+    "@xdn/core": "^2.41.0",
+    "ts-loader": "^8.0.0",
+    "webpack": "^5.0.0"
   },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/next/src/* dist; webpack",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md ./dist; tsc; cp -r stage/starter/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
-    "link": "npm run build; cd dist; npm unlink; npm link",
     "release": "cd ./dist; npm publish --access public",
     "release:next": "npm run release -- --tag next",
-    "test": "jest"
+    "test": "jest --runInBand --watchAll=false"
   },
   "watch": {
     "push-build": {
       "patterns": [
         "src",
-        "package.json",
-        "default-app"
+        "package.json"
       ],
       "extensions": "*",
       "quiet": false
@@ -53,9 +44,6 @@
       "^.+\\.(js)?$": "babel-jest",
       "^.+\\.ts$": "ts-jest"
     },
-    "setupFiles": [
-      "<rootDir>/test/setup.js"
-    ],
     "moduleFileExtensions": [
       "ts",
       "js",
@@ -65,15 +53,11 @@
       "<rootDir>/node_modules/"
     ],
     "collectCoverageFrom": [
-      "./src/**/*.ts",
-      "!./src/default-app/**",
-      "!**/build/**/*.ts",
-      "!**/mocks/**",
-      "!**/index.ts"
+      "src/**/*.ts"
     ],
     "moduleNameMapper": {
       "^@xdn/core(.*)$": "<rootDir>/../core/src/$1",
-      "^@xdn/next(.*)$": "<rootDir>/../next/src/$1"
+      "^@xdn/starter(.*)$": "<rootDir>/../starter/src/$1"
     }
   },
   "publishConfig": {

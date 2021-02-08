@@ -5,7 +5,6 @@ module.exports = {
   entry: {
     prod: './src/prod.js',
   },
-  devtool: 'none',
   mode: 'production',
   resolve: {
     extensions: ['.js'],
