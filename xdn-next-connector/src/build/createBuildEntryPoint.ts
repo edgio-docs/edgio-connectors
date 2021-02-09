@@ -81,13 +81,9 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
 
     builder
       // React components and api endpoints
-      .addJSAsset(join(distDirAbsolute, 'serverless', 'pages'))
-
-      // React components and api endpoints
-      .addJSAsset(join(distDirAbsolute, 'serverless', 'webpack-runtime-commons.js'))
-
-      // needed for /api/routes
-      .addJSAsset(join(distDirAbsolute, 'serverless', 'pages-manifest.json'))
+      .addJSAsset(join(distDirAbsolute, 'serverless'), undefined, {
+        filter: src => !src.endsWith('.map'),
+      })
 
       // needed for rewrites and redirects
       .addJSAsset(join(distDirAbsolute, 'routes-manifest.json'))

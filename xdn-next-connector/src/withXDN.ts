@@ -1,5 +1,4 @@
 import CommonsServerChunkPlugin from './webpack/CommonsServerChunkPlugin'
-import { IgnorePlugin } from 'webpack'
 
 /**
  * Creates a Next.js config suitable for deployment on the Moovweb XDN.
@@ -28,13 +27,6 @@ export = function withXDN({ webpack, ...config }: any = {}) {
     withXDNApplied: true, // validateNextConfig looks for this to ensure that the configuration is valid
     webpack(config: any, options: any) {
       if (options.webpack.version.startsWith('5')) {
-        // fix the error about not being able to resolve module 'encoding' from node-fetch when using webpack 5 and next-offline
-        config.plugins?.push(
-          new IgnorePlugin({
-            resourceRegExp: /^encoding$/,
-          })
-        )
-
         Object.assign(config, {
           resolve: {
             ...config.resolve,
