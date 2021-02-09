@@ -1,11 +1,12 @@
 {
   "name": "@xdn/next",
-  "version": "2.44.1",
+  "version": "2.44.2",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
     "chalk": "^3.0.0",
     "cross-spawn": "^7.0.3",
+    "encoding": "^0.1.13",
     "globby": "^11.0.1",
     "next-offline": "^5.0.3",
     "qs": "^6.9.4",
@@ -19,7 +20,7 @@
     "@types/qs": "^6.9.3",
     "@types/webpack": "^4.41.26",
     "@types/webpack-sources": "^1.4.0",
-    "@xdn/core": "^2.44.1",
+    "@xdn/core": "^2.44.2",
     "sync-files": "^1.0.3",
     "workbox-build": "^5.1.2"
   },
