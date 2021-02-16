@@ -9,6 +9,7 @@
     "downlevelIteration": true,
     "lib": ["dom", "es5", "scriptHost", "dom.iterable"],
     "baseUrl": "..",
+    "skipLibCheck": true,
     "paths": {
       "@xdn/core": ["core/src"],
       "@xdn/core/*": ["core/src/*"],

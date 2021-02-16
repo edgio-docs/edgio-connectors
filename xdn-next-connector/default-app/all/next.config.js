@@ -2,10 +2,4 @@
 // You should commit this file to source control.
 const { withXDN, withServiceWorker } = require('@xdn/next/config')
 
-module.exports = withXDN(
-  withServiceWorker({
-    future: {
-      webpack5: true,
-    },
-  })
-)
+module.exports = withXDN(withServiceWorker())
