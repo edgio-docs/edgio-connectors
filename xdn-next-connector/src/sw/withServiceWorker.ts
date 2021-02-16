@@ -35,7 +35,7 @@ export default function withServiceWorker({ workboxOpts, ...config }: any = {}) 
         (manifestEntries: any[]) => {
           console.log('> Creating service worker...')
           const manifest = manifestEntries
-            .filter(entry => !entry.url.includes('next/dist')) // these paths fail in development resulting in the service worker not being installed
+            .filter(entry => !entry.url.includes('next/dist') && !entry.url.includes('autostatic/')) // these paths fail in development resulting in the service worker not being installed
             .map(entry => {
               entry.url = encodeURI(entry.url)
               return entry

@@ -10,8 +10,8 @@ export default async function dev() {
     command: port => `npx next dev -p ${port}`,
     filterOutput: (line: string) => {
       return !(
-        line.match(/info {2}- ready on http:\/\/localhost:\d+\s*$/i) ||
-        line.match(/ready - started server on http:\/\/localhost:\d+\s*$/)
+        line.match(/ready on http:\/\/localhost:\d+\s*$/i /* Next 9 */) ||
+        line.match(/started server on 0\.0\.0\.0:\d+/ /* Next 10+ */)
       )
     },
     ready: [/ready on http:/i],

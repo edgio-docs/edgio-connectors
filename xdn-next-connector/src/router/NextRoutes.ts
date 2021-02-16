@@ -257,14 +257,28 @@ export default class NextRoutes extends PluginBase {
    * @param group
    */
   private addPagesInDev(group: RouteGroup) {
-    // data
-    group.match('/_next/data/:build/:path*', ({ proxy }) => proxy(BACKENDS.js))
+    const nextHandler = (res: ResponseWriter) => res.proxy(BACKENDS.js)
+
+    // data,
+    group.dir(this.pagesDirRelative, {
+      ignore: ['_*'],
+      paths: (file: string) => {
+        let route = toRouteSyntax(file)
+
+        if (route.endsWith('/')) {
+          route += 'index'
+        }
+
+        return [`/_next/data/:build${route}.json`]
+      },
+      handler: () => nextHandler,
+    })
 
     // SSR,
     group.dir(this.pagesDirRelative, {
       ignore: ['_*'],
       paths: (file: string) => [toRouteSyntax(file)],
-      handler: () => ({ proxy }) => proxy(BACKENDS.js),
+      handler: () => nextHandler,
     })
   }
 
