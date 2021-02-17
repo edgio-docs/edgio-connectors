@@ -49,9 +49,11 @@ export default class FrontityRoutes extends PluginBase {
   }
 
   private addRoutesToGroup(group: RouteGroup) {
-    group.match('/static/:path*', ({ cache, serveStatic }) => {
-      cache(FAR_FUTURE_CACHE_CONFIG)
-      serveStatic('build/static/:path*', { permanent: true })
-    })
+    group
+      .match('/service-worker.js', ({ serviceWorker }) => serviceWorker('build/service-worker.js'))
+      .match('/static/:path*', ({ cache, serveStatic }) => {
+        cache(FAR_FUTURE_CACHE_CONFIG)
+        serveStatic('build/static/:path*', { permanent: true })
+      })
   }
 }

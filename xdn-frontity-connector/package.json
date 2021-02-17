@@ -1,11 +1,14 @@
 {
   "name": "@xdn/frontity",
-  "version": "2.46.1",
+  "version": "2.46.2",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
+    "babel-loader": "^8.2.2",
     "chalk": "^3.0.0",
+    "globby": "^11.0.2",
     "slash": "^3.0.0",
+    "workbox-webpack-plugin": "^6.1.0",
     "yargs": "^15.1.0"
   },
   "peerDependencies": {
@@ -65,6 +68,7 @@
   },
   "devDependencies": {
     "@types/node": "^14.0.9",
-    "@xdn/core": "^2.46.1"
+    "@types/workbox-webpack-plugin": "^5.1.5",
+    "@xdn/core": "^2.46.2"
   }
 }
