@@ -1,5 +1,6 @@
 import { join } from 'path'
 import validateNuxtConfig from './utils/validateNuxtConfig'
+import { validateDependencies } from './utils/updateDependencies'
 import { BuildOptions, DeploymentBuilder } from '@xdn/core/deploy'
 import FrameworkBuildError from '@xdn/core/errors/FrameworkBuildError'
 import { browserAssetOpts, XDN_NUXT_CONFIG_PATH } from './router/NuxtRoutes'
@@ -22,6 +23,9 @@ module.exports = async function build(options: BuildOptions) {
 
     // ensure that nuxt.config.js exists and has mode: universal
     await validateNuxtConfig(appDir)
+
+    // ensure the dependencies are defined
+    await validateDependencies()
 
     // run the nuxt.js build with --standalone so that dependencies are bundled and the user
     // doesn't need to add them to package.json dependencies, thus keeping the lambda as

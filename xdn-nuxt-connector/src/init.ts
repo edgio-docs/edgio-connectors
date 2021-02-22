@@ -14,7 +14,7 @@ export default async function init() {
   const builder = new DeploymentBuilder(process.cwd())
   const spinner = ora(`${chalk.green('Updating dependencies...')}`).start()
   checkForCustomFramework(builder)
-  await updateDependencies(builder)
+  await updateDependencies()
   await installDeps(spinner)
   builder.addDefaultAppResources(join(__dirname, 'default-app')).addDefaultXdnScripts()
 }
