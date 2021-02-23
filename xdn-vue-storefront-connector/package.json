@@ -1,24 +1,27 @@
 {
   "name": "@xdn/vue-storefront",
-  "version": "2.46.5",
+  "version": "2.46.6",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
-    "@xdn/apollo": "^2.46.5",
-    "@xdn/nuxt": "^2.46.5",
+    "@xdn/apollo": "^2.46.6",
+    "@xdn/nuxt": "^2.46.6",
+    "cross-spawn": "^7.0.3",
     "fs-extra": "^8.1.0",
     "jscodeshift": "^0.11.0"
   },
   "devDependencies": {
-    "@xdn/core": "^2.46.5",
-    "webpack": "^4.41.5",
-    "webpack-cli": "^3.3.10"
+    "@types/cross-spawn": "^6.0.2",
+    "@types/fs-extra": "^9.0.7",
+    "@xdn/core": "^2.46.6",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^4.0.0"
   },
   "peerDependencies": {
     "@xdn/core": "^2.0.4"
   },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r src/* package.json README.md ./dist; webpack",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r src/* package.json README.md ./dist; tsc; cp -r stage/vue-storefront/src/* dist; webpack",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "watch": "npm-watch",
     "release": "cd ./dist; npm publish --access public",

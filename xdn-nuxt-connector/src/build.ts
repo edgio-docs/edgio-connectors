@@ -10,7 +10,7 @@ const appDir = process.cwd()
 const builder = new DeploymentBuilder(appDir)
 const nuxtDir = join(appDir, '.nuxt')
 
-module.exports = async function build(options: BuildOptions) {
+export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   const { skipFramework } = options

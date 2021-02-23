@@ -3,11 +3,20 @@ const path = require('path')
 module.exports = {
   target: 'node',
   entry: {
-    prod: './src/prod.js',
+    prod: './src/prod.ts',
   },
   mode: 'production',
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
+    ],
+  },
   resolve: {
-    extensions: ['.js'],
+    extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
     filename: '[name].js',
