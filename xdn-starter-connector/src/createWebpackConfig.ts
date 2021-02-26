@@ -28,11 +28,22 @@ export default function createWebpackConfig(
     },
     resolve: {
       extensions: ['.ts', '.js'],
+      fallback: {
+        process: 'process/browser',
+      },
     },
     output: {
       filename: '[name].js',
       path: OUTPUT_DIR,
     },
+    plugins: [
+      new webpack.ProvidePlugin({
+        process: 'process/browser',
+      }),
+      new webpack.DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+      }),
+    ],
     ...overrides,
   }
 }
