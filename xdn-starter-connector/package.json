@@ -1,6 +1,6 @@
 {
   "name": "@xdn/starter",
-  "version": "2.46.9",
+  "version": "2.46.10",
   "license": "UNLICENSED",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/cheerio": "^0.22.23",
     "@types/fs-extra": "^9.0.6",
-    "@xdn/core": "^2.46.9",
+    "@xdn/core": "^2.46.10",
     "webpack": "^5.18.0"
   },
   "peerDependencies": {
