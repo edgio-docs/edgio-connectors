@@ -531,7 +531,7 @@ export default class NextRoutes extends PluginBase {
         cache(FAR_FUTURE_CACHE_CONFIG)
         serveStatic(`${this.distDir}/static/:path*`, {
           permanent: true,
-          exclude: [`${this.distDir}/static/service-worker.js`],
+          exclude: [join(this.distDir, 'static', 'service-worker.js')],
         })
       } else {
         proxy(BACKENDS.js)
