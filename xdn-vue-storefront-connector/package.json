@@ -1,11 +1,11 @@
 {
   "name": "@xdn/vue-storefront",
-  "version": "2.47.1",
+  "version": "2.47.2",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "moovweb-docs/xdn-connectors",
   "dependencies": {
-    "@xdn/apollo": "^2.47.1",
-    "@xdn/nuxt": "^2.47.1",
+    "@xdn/apollo": "^2.47.2",
+    "@xdn/nuxt": "^2.47.2",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^8.1.0",
     "jscodeshift": "^0.11.0"
@@ -13,7 +13,7 @@
   "devDependencies": {
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^9.0.7",
-    "@xdn/core": "^2.47.1",
+    "@xdn/core": "^2.47.2",
     "webpack": "^5.0.0",
     "webpack-cli": "^4.0.0"
   },
