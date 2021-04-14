@@ -1,4 +1,0 @@
-{
-  "dist/my-xdn-angular-app/browser/assets": ["static_asset.txt"],
-  "dist/my-xdn-angular-app/browser": ["chunk.js"]
-}
