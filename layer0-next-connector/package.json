@@ -1,0 +1,84 @@
+{
+  "name": "@layer0/next",
+  "version": "3.0.3",
+  "license": "Apache-2.0",
+  "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "cross-spawn": "^7.0.3",
+    "encoding": "^0.1.13",
+    "globby": "^11.0.1",
+    "next-offline": "^5.0.3",
+    "qs": "^6.9.4",
+    "slash": "^3.0.0",
+    "webpack": "^4.0.0",
+    "webpack-sources": "^2.2.0"
+  },
+  "devDependencies": {
+    "@layer0/core": "^3.0.3",
+    "@types/cross-spawn": "^6.0.2",
+    "@types/lodash": "^4.14.162",
+    "@types/node": "^14.0.9",
+    "@types/qs": "^6.9.3",
+    "@types/webpack": "^4.41.26",
+    "@types/webpack-sources": "^1.4.0",
+    "sync-files": "^1.0.3",
+    "workbox-build": "^5.1.2"
+  },
+  "peerDependencies": {
+    "next": "^9.3.5 || ^10.0.0"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/next/src/* dist; webpack",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
+    "test": "jest"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "setupFiles": [
+      "<rootDir>/test/setup.js"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/**/*.ts",
+      "!./src/default-app/**",
+      "!**/build/**/*.ts",
+      "!**/mocks/**",
+      "!**/index.ts"
+    ],
+    "moduleNameMapper": {
+      "^@layer0/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@layer0/next(.*)$": "<rootDir>/../next/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  }
+}

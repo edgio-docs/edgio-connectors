@@ -1,0 +1,76 @@
+{
+  "name": "@layer0/sveltekit",
+  "version": "3.0.3",
+  "license": "Apache-2.0",
+  "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
+  "dependencies": {
+    "chalk": "^3.0.0",
+    "slash": "^3.0.0",
+    "yargs": "^15.1.0"
+  },
+  "peerDependencies": {
+    "@sveltejs/kit": "*"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/sveltekit/src/* dist; webpack",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
+    "test": "jest"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app",
+        "webpack.config.js",
+        "README.md"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/**/*.ts",
+      "./lambda/**/*.ts",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.ts"
+    ],
+    "moduleNameMapper": {
+      "^@layer0/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@layer0/sveltekit(.*)$": "<rootDir>/../sveltekit/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
+    "@babel/plugin-proposal-private-methods": "^7.13.0",
+    "@babel/preset-env": "^7.13.12",
+    "@layer0/core": "^3.0.3",
+    "@sveltejs/kit": "^1.0.0-next.1",
+    "@types/node": "^14.0.9",
+    "babel-loader": "^8.2.2"
+  }
+}

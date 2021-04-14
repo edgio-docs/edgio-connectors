@@ -1,0 +1,4 @@
+{
+  "dist/my-layer0-angular-app/browser/assets": ["static_asset.txt"],
+  "dist/my-layer0-angular-app/browser": ["chunk.js"]
+}

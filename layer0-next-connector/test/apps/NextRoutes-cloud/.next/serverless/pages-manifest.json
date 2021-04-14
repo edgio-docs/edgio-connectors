@@ -1,0 +1,10 @@
+{
+  "/p/[id]": "pages/p/[id].js",
+  "/static/[id]": "pages/static/[id].js",
+  "/static-fallback/[id]": "pages/static-fallback/[id].js",
+  "/ssg/ssg": "pages/ssg/ssg.js",
+  "/api/session": "pages/api/session.js",
+  "/no-props/no-props": "pages/no-props/no-props.html",
+  "/initial-props/[id]": "/initial-props/[id].js",
+  "/404": "pages/404.html"
+}
