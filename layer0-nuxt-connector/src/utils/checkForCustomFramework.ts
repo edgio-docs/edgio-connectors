@@ -35,7 +35,7 @@ export default function checkForCustomFramework(builder: DeploymentBuilder) {
           .map((f: string) => ` - ${f}`)
           .join('\n')}\nThis will probably cause errors when running Layer0. See the ${terminalLink(
           'Layer0 Nuxt docs',
-          'https://developer.moovweb.com/guides/nuxt'
+          'https://docs.layer0.co/guides/nuxt'
         )} to learn more.`
       )}`
     )

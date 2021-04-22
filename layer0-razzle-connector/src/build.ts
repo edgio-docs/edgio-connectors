@@ -14,15 +14,16 @@ export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   if (!skipFramework) {
+    const command = 'npx razzle build --noninteractive'
     // clear .next directory
     builder.emptyDirSync(buildDir)
 
     // run the next.js build
     try {
-      await builder.exec('npx razzle build --noninteractive')
+      await builder.exec(command)
       await bundle(join(builder.jsDir, 'build'))
     } catch (e) {
-      throw new FrameworkBuildError('Razzle')
+      throw new FrameworkBuildError('Razzle', command)
     }
   }
 

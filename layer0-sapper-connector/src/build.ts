@@ -16,14 +16,15 @@ export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   if (!skipFramework) {
+    const command = 'npx sapper build'
     // clear .next directory
     builder.emptyDirSync(sapperDir)
 
     // run the next.js build
     try {
-      await builder.exec('npx sapper build')
+      await builder.exec(command)
     } catch (e) {
-      throw new FrameworkBuildError('Sapper')
+      throw new FrameworkBuildError('Sapper', command, e)
     }
   }
 

@@ -26,12 +26,17 @@ const ERROR_MESSAGE = `${chalk.red(
 )} plugin to next.config.js.
       
 For example:
-  ${chalk.green(`
+  ${chalk.cyan(`
   const { withLayer0, withServiceWorker } = require('@layer0/next/config')
 
-  module.exports = withLayer0(withServiceWorker({
-    // additional Next.js config options here
-  }))`)}
+  module.exports = withLayer0(
+    withServiceWorker({
+      layer0SourceMaps: true,
+      // ...
+      // additional Next.js config options here
+      // ...
+    })
+  )`)}
 
 Please update next.config.js file and try again. If that file does not exist, simply add the example above to the root directory of your app.
 `

@@ -13,11 +13,12 @@ export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   if (!skipFramework) {
+    const command = 'npx svelte-kit build'
     // run the Sveltekit build
     try {
-      await builder.exec('npx svelte-kit build')
+      await builder.exec(command)
     } catch (e) {
-      throw new FrameworkBuildError('Sveltekit')
+      throw new FrameworkBuildError('Sveltekit', command, e)
     }
   }
 

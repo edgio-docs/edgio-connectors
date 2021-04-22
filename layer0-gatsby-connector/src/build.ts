@@ -11,11 +11,12 @@ export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   if (!skipFramework) {
+    const command = 'npx gatsby build'
     // run the Gatsby build
     try {
-      await builder.exec('npx gatsby build')
+      await builder.exec(command)
     } catch (e) {
-      throw new FrameworkBuildError('Gatsby')
+      throw new FrameworkBuildError('Gatsby', command, e)
     }
   }
 

@@ -15,10 +15,11 @@ module.exports = async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   if (!options.skipFramework) {
+    const command = 'npx ember build --environment=production'
     try {
-      await builder.exec('npx ember build --environment=production')
+      await builder.exec(command)
     } catch (e) {
-      throw new FrameworkBuildError('FastBoot')
+      throw new FrameworkBuildError('FastBoot', command, e)
     }
   }
 

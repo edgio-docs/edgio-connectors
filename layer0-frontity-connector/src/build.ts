@@ -15,10 +15,11 @@ module.exports = async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   if (!options.skipFramework) {
+    const command = 'npx frontity build'
     try {
-      await builder.exec('npx frontity build')
+      await builder.exec(command)
     } catch (e) {
-      throw new FrameworkBuildError('Frontity')
+      throw new FrameworkBuildError('Frontity', command, e)
     }
   }
 

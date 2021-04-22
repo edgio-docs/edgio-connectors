@@ -15,14 +15,16 @@ export default async function build(
   builder.clearPreviousBuildOutput()
 
   if (!skipFramework) {
+    const command = 'npm run build:ssr'
+
     // clear dist directory
     builder.emptyDirSync(distDir)
 
     try {
       // run the ssr build command
-      await builder.exec('npm run build:ssr')
+      await builder.exec(command)
     } catch (e) {
-      throw new FrameworkBuildError('Angular')
+      throw new FrameworkBuildError('Angular', command, e)
     }
   }
 

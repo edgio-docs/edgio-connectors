@@ -5,6 +5,7 @@ import FrameworkBuildError from '@layer0/core/errors/FrameworkBuildError'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import validateNextConfig from './validateNextConfig'
 import { existsSync } from 'fs'
+import { CopyOptionsSync } from 'fs-extra'
 
 interface BuilderOptions {
   /**
@@ -79,15 +80,18 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
         // run the next.js build
         await builder.exec(buildCommand)
       } catch (e) {
-        throw new FrameworkBuildError('Next.js')
+        throw new FrameworkBuildError('Next.js', buildCommand, e)
       }
+    }
+
+    const lambdaAssetCopyOptions: CopyOptionsSync = {}
+    if (!nextConfig.layer0SourceMaps) {
+      lambdaAssetCopyOptions.filter = (src: string) => !src.endsWith('.map')
     }
 
     builder
       // React components and api endpoints
-      .addJSAsset(join(distDirAbsolute, 'serverless'), undefined, {
-        filter: src => !src.endsWith('.map'),
-      })
+      .addJSAsset(join(distDirAbsolute, 'serverless'), undefined, lambdaAssetCopyOptions)
 
       // needed for rewrites and redirects
       .addJSAsset(join(distDirAbsolute, 'routes-manifest.json'))
@@ -103,7 +107,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
 
     setSsgStaticAssetExpiration(builder)
 
-    await builder.build()
+    await builder.build({ layer0SourceMaps: nextConfig.layer0SourceMaps })
 
     const pages = join(builder.jsDir, distDir, 'serverless', 'pages')
 

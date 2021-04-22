@@ -4,6 +4,7 @@ import { validateDependencies } from './utils/updateDependencies'
 import { BuildOptions, DeploymentBuilder } from '@layer0/core/deploy'
 import FrameworkBuildError from '@layer0/core/errors/FrameworkBuildError'
 import { browserAssetOpts, LAYER0_NUXT_CONFIG_PATH } from './router/NuxtRoutes'
+import { CopyOptionsSync } from 'fs-extra'
 
 const { loadNuxtConfig } = require('@nuxt/config')
 const appDir = process.cwd()
@@ -17,7 +18,20 @@ export default async function build(options: BuildOptions) {
   const config = await loadNuxtConfig()
   const isStatic = config.target === 'static'
 
+  const layer0BuildModule = config.buildModules.find(
+    (module: String | [String, object]) =>
+      Array.isArray(module) && module[0] === '@layer0/nuxt/module'
+  )
+
+  const layer0SourceMaps = layer0BuildModule && layer0BuildModule[1]?.layer0SourceMaps
+  const lambdaAssetCopyOptions: CopyOptionsSync = {}
+  // Filter-out source maps from lambda package if not explictely included
+  if (!layer0SourceMaps) {
+    lambdaAssetCopyOptions.filter = (src: string) => !src.endsWith('.map')
+  }
+
   if (!skipFramework) {
+    const command = 'npx nuxt generate'
     // clear .nuxt directory
     builder.emptyDirSync(nuxtDir)
 
@@ -34,10 +48,10 @@ export default async function build(options: BuildOptions) {
       await builder.exec('npx nuxt build --standalone')
 
       if (isStatic) {
-        await builder.exec('npx nuxt generate')
+        await builder.exec(command)
       }
     } catch (e) {
-      throw new FrameworkBuildError('Nuxt.js')
+      throw new FrameworkBuildError('Nuxt.js', command, e)
     }
   }
 
@@ -59,7 +73,7 @@ export default async function build(options: BuildOptions) {
     )
 
     // Vue components
-    .addJSAsset(join(appDir, '.nuxt', 'dist', 'server'))
+    .addJSAsset(join(appDir, '.nuxt', 'dist', 'server'), undefined, lambdaAssetCopyOptions)
 
     // Vue components
     .addJSAsset(join(appDir, '.nuxt', 'routes.json'))
@@ -72,7 +86,7 @@ export default async function build(options: BuildOptions) {
     builder.addStaticAsset(join(appDir, 'dist'))
   }
 
-  await builder.build()
+  await builder.build({ layer0SourceMaps })
 }
 
 async function createLayer0NuxtConfig({ target, generate }: any) {

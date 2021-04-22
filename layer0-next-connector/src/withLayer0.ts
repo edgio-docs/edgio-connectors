@@ -63,6 +63,12 @@ export = function withLayer0(_nextConfig: any) {
         }
 
         if (options.isServer && process.env.NODE_ENV === 'production') {
+          if (nextConfig.layer0SourceMaps) {
+            // We force the 'source-map' value as this is what we expect to consume on
+            // our lambda insfrastructure
+            config.devtool = 'source-map'
+          }
+
           config.output.chunkFilename = '[name].js'
 
           config.optimization.splitChunks = {
