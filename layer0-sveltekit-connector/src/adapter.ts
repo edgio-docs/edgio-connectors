@@ -1,6 +1,7 @@
 /* istanbul ignore file */
-import { renameSync } from 'fs'
+import { writeFileSync } from 'fs'
 import { resolve, join } from 'path'
+const esbuild = require('esbuild')
 
 export = function createAdapter() {
   const adapter = {
@@ -10,19 +11,28 @@ export = function createAdapter() {
       const outputDir = resolve('.layer0')
       const jsDir = join(outputDir, 'lambda')
       const staticDir = join(outputDir, 's3-permanent')
-      const serverDir = join(jsDir, '__backends__')
+      const files = join(__dirname, 'files')
 
-      utils.log.minor('Writing client application...')
-      utils.copy_static_files(staticDir)
-      utils.copy_client_files(staticDir)
+      utils.copy(join(files, 'entry.js'), '.layer0/entry.js')
 
-      utils.log.minor('Building lambda...')
-      utils.copy_server_files(serverDir)
-      renameSync(join(serverDir, 'app.js'), join(serverDir, 'app.mjs'))
-      utils.copy(join(__dirname, 'files'), jsDir)
+      await esbuild.build({
+        entryPoints: ['.layer0/entry.js'],
+        outfile: join(jsDir, 'index.js'),
+        bundle: true,
+        platform: 'node',
+      })
+
+      writeFileSync(join(jsDir, 'package.json'), JSON.stringify({ type: 'commonjs' }))
 
       utils.log.minor('Prerendering static pages...')
       await utils.prerender({ dest: staticDir })
+
+      utils.log.minor('Copying assets...')
+      utils.copy_static_files(staticDir)
+      utils.copy_client_files(staticDir)
+
+      utils.log.minor('Writing routes...')
+      utils.copy(join(files, 'routes.json'), join(jsDir, 'config/routes.json'))
     },
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "@layer0/sapper",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -63,7 +63,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@layer0/core": "^3.2.0",
+    "@layer0/core": "^3.3.0",
     "@types/node": "^14.0.9"
   }
 }

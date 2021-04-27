@@ -16,6 +16,9 @@ export default async function build(options: BuildOptions) {
 
   const { skipFramework } = options
   const config = await loadNuxtConfig()
+
+  // Nuxt will produce static assets that need to be served by NuxtRoutes if target='static' or the config has a generate block,
+  // for example, to generate a 404.html
   const isStatic = config.target === 'static'
 
   const layer0BuildModule = config.buildModules.find(
@@ -31,7 +34,6 @@ export default async function build(options: BuildOptions) {
   }
 
   if (!skipFramework) {
-    const command = 'npx nuxt generate'
     // clear .nuxt directory
     builder.emptyDirSync(nuxtDir)
 
@@ -44,14 +46,22 @@ export default async function build(options: BuildOptions) {
     // run the nuxt.js build with --standalone so that dependencies are bundled and the user
     // doesn't need to add them to package.json dependencies, thus keeping the lambda as
     // small as possible.
-    try {
-      await builder.exec('npx nuxt build --standalone')
+    let command = 'npx nuxt build --standalone'
 
-      if (isStatic) {
-        await builder.exec(command)
-      }
+    try {
+      await builder.exec(command)
     } catch (e) {
       throw new FrameworkBuildError('Nuxt.js', command, e)
+    }
+
+    if (isStatic) {
+      command = 'npx nuxt generate'
+
+      try {
+        await builder.exec(command)
+      } catch (e) {
+        throw new FrameworkBuildError('Nuxt.js', command, e)
+      }
     }
   }
 

@@ -14,6 +14,6 @@
       "@layer0/core/*": ["core/src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "files"],
   "exclude": ["node_modules"]
 }

@@ -1,4 +1,5 @@
 import withLayer0 from '../../src/withLayer0'
+import webpackMerge from 'webpack-merge'
 
 describe('withLayer0', () => {
   beforeEach(() => {
@@ -57,6 +58,34 @@ describe('withLayer0', () => {
     const webpackConfig = { output: {}, optimization: {}, plugins: [] }
     const options = { isServer: true, webpack: { version: '5.0.0' } }
     expect(() => withLayer0().webpack(webpackConfig, options)).not.toThrowError()
+  })
+
+  it('should merge config options', () => {
+    const NODE_ENV = process.env.NODE_ENV
+
+    try {
+      process.env.NODE_ENV = 'production'
+      const options = { isServer: true, webpack: { version: '4.0.0' } }
+      const webpackConfig = { output: {}, optimization: {}, plugins: [] }
+
+      const expectFn = () =>
+        withLayer0({
+          test: true,
+          webpack(config) {
+            return webpackMerge(config, {})
+          },
+        }).webpack(webpackConfig, options)
+
+      expect(expectFn).not.toThrowError()
+
+      const result = expectFn()
+      expect(result).toHaveProperty(
+        'optimization.splitChunks.cacheGroups.commons.name',
+        'webpack-runtime-commons'
+      )
+    } finally {
+      process.env.NODE_ENV = NODE_ENV
+    }
   })
 
   it('does not add devtools install script in client entries', async () => {

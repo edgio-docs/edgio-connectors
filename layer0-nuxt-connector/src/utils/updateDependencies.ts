@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { loadNuxtConfig } from '@nuxt/config'
 import { read as readPkg, write as writePkg } from '@layer0/core/utils/packageUtils'
 import chalk from 'chalk'

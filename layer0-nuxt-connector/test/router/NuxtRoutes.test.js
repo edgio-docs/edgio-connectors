@@ -16,6 +16,7 @@ describe('NuxtRoutes', () => {
     cache,
     serveStatic,
     proxy,
+    renderWithApp,
     stream,
     setRequestHeader,
     watchCallback,
@@ -33,6 +34,7 @@ describe('NuxtRoutes', () => {
       proxy = jest.fn()
       stream = jest.fn()
       setRequestHeader = jest.fn()
+      renderWithApp = jest.fn()
 
       jest.spyOn(fs, 'watch').mockImplementation((file, callback) => {
         watchCallback = callback
@@ -59,6 +61,7 @@ describe('NuxtRoutes', () => {
             this.render = cb => cb(request, response, {})
             this.stream = stream
             this.setRequestHeader = setRequestHeader
+            this.renderWithApp = renderWithApp
           }
         }
       })
@@ -153,6 +156,12 @@ describe('NuxtRoutes', () => {
       process.env.NODE_ENV = env
     })
 
+    it('should fallback to dynamic 404', async () => {
+      request.path = '/not-found'
+      await new Router().use(new NuxtRoutes()).run(request, response)
+      expect(renderWithApp).toHaveBeenCalled()
+    })
+
     it('should serve static assets before dynamic pages', async () => {
       routes = [{ path: '/*' }]
       router.use(new NuxtRoutes())
@@ -233,6 +242,14 @@ describe('NuxtRoutes', () => {
       request.path = '/p/1'
       await router.run(request, response)
       expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: expect.any(Function) })
+    })
+
+    it('should add a fallback to Nuxt', async () => {
+      routes = [{ path: '/p/*' }]
+      router.use(new NuxtRoutes())
+      request.path = '/not-found-page'
+      await router.run(request, response)
+      expect(renderWithApp).toHaveBeenCalledWith()
     })
   })
 
@@ -320,6 +337,15 @@ describe('NuxtRoutes', () => {
         // verify that it falls back to SSR
         const { onNotFound } = serveStatic.mock.calls[0][1]
         await onNotFound(responseWriter)
+        expect(serveStatic).toHaveBeenCalledWith('dist/404.html', {
+          statusCode: 404,
+          statusMessage: 'Not Found',
+        })
+      })
+
+      it('should serve 404.html when no route matches the request', async () => {
+        request.path = '/no-match'
+        await new Router().use(new NuxtRoutes()).run(request, response)
         expect(serveStatic).toHaveBeenCalledWith('dist/404.html', {
           statusCode: 404,
           statusMessage: 'Not Found',

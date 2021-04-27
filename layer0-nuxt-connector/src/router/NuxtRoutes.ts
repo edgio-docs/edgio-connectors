@@ -57,9 +57,12 @@ export default class NuxtRoutes extends PluginBase {
     if (isProductionBuild()) {
       this.config = <NuxtConfig>JSON.parse(readAsset(join(process.cwd(), LAYER0_NUXT_CONFIG_PATH)))
     } else {
+      /* istanbul ignore if */
       if (!existsSync(nuxtDir)) {
         mkdirSync(nuxtDir)
       }
+
+      /* istanbul ignore if */
       if (!existsSync(this.routesJsonPath)) {
         writeFileSync(this.routesJsonPath, JSON.stringify([]))
       }
@@ -102,6 +105,7 @@ export default class NuxtRoutes extends PluginBase {
     this.router = router
     this.loadNuxtRoutes()
     this.router.group(this.nuxtRouteGroupName, group => this.addNuxtRoutesToGroup(group))
+    this.addFallback()
   }
 
   /**
@@ -164,13 +168,15 @@ export default class NuxtRoutes extends PluginBase {
         }
 
         group.match(pattern, res => {
+          const onNotFound = loadingPage
+            ? renderNuxtPage
+            : notFoundPage
+            ? () => this.render404(res, <string>notFoundPage)
+            : undefined
+
           res.serveStatic(file, {
             loadingPage,
-            onNotFound: loadingPage
-              ? renderNuxtPage
-              : notFoundPage
-              ? () => this.render404(res, <string>notFoundPage)
-              : undefined,
+            onNotFound,
           })
         })
       } else {
@@ -181,6 +187,35 @@ export default class NuxtRoutes extends PluginBase {
 
         group.match(pattern, renderNuxtPage)
       }
+    }
+  }
+
+  addFallback() {
+    if (isProductionBuild()) {
+      /* istanbul ignore next: optional chaining */
+      let fallback = this.config?.generate?.fallback
+
+      if (fallback === true) {
+        fallback = '404.html'
+      }
+
+      // render the static 404.html page when generate: { fallback: true } is set in nuxt.config.js
+      if (fallback != null) {
+        /* istanbul ignore if */
+        if (isLocal()) {
+          console.log('[@layer0/nuxt] fallback', fallback)
+        }
+
+        /* istanbul ignore next: optional chaining */
+        this.router?.fallback(res => this.render404(res, `dist/${fallback}`))
+      } else {
+        /* istanbul ignore next: optional chaining */
+        this.router?.fallback(({ renderWithApp }) => renderWithApp())
+      }
+    } else {
+      // in development nuxt will always render a 404
+      /* istanbul ignore next: optional chaining */
+      this.router?.fallback(({ renderWithApp }) => renderWithApp())
     }
   }
 

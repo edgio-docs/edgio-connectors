@@ -32,7 +32,7 @@ export = function withLayer0(_nextConfig: any) {
       target: 'serverless',
       withLayer0Applied: true, // validateNextConfig looks for this to ensure that the configuration is valid
       webpack: (config: any, options: any) => {
-        const webpackConfig = nextConfig.webpack?.(config, options) || config
+        const webpackConfig = { ...(nextConfig.webpack?.(config, options) || config) }
 
         if (options.webpack.version.startsWith('5')) {
           Object.assign(config, {
@@ -93,7 +93,7 @@ export = function withLayer0(_nextConfig: any) {
           config.plugins.push(new CommonsServerChunkPlugin())
         }
 
-        return webpackConfig
+        return Object.assign(webpackConfig, config)
       },
     }
   }
