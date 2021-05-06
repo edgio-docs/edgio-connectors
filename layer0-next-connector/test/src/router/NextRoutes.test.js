@@ -23,6 +23,7 @@ describe('NextRoutes', () => {
     stream,
     updatePath,
     config = {},
+    loadConfig = {},
     watch,
     watchCallback,
     rewrite,
@@ -85,6 +86,9 @@ describe('NextRoutes', () => {
         get nextConfig() {
           return config
         },
+        loadConfig() {
+          return loadConfig
+        },
       }
 
       renderNextPage = jest.fn(() => 'renderNextPage!')
@@ -128,161 +132,199 @@ describe('NextRoutes', () => {
   })
 
   describe('in local development', () => {
-    beforeAll(() => {
-      config = {
-        async rewrites() {
-          return [
-            {
-              source: '/rewrites/:id',
-              destination: '/p/:id',
-            },
-          ]
-        },
-        async redirects() {
-          return [
-            {
-              source: '/redirects/:id',
-              destination: '/p/:id',
-            },
-          ]
-        },
-      }
-      process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-dev'))
-    })
+    describe('with nextConfig', () => {
+      beforeAll(() => {
+        config = {
+          async rewrites() {
+            return [
+              {
+                source: '/rewrites/:id',
+                destination: '/p/:id',
+              },
+            ]
+          },
+          async redirects() {
+            return [
+              {
+                source: '/redirects/:id',
+                destination: '/p/:id',
+              },
+            ]
+          },
+        }
+        process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-dev'))
+      })
 
-    afterAll(() => {
-      process.chdir(originalDir)
-      delete global.LAYER0_NEXT_APP
-    })
+      afterAll(() => {
+        process.chdir(originalDir)
+        delete global.LAYER0_NEXT_APP
+      })
 
-    it('should add routes for all pages and api endpoints', async () => {
-      request.path = '/p/1'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should add routes for all static assets', async () => {
-      request.path = '/_next/static/development/pages/index.js'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should serve assets in the public dir', async () => {
-      request.path = '/favicon.ico'
-      await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
-    })
-
-    it('should call router image optimizer with pass through', async () => {
-      request.path = '/_next/image'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js, undefined)
-    })
-
-    it('should add routes for all pages and api endpoints', async () => {
-      request.path = '/p/1'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should add routes for tsx pages', async () => {
-      request.path = '/typescript'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should add routes for getServerSideProps', async () => {
-      request.path = '/_next/data/development/p/1.json'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should add index routes for getServerSideProps properly', async () => {
-      request.path = '/_next/data/development/index.json'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should add a route for webpack hmr', async () => {
-      request.path = '/_next/webpack-hmr'
-      await router.run(request, response)
-      expect(stream).toHaveBeenCalled()
-    })
-
-    it('should watch pages for changes', () => {
-      const updateRoutes = jest.spyOn(NextRoutes.prototype, 'updateRoutes')
-      new Router().use(new NextRoutes())
-
-      expect(watch).toHaveBeenCalledWith(
-        join(process.cwd(), 'pages'),
-        { recursive: true },
-        expect.any(Function)
-      )
-
-      watchCallback()
-      expect(updateRoutes).toHaveBeenCalled()
-    })
-
-    it('should accept directory parameter', () => {
-      new Router().use(new NextRoutes('apps/my-next-app'))
-
-      expect(watch).toHaveBeenCalledWith(
-        join(process.cwd(), 'apps/my-next-app/src/pages'),
-        { recursive: true },
-        expect.any(Function)
-      )
-    })
-
-    it('should add routes for rewrites', async done => {
-      process.nextTick(async () => {
-        request.path = '/rewrites/1'
+      it('should add routes for all pages and api endpoints', async () => {
+        request.path = '/p/1'
         await router.run(request, response)
         expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        done()
       })
-    })
 
-    it('should add routes for redirects', async done => {
-      process.nextTick(async () => {
-        request.path = '/redirects/1'
+      it('should add routes for all static assets', async () => {
+        request.path = '/_next/static/development/pages/index.js'
         await router.run(request, response)
-        expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 302 })
-        done()
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
       })
-    })
 
-    it('should render the 404 page when no route is matched', async done => {
-      process.nextTick(async () => {
-        request.path = '/no-route-matched'
+      it('should serve assets in the public dir', async () => {
+        request.path = '/favicon.ico'
         await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalledWith(
-          '404',
-          expect.anything(),
-          expect.any(Function),
-          { rewritePath: false }
+        expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
+      })
+
+      it('should call router image optimizer with pass through', async () => {
+        request.path = '/_next/image'
+        await router.run(request, response)
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js, undefined)
+      })
+
+      it('should add routes for all pages and api endpoints', async () => {
+        request.path = '/p/1'
+        await router.run(request, response)
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+      })
+
+      it('should add routes for tsx pages', async () => {
+        request.path = '/typescript'
+        await router.run(request, response)
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+      })
+
+      it('should add routes for getServerSideProps', async () => {
+        request.path = '/_next/data/development/p/1.json'
+        await router.run(request, response)
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+      })
+
+      it('should add index routes for getServerSideProps properly', async () => {
+        request.path = '/_next/data/development/index.json'
+        await router.run(request, response)
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+      })
+
+      it('should add a route for webpack hmr', async () => {
+        request.path = '/_next/webpack-hmr'
+        await router.run(request, response)
+        expect(stream).toHaveBeenCalled()
+      })
+
+      it('should watch pages for changes', () => {
+        const updateRoutes = jest.spyOn(NextRoutes.prototype, 'updateRoutes')
+        new Router().use(new NextRoutes())
+
+        expect(watch).toHaveBeenCalledWith(
+          join(process.cwd(), 'pages'),
+          { recursive: true },
+          expect.any(Function)
         )
-        done()
+
+        watchCallback()
+        expect(updateRoutes).toHaveBeenCalled()
+      })
+
+      it('should accept directory parameter', () => {
+        new Router().use(new NextRoutes('apps/my-next-app'))
+
+        expect(watch).toHaveBeenCalledWith(
+          join(process.cwd(), 'apps/my-next-app/src/pages'),
+          { recursive: true },
+          expect.any(Function)
+        )
+      })
+
+      it('should add routes for rewrites', async done => {
+        process.nextTick(async () => {
+          request.path = '/rewrites/1'
+          await router.run(request, response)
+          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+          done()
+        })
+      })
+
+      it('should add routes for redirects', async done => {
+        process.nextTick(async () => {
+          request.path = '/redirects/1'
+          await router.run(request, response)
+          expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 302 })
+          done()
+        })
+      })
+
+      it('should render the 404 page when no route is matched', async done => {
+        process.nextTick(async () => {
+          request.path = '/no-route-matched'
+          await router.run(request, response)
+          expect(renderNextPage).toHaveBeenCalledWith(
+            '404',
+            expect.anything(),
+            expect.any(Function),
+            { rewritePath: false }
+          )
+          done()
+        })
+      })
+
+      it('should render a 404 page directly', async done => {
+        const nextRoutes = new NextRoutes()
+        const router = new Router()
+          .get('/missing-page', res => nextRoutes.render404(res))
+          .use(nextRoutes)
+
+        process.nextTick(async () => {
+          request.path = '/missing-page'
+          await router.run(request, response)
+          expect(renderNextPage).toHaveBeenCalledWith(
+            '404',
+            expect.anything(),
+            expect.any(Function),
+            {
+              rewritePath: false,
+            }
+          )
+          done()
+        })
       })
     })
 
-    it('should render a 404 page directly', async done => {
-      const nextRoutes = new NextRoutes()
-      const router = new Router()
-        .get('/missing-page', res => nextRoutes.render404(res))
-        .use(nextRoutes)
+    describe('with loadConfig', () => {
+      beforeAll(() => {
+        config = undefined
+        loadConfig = {
+          async rewrites() {
+            return [
+              {
+                source: '/rewrites/:id',
+                destination: '/p/:id',
+              },
+            ]
+          },
+          async redirects() {
+            return [
+              {
+                source: '/redirects/:id',
+                destination: '/p/:id',
+              },
+            ]
+          },
+        }
+        process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-dev'))
+      })
 
-      process.nextTick(async () => {
-        request.path = '/missing-page'
+      afterAll(() => {
+        process.chdir(originalDir)
+        delete global.LAYER0_NEXT_APP
+      })
+
+      it('should add routes for all pages and api endpoints', async () => {
+        request.path = '/p/1'
         await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalledWith(
-          '404',
-          expect.anything(),
-          expect.any(Function),
-          {
-            rewritePath: false,
-          }
-        )
-        done()
+        expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
       })
     })
   })
@@ -461,14 +503,13 @@ describe('NextRoutes', () => {
     })
 
     describe('rewrites', () => {
-      it('should show a warning when the destination for a rewrite cannot be found', done => {
+      it('should show a warning when the destination for a rewrite cannot be found', async () => {
         new Router().use(new NextRoutes())
-        process.nextTick(() => {
-          expect(warn).toHaveBeenCalledWith(
-            'No matching route found for rewrite /no-matching-rewrite => /not-defined'
-          )
-          done()
-        })
+        request.path = '/no-matching-rewrite'
+        await router.run(request, response)
+        expect(warn).toHaveBeenCalledWith(
+          'No matching route found for rewrite /no-matching-rewrite => /not-defined'
+        )
       })
     })
 

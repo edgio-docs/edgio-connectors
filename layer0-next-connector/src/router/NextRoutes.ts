@@ -40,7 +40,7 @@ export default class NextRoutes extends PluginBase {
   private pagesDir: string
   private pagesDirRelative: string
   private router?: Router
-  private rewrites?: any[]
+  private rewrites?: any
   private redirects?: any[]
   private routesManifest: any
   private distDir: string
@@ -111,10 +111,13 @@ export default class NextRoutes extends PluginBase {
    * Attempt to get rewrites and redirects from the next config in development.
    */
   private async loadRewritesInDev() {
-    console.log('> getting rewrites and redirects from next config')
-
     // @ts-ignore
-    const { nextConfig } = global.LAYER0_NEXT_APP
+    const app = global.LAYER0_NEXT_APP
+    let nextConfig = app.nextConfig
+
+    if (!nextConfig) {
+      nextConfig = await app.loadConfig()
+    }
 
     /* istanbul ignore if */
     if (!nextConfig) {
@@ -161,8 +164,10 @@ export default class NextRoutes extends PluginBase {
    * @param {RouteGroup} group
    */
   private addNextRoutesToGroup(group: RouteGroup) {
+    this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
     this.addImageOptimizerRoutes(group)
+    this.addRewrites(this.rewrites?.afterFiles, group)
 
     if (isProductionBuild()) {
       this.addPagesInProd(group)
@@ -171,7 +176,13 @@ export default class NextRoutes extends PluginBase {
       this.addPagesInDev(group)
     }
 
-    this.addRewrites(group)
+    const fallbackRewrites = this.rewrites?.fallback || this.rewrites
+
+    if (Array.isArray(fallbackRewrites)) {
+      this.addRewrites(fallbackRewrites, group)
+    }
+
+    this.addRedirects(group)
   }
 
   /**
@@ -197,30 +208,37 @@ export default class NextRoutes extends PluginBase {
       normalizedDestination = normalizedDestination.replace(/:locale/, this.defaultLocale)
     }
 
-    const destRoute = group.routes.find(route => {
-      return route.match(<Request>{
-        path: normalizedDestination,
-      })
-    })
+    if (isProductionBuild()) {
+      console.log(`[rewrite] ${source} => ${normalizedDestination}`)
+    }
 
-    if (destRoute) {
-      if (isProductionBuild()) {
-        console.log(`[rewrite] ${source} => ${destRoute.criteria.path}`)
-      }
+    group.match(
+      normalizedSource,
+      res => {
+        const destRoute = group.routes.find(route => {
+          return route.match(<Request>{ path: normalizedDestination })
+        })
 
-      group.match(
-        normalizedSource,
-        res => {
+        if (destRoute) {
           // need to extract the params again based on the new path
           res.rewrite(destination, <string>destRoute.criteria.path)
           destRoute.handler(res)
-        },
-        {
-          index,
+        } else {
+          console.warn(`No matching route found for rewrite ${source} => ${destination}`)
         }
-      )
-    } else {
-      console.warn(`No matching route found for rewrite ${source} => ${destination}`)
+      },
+      {
+        index,
+      }
+    )
+  }
+
+  private addRewrites(rewrites: any[], group: RouteGroup) {
+    if (rewrites) {
+      for (let i = 0; i < rewrites.length; i++) {
+        let { source, destination } = rewrites[i]
+        this.addRewrite(group, source, destination, i)
+      }
     }
   }
 
@@ -228,16 +246,7 @@ export default class NextRoutes extends PluginBase {
    * Adds rewrites and redirects from next.config.js
    * @param group
    */
-  private addRewrites(group: RouteGroup) {
-    // support next.js rewrites
-    if (this.rewrites) {
-      for (let i = 0; i < this.rewrites.length; i++) {
-        let { source, destination } = this.rewrites[i]
-        this.addRewrite(group, source, destination, i)
-      }
-    }
-
-    // support next.js redirects
+  private addRedirects(group: RouteGroup) {
     if (this.redirects) {
       for (let { source, statusCode, destination } of this.redirects) {
         if (source !== '/:path+/') {

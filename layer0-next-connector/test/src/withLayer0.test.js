@@ -135,6 +135,30 @@ describe('withLayer0', () => {
     })
   })
 
+  describe('when layer0SourceMaps:true is set', () => {
+    const env = process.env.NODE_ENV
+
+    beforeEach(() => {
+      process.env.NODE_ENV = 'production'
+    })
+
+    afterEach(() => {
+      process.env.NODE_ENV = env
+    })
+
+    it('should set devtool: source-map', () => {
+      const options = { isServer: true, webpack: { version: '5.0.0' } }
+      const webpackConfig = {
+        entry: () => Promise.resolve({ 'main.js': ['original-main'] }),
+        output: {},
+        optimization: {},
+        plugins: [],
+      }
+      const result = withLayer0({ layer0SourceMaps: true }).webpack(webpackConfig, options)
+      expect(result.devtool).toBe('source-map')
+    })
+  })
+
   describe('when require @layer0/devtools/widget/install explodes', () => {
     beforeEach(() => {
       jest.mock(
