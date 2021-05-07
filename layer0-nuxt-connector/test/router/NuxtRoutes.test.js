@@ -1,10 +1,10 @@
 import { LAYER0_ENV_VARIABLES } from '@layer0/core/constants'
 import { BACKENDS } from '@layer0/core/constants'
-import fs from 'fs'
 import path from 'path'
 import { mockRequest, mockResponse } from './mocks'
 import * as assets from '../../src/router/assets'
 import addPreloadHeaders from '@layer0/core/router/addPreloadHeaders'
+import * as coreWatch from '@layer0/core/utils/watch'
 
 describe('NuxtRoutes', () => {
   let NuxtRoutes,
@@ -36,8 +36,12 @@ describe('NuxtRoutes', () => {
       setRequestHeader = jest.fn()
       renderWithApp = jest.fn()
 
-      jest.spyOn(fs, 'watch').mockImplementation((file, callback) => {
-        watchCallback = callback
+      jest.spyOn(coreWatch, 'default').mockImplementation(() => {
+        return {
+          on: (_filter, callback) => {
+            watchCallback = callback
+          },
+        }
       })
 
       jest.spyOn(assets, 'readAsset').mockImplementation(path => {
@@ -114,14 +118,6 @@ describe('NuxtRoutes', () => {
       expect(group.routes.length).toBe(4)
       watchCallback('change')
       expect(group.routes.map(route => route.criteria.path)).toContain('/p/:id')
-    })
-
-    it('should accept watch events other than change', () => {
-      router.use(new NuxtRoutes())
-      routes = [{ path: '/p/:id?' }]
-      const group = router.routeGroups.findByName('nuxt_routes_group')
-      watchCallback('delete')
-      expect(group.routes.length).toBe(4)
     })
 
     it('should accept an empty routes file', () => {

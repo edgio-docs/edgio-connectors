@@ -1,8 +1,8 @@
 import { LAYER0_ENV_VARIABLES } from '@layer0/core/constants'
 import { BACKENDS } from '@layer0/core/constants'
-import fs from 'fs'
 import { join } from 'path'
 import { STATIC_ASSET_MANIFEST_FILE } from '@layer0/core/router/RouteGroup'
+import * as coreWatch from '@layer0/core/utils/watch'
 
 describe('SvelteKitRoutes', () => {
   let SvelteKitRoutes,
@@ -22,7 +22,6 @@ describe('SvelteKitRoutes', () => {
 
   beforeEach(() => {
     jest.isolateModules(() => {
-      jest.resetModules()
       jest.spyOn(console, 'log').mockImplementation()
       cache = jest.fn()
       serveStatic = jest.fn()
@@ -31,8 +30,12 @@ describe('SvelteKitRoutes', () => {
       setRequestHeader = jest.fn()
       serviceWorker = jest.fn()
 
-      watch = jest.spyOn(fs, 'watch').mockImplementation((file, options, callback) => {
-        watchCallback = callback
+      watch = jest.spyOn(coreWatch, 'default').mockImplementation(() => {
+        return {
+          on: (_filter, cb) => {
+            watchCallback = cb
+          },
+        }
       })
 
       const glob = require(join(
@@ -120,11 +123,7 @@ describe('SvelteKitRoutes', () => {
       const updateRoutes = jest.spyOn(SvelteKitRoutes.prototype, 'updateRoutes')
       router.use(new SvelteKitRoutes())
 
-      expect(watch).toHaveBeenCalledWith(
-        join(process.cwd(), join('src', 'routes')),
-        { recursive: true },
-        expect.any(Function)
-      )
+      expect(watch).toHaveBeenCalledWith(join(process.cwd(), join('src', 'routes')))
 
       watchCallback()
       expect(updateRoutes).toHaveBeenCalled()

@@ -1,7 +1,7 @@
 import { BACKENDS, LAYER0_IMAGE_OPTIMIZER_PATH } from '@layer0/core/constants'
 import { isCloud, isProductionBuild } from '@layer0/core/environment'
 import { localize, toRouteSyntax } from './nextPathFormatter'
-import { watch, existsSync } from 'fs'
+import { existsSync } from 'fs'
 import getDistDir from '../util/getDistDir'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import { join } from 'path'
@@ -13,6 +13,7 @@ import RouteGroup from '@layer0/core/router/RouteGroup'
 import Router, { RouteHandler } from '@layer0/core/router/Router'
 import { FAR_FUTURE_TTL } from './constants'
 import { PreloadRequestConfig } from '@layer0/core/router/Preload'
+import watch from '@layer0/core/utils/watch'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -75,7 +76,7 @@ export default class NextRoutes extends PluginBase {
     }
 
     if (!isProductionBuild()) {
-      watch(this.pagesDir, { recursive: true }, () => this.updateRoutes())
+      watch(this.pagesDir).on('all', () => this.updateRoutes())
     }
   }
 

@@ -3,11 +3,12 @@ import { join } from 'path'
 import { isLocal, isProductionBuild } from '@layer0/core/environment'
 import { BACKENDS } from '@layer0/core/constants'
 import renderNuxtPage from './renderNuxtPage'
-import { watch, existsSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, writeFileSync, mkdirSync } from 'fs'
 import { Router, ResponseWriter } from '@layer0/core/router'
 import RouteGroup from '@layer0/core/router/RouteGroup'
 import { NuxtConfig } from './NuxtConfig'
 import { readAsset } from './assets'
+import watch from '@layer0/core/utils/watch'
 
 /**
  * A TTL for assets that never change.  10 years in seconds.
@@ -67,8 +68,8 @@ export default class NuxtRoutes extends PluginBase {
         writeFileSync(this.routesJsonPath, JSON.stringify([]))
       }
 
-      watch(this.routesJsonPath, eventType => {
-        if (eventType === 'change' && this.loadNuxtRoutes()) {
+      watch(this.routesJsonPath).on('change', () => {
+        if (this.loadNuxtRoutes()) {
           this.updateRoutes()
         }
       })

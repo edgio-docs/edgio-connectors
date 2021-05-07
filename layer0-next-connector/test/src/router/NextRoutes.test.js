@@ -1,7 +1,7 @@
 import path, { join } from 'path'
 import { LAYER0_ENV_VARIABLES } from '@layer0/core/constants'
 import { BACKENDS } from '@layer0/core/constants'
-import fs from 'fs'
+import * as coreWatch from '@layer0/core/utils/watch'
 import { LAYER0_IMAGE_OPTIMIZER_PATH } from '../../../../cli/src/constants'
 
 const originalDir = process.cwd()
@@ -46,9 +46,13 @@ describe('NextRoutes', () => {
       jest.spyOn(console, 'debug').mockImplementation()
       warn = jest.spyOn(console, 'warn').mockImplementation()
 
-      watch = jest
-        .spyOn(fs, 'watch')
-        .mockImplementation((file, options, cb) => (watchCallback = cb))
+      watch = jest.spyOn(coreWatch, 'default').mockImplementation(() => {
+        return {
+          on: (_filter, cb) => {
+            watchCallback = cb
+          },
+        }
+      })
 
       jest.doMock('../../../src/util/getDistDir', () => () => '.next')
 
@@ -218,11 +222,7 @@ describe('NextRoutes', () => {
         const updateRoutes = jest.spyOn(NextRoutes.prototype, 'updateRoutes')
         new Router().use(new NextRoutes())
 
-        expect(watch).toHaveBeenCalledWith(
-          join(process.cwd(), 'pages'),
-          { recursive: true },
-          expect.any(Function)
-        )
+        expect(watch).toHaveBeenCalledWith(join(process.cwd(), 'pages'))
 
         watchCallback()
         expect(updateRoutes).toHaveBeenCalled()
@@ -231,11 +231,7 @@ describe('NextRoutes', () => {
       it('should accept directory parameter', () => {
         new Router().use(new NextRoutes('apps/my-next-app'))
 
-        expect(watch).toHaveBeenCalledWith(
-          join(process.cwd(), 'apps/my-next-app/src/pages'),
-          { recursive: true },
-          expect.any(Function)
-        )
+        expect(watch).toHaveBeenCalledWith(join(process.cwd(), 'apps/my-next-app/src/pages'))
       })
 
       it('should add routes for rewrites', async done => {

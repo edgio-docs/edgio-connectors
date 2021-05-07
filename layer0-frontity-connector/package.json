@@ -1,6 +1,6 @@
 {
   "name": "@layer0/frontity",
-  "version": "3.5.0",
+  "version": "3.5.1",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -67,7 +67,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@layer0/core": "^3.5.0",
+    "@layer0/core": "^3.5.1",
     "@types/node": "^14.0.9",
     "@types/workbox-webpack-plugin": "^5.1.5"
   }

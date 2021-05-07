@@ -6,7 +6,7 @@ import { BACKENDS } from '@layer0/core/constants'
 import Router from '@layer0/core/router/Router'
 import RouteGroup from '@layer0/core/router/RouteGroup'
 import ResponseWriter from '@layer0/core/router/ResponseWriter'
-import { watch } from 'fs'
+import watch from '@layer0/core/utils/watch'
 
 /**
  * A TTL for assets that never change.  10 years in seconds.
@@ -54,7 +54,7 @@ export default class SapperRoutes extends PluginBase {
     this.pagesDir = path.join(this.sapperRootDir, this.pagesDirRelative)
 
     if (!isProductionBuild()) {
-      watch(this.pagesDir, { recursive: true }, () => this.updateRoutes())
+      watch(this.pagesDir).on('all', () => this.updateRoutes())
     }
   }
 

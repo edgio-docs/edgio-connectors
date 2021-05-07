@@ -1,8 +1,9 @@
 import { LAYER0_ENV_VARIABLES } from '@layer0/core/constants'
 import { BACKENDS } from '@layer0/core/constants'
-import fs from 'fs'
 import { join } from 'path'
 import { STATIC_ASSET_MANIFEST_FILE } from '@layer0/core/router/RouteGroup'
+import * as coreWatch from '@layer0/core/utils/watch'
+import chokidar from 'chokidar'
 
 describe('SapperRoutes', () => {
   let SapperRoutes,
@@ -22,7 +23,6 @@ describe('SapperRoutes', () => {
 
   beforeEach(() => {
     jest.isolateModules(() => {
-      jest.resetModules()
       jest.spyOn(console, 'log').mockImplementation()
       cache = jest.fn()
       serveStatic = jest.fn()
@@ -31,8 +31,12 @@ describe('SapperRoutes', () => {
       setRequestHeader = jest.fn()
       serviceWorker = jest.fn()
 
-      watch = jest.spyOn(fs, 'watch').mockImplementation((file, options, callback) => {
-        watchCallback = callback
+      watch = jest.spyOn(coreWatch, 'default').mockImplementation(() => {
+        return {
+          on: (_filter, callback) => {
+            watchCallback = callback
+          },
+        }
       })
 
       const glob = require(join(
@@ -120,11 +124,10 @@ describe('SapperRoutes', () => {
       const updateRoutes = jest.spyOn(SapperRoutes.prototype, 'updateRoutes')
       router.use(new SapperRoutes())
 
-      expect(watch).toHaveBeenCalledWith(
-        join(process.cwd(), join('src', 'routes')),
-        { recursive: true },
-        expect.any(Function)
-      )
+      expect(watch).toHaveBeenCalledWith(join(process.cwd(), join('src', 'routes')))
+
+      const watcher = new chokidar.FSWatcher()
+      watcher.add('test.js')
 
       watchCallback()
       expect(updateRoutes).toHaveBeenCalled()
