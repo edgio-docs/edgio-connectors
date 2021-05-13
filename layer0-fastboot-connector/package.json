@@ -1,6 +1,6 @@
 {
   "name": "@layer0/fastboot",
-  "version": "3.6.0",
+  "version": "3.6.1",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "scripts": {

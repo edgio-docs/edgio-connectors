@@ -74,10 +74,6 @@ export default class NextRoutes extends PluginBase {
         }
       })
     }
-
-    if (!isProductionBuild()) {
-      watch(this.pagesDir).on('all', () => this.updateRoutes())
-    }
   }
 
   /**
@@ -147,6 +143,10 @@ export default class NextRoutes extends PluginBase {
     /* create route group and add all next routes into it */
     this.router.group(this.nextRouteGroupName, group => this.addNextRoutesToGroup(group))
     this.router.fallback(res => this.render404(res))
+
+    if (!isProductionBuild()) {
+      watch(this.pagesDir).on('all', () => this.updateRoutes())
+    }
   }
 
   /**
