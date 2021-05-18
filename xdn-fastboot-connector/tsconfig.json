@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./stage",
+    "strict": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es5", "scriptHost", "dom.iterable"],
+    "baseUrl": "..",
+    "paths": {
+      "@xdn/core": ["core/src"],
+      "@xdn/core/*": ["core/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

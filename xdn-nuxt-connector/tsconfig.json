@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./stage",
+    "strict": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es5", "scriptHost", "dom.iterable"],
+    "baseUrl": "..",
+    "skipLibCheck": true,
+    "paths": {
+      "@xdn/core": ["core/src"],
+      "@xdn/core/*": ["core/src/*"],
+      "@xdn/prefetch": ["prefetch/src"],
+      "@xdn/prefetch/*": ["prefetch/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
