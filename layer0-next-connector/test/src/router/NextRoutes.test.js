@@ -98,6 +98,7 @@ describe('NextRoutes', () => {
       renderNextPage = jest.fn(() => 'renderNextPage!')
       jest.doMock('@layer0/next/router/renderNextPage', () => renderNextPage)
       Router = require('@layer0/core/router/Router').default
+
       NextRoutes = require('@layer0/next/router/NextRoutes').default
       plugin = new NextRoutes()
       router = new Router()
@@ -141,6 +142,41 @@ describe('NextRoutes', () => {
         config = {
           async rewrites() {
             return [
+              {
+                source: '/rewrites',
+                has: [{ type: 'query', key: 'foo', value: 'bar' }, { type: 'invalid type' }],
+                destination: '/p/1',
+              },
+              {
+                source: '/rewrites',
+                has: [{ type: 'query', key: 'q' }],
+                destination: '/p/1',
+              },
+              {
+                source: '/rewrites',
+                has: [{ type: 'header', key: 'x-rewrite-me', value: 'true' }],
+                destination: '/p/2',
+              },
+              {
+                source: '/rewrites',
+                has: [{ type: 'header', key: 'x-rewrite-me-empty' }],
+                destination: '/p/2',
+              },
+              {
+                source: '/rewrites',
+                has: [{ type: 'cookie', key: 'x-rewrite-me', value: 'true' }],
+                destination: '/p/3',
+              },
+              {
+                source: '/rewrites',
+                has: [{ type: 'cookie', key: 'x-rewrite-me-empty' }],
+                destination: '/p/2',
+              },
+              {
+                source: '/rewrites',
+                has: [{ type: 'host', value: 'localhost' }],
+                destination: '/p/4',
+              },
               {
                 source: '/rewrites/:id',
                 destination: '/p/:id',
@@ -234,12 +270,77 @@ describe('NextRoutes', () => {
         expect(watch).toHaveBeenCalledWith(join(process.cwd(), 'apps/my-next-app/src/pages'))
       })
 
-      it('should add routes for rewrites', async done => {
-        process.nextTick(async () => {
-          request.path = '/rewrites/1'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-          done()
+      describe('rewrites', () => {
+        it('should add routes for rewrites', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites/1'
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support query', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.query = { foo: 'bar' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support query without a value', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.query = { q: 'bar' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support headers', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.headers = { 'x-rewrite-me': 'true' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support headers without values', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.headers = { 'x-rewrite-me-empty': 'true' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support cookie', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.headers = { cookie: 'x-rewrite-me=true' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support cookie without a value', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.headers = { cookie: 'x-rewrite-me-empty=true' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
+        })
+        it('should support host', async done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites'
+            request.headers = { host: 'localhost' }
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
+            done()
+          })
         })
       })
 
@@ -730,5 +831,27 @@ describe('NextRoutes', () => {
         })
       }
     })
+  })
+})
+
+describe('when attempting to capture named parameters in rewrites', () => {
+  let env = process.env.NODE_ENV
+
+  beforeAll(() => {
+    process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-cloud-bad-has'))
+    process.env.NODE_ENV = 'production'
+  })
+
+  afterAll(() => {
+    process.chdir(originalDir)
+    process.env.NODE_ENV = env
+  })
+
+  it('should throw a helpful error message', () => {
+    expect(() => {
+      const Router = require('@layer0/core/router').Router
+      const NextRoutes = require('../../../src/router/NextRoutes').default
+      new Router().use(new NextRoutes())
+    }).toThrowError(/Layer0 does not yet support capturing named parameters/)
   })
 })

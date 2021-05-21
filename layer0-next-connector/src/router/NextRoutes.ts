@@ -14,6 +14,7 @@ import Router, { RouteHandler } from '@layer0/core/router/Router'
 import { FAR_FUTURE_TTL } from './constants'
 import { PreloadRequestConfig } from '@layer0/core/router/Preload'
 import watch from '@layer0/core/utils/watch'
+import RouteCriteria from '@layer0/core/router/RouteCriteria'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -165,6 +166,7 @@ export default class NextRoutes extends PluginBase {
    * @param {RouteGroup} group
    */
   private addNextRoutesToGroup(group: RouteGroup) {
+    console.log('this.rewrites', this.rewrites)
     this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
     this.addImageOptimizerRoutes(group)
@@ -187,6 +189,54 @@ export default class NextRoutes extends PluginBase {
   }
 
   /**
+   * Creates a Layer0 RouteCriteria from path and has attributes found in rewrites in redirects
+   * in next.config.js.
+   * @param path
+   * @param has
+   * @returns
+   */
+  private createRouteCriteria(path: string, has?: any[]): string | RouteCriteria {
+    // Next.js adds /:nextInternalLocale(...) at the start of the source route - if we leave this in
+    // the actually requests from the browser will never match.
+    let criteria: string | RouteCriteria = path.replace(/\/:nextInternalLocale[^/]+/, '')
+
+    if (has) {
+      let headers: { [key: string]: RegExp } = {}
+      let cookies: { [key: string]: RegExp } = {}
+      let query: { [key: string]: RegExp } = {}
+
+      for (let el of has) {
+        if (typeof el.value === 'string' && el.value.match(/\(\?<[^>]+>/)) {
+          throw new Error(
+            'Layer0 does not yet support capturing named parameters in `has` elements of `rewrites` or `redirects` in next.config.js.'
+          )
+        }
+
+        if (el.type === 'header') {
+          headers[el.key] = el.value ? new RegExp(el.value) : /.*/
+        } else if (el.type === 'host') {
+          headers.host = new RegExp(el.value)
+        } else if (el.type === 'cookie') {
+          cookies[el.key] = el.value ? new RegExp(el.value) : /.*/
+        } else if (el.type === 'query') {
+          query[el.key] = el.value ? new RegExp(el.value) : /.*/
+        } else {
+          console.warn(`Warning: has.type ${el.type} is not supported by Layer0`)
+        }
+      }
+
+      return {
+        path: criteria,
+        headers: Object.keys(headers).length ? headers : undefined,
+        cookies: Object.keys(cookies).length ? cookies : undefined,
+        query: Object.keys(query).length ? query : undefined,
+      }
+    } else {
+      return criteria
+    }
+  }
+
+  /**
    * Find an existing route that would match a request with destination as the path - we will run its handler when
    * the request's path matches the rewrite source.
    * @param group
@@ -194,11 +244,13 @@ export default class NextRoutes extends PluginBase {
    * @param destination
    * @param index
    */
-  private addRewrite(group: RouteGroup, source: string, destination: string, index: number) {
-    // Next.js adds /:nextInternalLocale(...) at the start of the source route - if we leave this in
-    // the actually requests from the browser will never match.
-    let normalizedSource = source.replace(/\/:nextInternalLocale[^/]+/, '')
-
+  private addRewrite(
+    group: RouteGroup,
+    source: string,
+    has: any[] | undefined,
+    destination: string,
+    index: number
+  ) {
     // Next.js adds /:nextInternalLocale at the start of the destination route - if we leave this in
     // we'll never find the destination route
     let normalizedDestination = destination.replace(/\/:nextInternalLocale[^/]*/, '')
@@ -214,7 +266,7 @@ export default class NextRoutes extends PluginBase {
     }
 
     group.match(
-      normalizedSource,
+      this.createRouteCriteria(source, has),
       res => {
         const destRoute = group.routes.find(route => {
           return route.match(<Request>{ path: normalizedDestination })
@@ -237,8 +289,8 @@ export default class NextRoutes extends PluginBase {
   private addRewrites(rewrites: any[], group: RouteGroup) {
     if (rewrites) {
       for (let i = 0; i < rewrites.length; i++) {
-        let { source, destination } = rewrites[i]
-        this.addRewrite(group, source, destination, i)
+        let { source, destination, has } = rewrites[i]
+        this.addRewrite(group, source, has, destination, i)
       }
     }
   }
@@ -249,12 +301,12 @@ export default class NextRoutes extends PluginBase {
    */
   private addRedirects(group: RouteGroup) {
     if (this.redirects) {
-      for (let { source, statusCode, destination } of this.redirects) {
+      for (let { source, has, statusCode, destination } of this.redirects) {
         if (source !== '/:path+/') {
           // We remove the redirect that next.js automatically adds to remove trailing slashes because we already
           // do this in our own serveStatic implementation, and this redirect would prevent the fallback from working
           // because it would match all routes except '/'
-          group.match(source, ({ redirect }) => {
+          group.match(this.createRouteCriteria(source, has), ({ redirect }) => {
             redirect(destination, { statusCode: statusCode || 302 })
           })
         }

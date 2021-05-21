@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "pages404": true,
+  "basePath": "",
+  "redirects": [],
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "header",
+          "key": "x-authorized",
+          "value": "(?<authorized>yes|true)"
+        }
+      ],
+      "destination": "/home?authorized=:authorized"
+    }
+  ],
+  "headers": [],
+  "dynamicRoutes": [],
+  "dataRoutes": []
+}
