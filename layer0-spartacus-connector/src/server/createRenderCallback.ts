@@ -18,16 +18,30 @@ const ns = getNamespace()
  * });
  *
  */
-export default function createRenderCallback(res: Response) {
+export default function createRenderCallback(
+  res: Response,
+  { maxHeaderLength }: RenderCallbackOptions = {}
+) {
   const callback = (err: Error, html: string) => {
     const requestsArray = [...(ns.get('requests') || [])]
     let header = ''
     requestsArray.forEach(request => {
-      header += request + ';'
+      if (maxHeaderLength == null || header.length + request.length <= maxHeaderLength) {
+        header += request + ';'
+      }
     })
     res.set(BACKEND_REQUESTS_RESPONSE_HEADER_NAME, header)
 
     res.send(html)
   }
   return ns.bind(callback)
+}
+
+export interface RenderCallbackOptions {
+  /**
+   * Limits the maximum length of the x-0-upstream-requests response header,
+   * which can be quite long if your application makes many upstream fetches during
+   * SSR.
+   */
+  maxHeaderLength?: number
 }

@@ -166,7 +166,6 @@ export default class NextRoutes extends PluginBase {
    * @param {RouteGroup} group
    */
   private addNextRoutesToGroup(group: RouteGroup) {
-    console.log('this.rewrites', this.rewrites)
     this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
     this.addImageOptimizerRoutes(group)

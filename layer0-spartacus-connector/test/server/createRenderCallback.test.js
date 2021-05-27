@@ -27,4 +27,13 @@ describe('createRenderCallback', () => {
     callback()
     expect(response.headers.get(BACKEND_REQUESTS_RESPONSE_HEADER_NAME)).toBe('')
   })
+
+  it('should enforce maxHeaderLength', () => {
+    ns.run(() => {
+      ns.set('requests', new Set(['req1', 'req2', 'aReallyLongRequestURLToTruncate']))
+      callback = createRenderCallback(response, { maxHeaderLength: 10 })
+    })
+    callback()
+    expect(response.headers.get(BACKEND_REQUESTS_RESPONSE_HEADER_NAME)).toBe('req1;req2;')
+  })
 })
