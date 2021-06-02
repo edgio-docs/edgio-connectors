@@ -1,6 +1,6 @@
 {
   "name": "@xdn/next",
-  "version": "2.53.2",
+  "version": "2.53.3",
   "license": "Apache-2.0",
   "xdn-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -21,7 +21,7 @@
     "@types/qs": "^6.9.3",
     "@types/webpack": "^4.41.26",
     "@types/webpack-sources": "^1.4.0",
-    "@xdn/core": "^2.53.2",
+    "@xdn/core": "^2.53.3",
     "sync-files": "^1.0.3",
     "webpack-merge": "^5.7.3",
     "workbox-build": "^5.1.2"
