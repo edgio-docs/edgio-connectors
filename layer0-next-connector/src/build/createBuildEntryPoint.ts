@@ -35,9 +35,6 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
   return async function build(options: BuildOptions) {
     const { skipFramework } = options
     let nextConfig = nonWebpackRequire(join(srcDirAbsolute, 'next.config.js'))
-    const prerenderManifest = <{ [key: string]: any }>(
-      nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
-    )
 
     if (typeof nextConfig === 'function') {
       nextConfig = nextConfig('phase-production-build', {})
@@ -79,6 +76,10 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
     builder.writeFileSync(
       join(builder.jsDir, 'next.config.js'),
       `module.exports=${JSON.stringify({ distDir })}`
+    )
+
+    const prerenderManifest = <{ [key: string]: any }>(
+      nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
     )
 
     setSsgStaticAssetExpiration(builder, prerenderManifest, distDir)
