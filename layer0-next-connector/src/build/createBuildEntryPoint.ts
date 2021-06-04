@@ -6,6 +6,7 @@ import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import validateNextConfig from './validateNextConfig'
 import { existsSync } from 'fs'
 import { CopyOptionsSync } from 'fs-extra'
+import setSsgStaticAssetExpiration from './setSsgStaticAssetExpiration'
 
 interface BuilderOptions {
   /**
@@ -31,37 +32,12 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
   const srcDirAbsolute = join(process.cwd(), srcDir)
   const distDirAbsolute = join(process.cwd(), distDir)
 
-  /**
-   * Configure SSG pages to expire based on the revalidate time returned by getStaticProps, which
-   * is stored in .next/prerender-manifest.json
-   */
-  function setSsgStaticAssetExpiration(builder: DeploymentBuilder) {
-    const prerenderManifest = <{ [key: string]: any }>(
-      nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
-    )
-
-    for (const [path, entry] of Object.entries(prerenderManifest.routes)) {
-      const { initialRevalidateSeconds } = <any>entry
-
-      if (initialRevalidateSeconds) {
-        builder
-          .setStaticAssetExpiration(
-            `${distDir}/serverless/pages${path}.html`,
-            initialRevalidateSeconds,
-            initialRevalidateSeconds // temporary fix to pass build
-          )
-          .setStaticAssetExpiration(
-            `${distDir}/serverless/pages${path}.json`,
-            initialRevalidateSeconds,
-            initialRevalidateSeconds // temporary fix to pass build
-          )
-      }
-    }
-  }
-
   return async function build(options: BuildOptions) {
     const { skipFramework } = options
     let nextConfig = nonWebpackRequire(join(srcDirAbsolute, 'next.config.js'))
+    const prerenderManifest = <{ [key: string]: any }>(
+      nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
+    )
 
     if (typeof nextConfig === 'function') {
       nextConfig = nextConfig('phase-production-build', {})
@@ -105,7 +81,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       `module.exports=${JSON.stringify({ distDir })}`
     )
 
-    setSsgStaticAssetExpiration(builder)
+    setSsgStaticAssetExpiration(builder, prerenderManifest, distDir)
 
     await builder.build({ layer0SourceMaps: nextConfig.layer0SourceMaps })
 
