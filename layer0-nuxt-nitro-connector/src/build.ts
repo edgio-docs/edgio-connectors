@@ -5,7 +5,6 @@ import { browserAssetOpts } from './router/NuxtRoutes'
 import { CopyOptionsSync } from 'fs-extra'
 import validateDependencies from './utils/validateDependencies'
 
-const { loadNuxtConfig } = require('@nuxt/config-edge')
 const appDir = process.cwd()
 const builder = new DeploymentBuilder(appDir)
 const nuxtDir = join(appDir, '.nuxt')
@@ -14,20 +13,7 @@ export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
 
   const { skipFramework } = options
-  const config = await loadNuxtConfig()
-
-  const layer0BuildModule = config.buildModules.find(
-    (module: String | [String, object]) =>
-      Array.isArray(module) && module[0] === '@layer0/nuxt/module'
-  )
-
-  const layer0SourceMaps = layer0BuildModule && layer0BuildModule[1]?.layer0SourceMaps
   const lambdaAssetCopyOptions: CopyOptionsSync = {}
-
-  // Filter-out source maps from lambda package if not explictely included
-  if (!layer0SourceMaps) {
-    lambdaAssetCopyOptions.filter = (src: string) => !src.endsWith('.map')
-  }
 
   if (!skipFramework) {
     // clear .nuxt directory
@@ -59,5 +45,5 @@ export default async function build(options: BuildOptions) {
     .addJSAsset(join(appDir, '.output', 'server'), undefined, lambdaAssetCopyOptions)
     .addJSAsset(join(appDir, '.nuxt', 'routes.json'))
 
-  await builder.build({ layer0SourceMaps })
+  await builder.build()
 }

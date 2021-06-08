@@ -15,6 +15,6 @@ module.exports = async function doBuild(options: BuildOptions) {
   await bundle()
   process.stdout.write('done.\n')
   builder.clearPreviousBuildOutput()
-  await builder.build({ layer0SourceMaps: true })
+  await builder.build()
   createBuildVersion()
 }

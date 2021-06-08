@@ -58,9 +58,6 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
     }
 
     const lambdaAssetCopyOptions: CopyOptionsSync = {}
-    if (!nextConfig.layer0SourceMaps) {
-      lambdaAssetCopyOptions.filter = (src: string) => !src.endsWith('.map')
-    }
 
     builder
       // React components and api endpoints
@@ -84,7 +81,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
 
     setSsgStaticAssetExpiration(builder, prerenderManifest, distDir)
 
-    await builder.build({ layer0SourceMaps: nextConfig.layer0SourceMaps })
+    await builder.build()
 
     const pages = join(builder.jsDir, distDir, 'serverless', 'pages')
 

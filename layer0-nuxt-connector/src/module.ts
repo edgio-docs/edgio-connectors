@@ -23,12 +23,14 @@ export default function layer0NuxtModule(this: any, { layer0SourceMaps = false }
   })
 
   const devtoolsWidgetInstallScript = join(
+    process.cwd(),
     'node_modules',
     '@layer0',
     'devtools',
     'widget',
     'install.js'
   )
+
   if (existsSync(devtoolsWidgetInstallScript)) {
     this.options.plugins.push({
       src: devtoolsWidgetInstallScript,

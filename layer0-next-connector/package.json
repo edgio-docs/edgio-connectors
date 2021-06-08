@@ -1,6 +1,6 @@
 {
   "name": "@layer0/next",
-  "version": "3.12.2",
+  "version": "3.13.1",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -15,7 +15,7 @@
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@layer0/core": "^3.12.2",
+    "@layer0/core": "^3.13.1",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
     "@types/lodash": "^4.14.162",

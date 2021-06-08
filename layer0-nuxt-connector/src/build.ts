@@ -20,18 +20,7 @@ export default async function build(options: BuildOptions) {
   // Nuxt will produce static assets that need to be served by NuxtRoutes if target='static' or the config has a generate block,
   // for example, to generate a 404.html
   const isStatic = config.target === 'static'
-
-  const layer0BuildModule = config.buildModules.find(
-    (module: String | [String, object]) =>
-      Array.isArray(module) && module[0] === '@layer0/nuxt/module'
-  )
-
-  const layer0SourceMaps = layer0BuildModule && layer0BuildModule[1]?.layer0SourceMaps
   const lambdaAssetCopyOptions: CopyOptionsSync = {}
-  // Filter-out source maps from lambda package if not explictely included
-  if (!layer0SourceMaps) {
-    lambdaAssetCopyOptions.filter = (src: string) => !src.endsWith('.map')
-  }
 
   if (!skipFramework) {
     // clear .nuxt directory
@@ -96,7 +85,7 @@ export default async function build(options: BuildOptions) {
     builder.addStaticAsset(join(appDir, 'dist'))
   }
 
-  await builder.build({ layer0SourceMaps })
+  await builder.build()
 }
 
 async function createLayer0NuxtConfig({ target, generate }: any) {
