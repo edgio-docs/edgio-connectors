@@ -2,7 +2,7 @@
   "routes": {
     "/": {
       "initialRevalidateSeconds": false,
-      "srcRoute": "/"
+      "srcRoute": null
     },
     "/en-US/static/1": {
       "initialRevalidateSeconds": 3600,

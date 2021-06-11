@@ -470,19 +470,13 @@ describe('NextRoutes', () => {
     it('should add routes for all static pages with getStaticProps only', async () => {
       request.path = '/ssg/ssg'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/ssg/ssg.html', {
-        onNotFound: expect.any(Function),
-        loadingPage: undefined,
-      })
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/ssg/ssg.html')
     })
 
     it('should add data routes for all static pages with getStaticProps only', async () => {
       request.path = '/_next/data/build-id/ssg/ssg.json'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/ssg/ssg.json', {
-        onNotFound: expect.any(Function),
-        loadingPage: undefined,
-      })
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/ssg/ssg.json')
     })
 
     it('should call router image optimizer with layer0-buffer-proxy prefix', async () => {
@@ -496,18 +490,15 @@ describe('NextRoutes', () => {
     it('should add localized routes for all static pages with getStaticProps only', async () => {
       request.path = '/fr/ssg/ssg'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/ssg/ssg.html', {
-        onNotFound: expect.any(Function),
-        loadingPage: undefined,
-      })
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/ssg/ssg.html')
     })
 
     it('should add routes for all static pages with getStaticPaths', async () => {
       request.path = '/static/1'
       await router.run(request, response)
       expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/static/:id.html', {
-        onNotFound: expect.any(Function),
         loadingPage: '.next/serverless/pages/:locale/static/[id].html',
+        onNotFound: expect.any(Function),
       })
       serveStatic.mock.calls[0][1].onNotFound()
       expect(renderNextPage).toHaveBeenCalledWith(
@@ -538,11 +529,7 @@ describe('NextRoutes', () => {
       request.path = '/no-props/no-props'
       await router.run(request, response)
       expect(serveStatic).toHaveBeenCalledWith(
-        '.next/serverless/pages/:locale/no-props/no-props.html',
-        {
-          onNotFound: expect.any(Function),
-          loadingPage: undefined,
-        }
+        '.next/serverless/pages/:locale/no-props/no-props.html'
       )
     })
 
@@ -550,21 +537,20 @@ describe('NextRoutes', () => {
       request.path = '/fr/no-props/no-props'
       await router.run(request, response)
       expect(serveStatic).toHaveBeenCalledWith(
-        '.next/serverless/pages/:locale/no-props/no-props.html',
-        {
-          onNotFound: expect.any(Function),
-          loadingPage: undefined,
-        }
+        '.next/serverless/pages/:locale/no-props/no-props.html'
       )
+    })
+
+    it('should add localized routes the homepage without getStaticProps', async () => {
+      request.path = '/'
+      await router.run(request, response)
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/index.html')
     })
 
     it('should add routes for non-localized static pages', async () => {
       request.path = '/not-localized'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/not-localized.html', {
-        onNotFound: expect.any(Function),
-        loadingPage: undefined,
-      })
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/not-localized.html')
     })
 
     it('should add routes for all api pages', async () => {
@@ -710,10 +696,7 @@ describe('NextRoutes', () => {
     it('should add routes for all static pages with getStaticProps only', async () => {
       request.path = '/ssg/ssg'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/ssg/ssg.html', {
-        onNotFound: expect.any(Function),
-        loadingPage: undefined,
-      })
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/ssg/ssg.html')
     })
 
     it('should add routes for all static pages with getStaticPaths', async () => {
@@ -730,8 +713,8 @@ describe('NextRoutes', () => {
       await router.run(request, response)
 
       expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/static/:id.html', {
-        onNotFound: expect.any(Function),
         loadingPage: undefined,
+        onNotFound: expect.any(Function),
       })
 
       const { onNotFound } = serveStatic.mock.calls[0][1]
@@ -758,10 +741,7 @@ describe('NextRoutes', () => {
     it('should add routes for all static pages without getStaticProps', async () => {
       request.path = '/no-props/no-props'
       await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/no-props/no-props.html', {
-        onNotFound: expect.any(Function),
-        loadingPage: undefined,
-      })
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/no-props/no-props.html')
     })
 
     it('should add routes for all api pages', async () => {

@@ -15,6 +15,7 @@ import { FAR_FUTURE_TTL } from './constants'
 import { PreloadRequestConfig } from '@layer0/core/router/Preload'
 import watch from '@layer0/core/utils/watch'
 import RouteCriteria from '@layer0/core/router/RouteCriteria'
+import slash from 'slash'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -387,14 +388,14 @@ export default class NextRoutes extends PluginBase {
         addRoute('api', path, res => renderNextPage(page.slice(1), res))
       } else if (file && file.endsWith('.html')) {
         // static routes
-        const assetPath = pagesManifest[page].replace(/^pages\//, '').replace(/\.html$/, '')
+        const assetPath = file.replace(/^pages\//, '').replace(/\.html$/, '')
 
         if (this.defaultLocale && page.startsWith(`/${this.defaultLocale}`)) {
           // When the app uses internationalization, we collapse all static localized routes into a single
           // route to save router spacer, so for example en-US/sale and fr/sale become /:locale(en-US|fr)?/category/sale
           addRoute(
             'SSG html',
-            localize(locales, this.removeLocale(page)),
+            localize(locales, this.removeLocale(path)),
             this.createSSGHandler(
               assetPath.replace(new RegExp(this.defaultLocale + '(/|$)'), ':locale$1')
             )
@@ -429,6 +430,7 @@ export default class NextRoutes extends PluginBase {
           )
         } else {
           if (pagesWithDataRoutes.has(page)) {
+            // will not get here when the page uses getInitialProps
             addRoute(
               'SSR json',
               `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
@@ -504,32 +506,44 @@ export default class NextRoutes extends PluginBase {
     return (res: ResponseWriter) => {
       const suffix = dataRoute ? 'json' : 'html'
       const assetRoot = `${this.distDir}/serverless/pages${localize ? '/:locale' : ''}`
-      const assetFile = toRouteSyntax(page, { suffix }).replace(/\/\.(json|html)$/, '.$1') // fix for :locale/index.js
-      const assetPath = `${assetRoot}${assetFile}`
       const prerenderManifest = this.getPrerenderManifest()
       const dynamicRouteConfig = prerenderManifest.dynamicRoutes[page]
 
-      let fallback = dynamicRouteConfig?.fallback
-      let loadingPage = !dataRoute && fallback ? `${assetRoot}${fallback}` : undefined
+      if (dynamicRouteConfig) {
+        // will get here if the page has getStaticProps
+        const assetFile = toRouteSyntax(page, { suffix }).replace(/\/\.(json|html)$/, '.$1') // fix for :locale/index.js
+        const assetPath = `${assetRoot}${assetFile}`
+        let { fallback } = dynamicRouteConfig
+        let loadingPage = !dataRoute && fallback ? `${assetRoot}${fallback}` : undefined
 
-      // Note that the cache TTL is stored as a header on S3 based on the prerender-manifest.json,
-      // so we don't need to use res.cache() here.
+        // Note that the cache TTL is stored as a header on S3 based on the prerender-manifest.json,
+        // so we don't need to use res.cache() here.
 
-      res.serveStatic(assetPath, {
-        loadingPage,
-        onNotFound: () => {
-          const isPrerendered = prerenderManifest.routes[res.request.path]
+        res.serveStatic(assetPath, {
+          loadingPage,
+          onNotFound: () => {
+            const isPrerendered = prerenderManifest.routes[res.request.path]
 
-          // Note that fallback: 'blocking' in getStaticPaths results in fallback: null in prerender-manifest.json
-          if (fallback !== false || isPrerendered || dataRoute) {
-            // Fallback to SSR when fallback: true is set in getStaticPaths or when revalidating a prerendered page or when it's a data path
-            return renderNextPage(page, res)
-          } else {
-            // Render the custom 404 when a static page is not found.
-            return this.render404(res)
-          }
-        },
-      })
+            // Note that fallback: 'blocking' in getStaticPaths results in fallback: null in prerender-manifest.json
+            if (fallback !== false || isPrerendered || dataRoute) {
+              // Fallback to SSR when fallback: true is set in getStaticPaths or when revalidating a prerendered page or when it's a data path
+              return renderNextPage(page, res)
+            } else {
+              // Render the custom 404 when a static page is not found.
+              return this.render404(res)
+            }
+          },
+        })
+      } else {
+        // well get here if the page does not have getStaticProps
+        let assetPath = `${slash(join(assetRoot, page))}`
+
+        if (assetPath.endsWith('/')) {
+          assetPath += 'index'
+        }
+
+        res.serveStatic(`${assetPath}.${suffix}`)
+      }
     }
   }
 
@@ -631,14 +645,23 @@ export default class NextRoutes extends PluginBase {
 }
 
 /**
- * Sort predefined routes before dynamic routes
+ * Sort static routes before dynamic routes
  * @param pages Page paths
  * @param routesManifest The routes manifest generated by Next's build
  */
 function sortRoutes(pages: string[], routesManifest: any): string[] {
   const isDynamic = (page: string) => routesManifest.dynamicRoutes.find((r: any) => r.page === page)
 
-  return pages
-    .filter(p => !isDynamic(p))
-    .concat(routesManifest.dynamicRoutes.map((r: any) => r.page))
+  let staticRoutes = [],
+    dynamicRoutes = []
+
+  for (let page of pages) {
+    if (isDynamic(page)) {
+      dynamicRoutes.push(page)
+    } else {
+      staticRoutes.push(page)
+    }
+  }
+
+  return staticRoutes.concat(dynamicRoutes)
 }
