@@ -243,14 +243,12 @@ export default class NextRoutes extends PluginBase {
    * @param source The source URL
    * @param has Any has elements
    * @param destination The destination URL
-   * @param index The index of the route
    */
   private addRewrite(
     group: RouteGroup,
     source: string,
     has: any[] | undefined,
-    destination: string,
-    index: number
+    destination: string
   ) {
     // Next.js adds /:nextInternalLocale at the start of the destination route - if we leave this in
     // we'll never find the destination route
@@ -266,32 +264,25 @@ export default class NextRoutes extends PluginBase {
       console.log(`[rewrite] ${source} => ${normalizedDestination}`)
     }
 
-    group.match(
-      this.createRouteCriteria(source, has),
-      res => {
-        const destRoute = group.routes.find(route => {
-          return route.match(<Request>{ path: normalizedDestination })
-        })
+    group.match(this.createRouteCriteria(source, has), res => {
+      const destRoute = group.routes.find(route => {
+        return route.match(<Request>{ path: normalizedDestination })
+      })
 
-        if (destRoute) {
-          // need to extract the params again based on the new path
-          res.rewrite(destination, <string>destRoute.criteria.path)
-          destRoute.handler(res)
-        } else {
-          console.warn(`No matching route found for rewrite ${source} => ${destination}`)
-        }
-      },
-      {
-        index,
+      if (destRoute) {
+        // need to extract the params again based on the new path
+        res.rewrite(destination, <string>destRoute.criteria.path)
+        destRoute.handler(res)
+      } else {
+        console.warn(`No matching route found for rewrite ${source} => ${destination}`)
       }
-    )
+    })
   }
 
   private addRewrites(rewrites: any[], group: RouteGroup) {
     if (rewrites) {
-      for (let i = 0; i < rewrites.length; i++) {
-        let { source, destination, has } = rewrites[i]
-        this.addRewrite(group, source, has, destination, i)
+      for (let { source, destination, has } of rewrites) {
+        this.addRewrite(group, source, has, destination)
       }
     }
   }
@@ -542,7 +533,9 @@ export default class NextRoutes extends PluginBase {
           assetPath += 'index'
         }
 
-        res.serveStatic(`${assetPath}.${suffix}`)
+        res.serveStatic(`${assetPath}.${suffix}`, {
+          onNotFound: () => renderNextPage(page, res),
+        })
       }
     }
   }
