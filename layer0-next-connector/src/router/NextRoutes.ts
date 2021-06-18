@@ -16,6 +16,7 @@ import { PreloadRequestConfig } from '@layer0/core/router/Preload'
 import watch from '@layer0/core/utils/watch'
 import RouteCriteria from '@layer0/core/router/RouteCriteria'
 import slash from 'slash'
+import config from '@layer0/core/config'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -264,19 +265,55 @@ export default class NextRoutes extends PluginBase {
       console.log(`[rewrite] ${source} => ${normalizedDestination}`)
     }
 
-    group.match(this.createRouteCriteria(source, has), res => {
-      const destRoute = group.routes.find(route => {
-        return route.match(<Request>{ path: normalizedDestination })
-      })
+    if (destination.match(/^https?:\/\//)) {
+      const url = new URL(destination)
+      const backend = this.backendForDestination(url)
 
-      if (destRoute) {
-        // need to extract the params again based on the new path
-        res.rewrite(destination, <string>destRoute.criteria.path)
-        destRoute.handler(res)
+      if (backend) {
+        // proxy
+        group.match(this.createRouteCriteria(source, has), ({ proxy }) => {
+          proxy(backend, { path: url.pathname })
+        })
       } else {
-        console.warn(`No matching route found for rewrite ${source} => ${destination}`)
+        console.warn(
+          `No matching backend was found in layer0.config.js for rewrite to ${url.toString()}. ` +
+            `To fix this problem, add key to the backends config with the following value: { "domainOrIp": "${url.hostname}" }. ` +
+            `See https://docs.layer0.co/guides/layer0_config#section_backends for more information.`
+        )
       }
-    })
+    } else {
+      // render
+      group.match(this.createRouteCriteria(source, has), res => {
+        const destRoute = group.routes.find(route => {
+          return route.match(<Request>{ path: normalizedDestination })
+        })
+
+        if (destRoute) {
+          // need to extract the params again based on the new path
+          res.rewrite(destination, <string>destRoute.criteria.path)
+          destRoute.handler(res)
+        } else {
+          console.warn(`No matching route found for rewrite ${source} => ${destination}`)
+        }
+      })
+    }
+  }
+
+  /**
+   * Finds a backend in layer0.config.js that has the same hostname as the specified rewrite destination URL.
+   * @param urlStr
+   * @returns
+   */
+  private backendForDestination(url: URL) {
+    const backends = config.get('backends', {})
+
+    const entry = Object.entries(backends).find(
+      ([_key, value]: any[]) => value.domainOrIp === url.hostname
+    )
+
+    if (entry) {
+      return entry[0]
+    }
   }
 
   private addRewrites(rewrites: any[], group: RouteGroup) {

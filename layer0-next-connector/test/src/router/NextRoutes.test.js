@@ -104,6 +104,7 @@ describe('NextRoutes', () => {
       router = new Router()
       router.use(plugin)
       router.setBackend('__js__', { domainOrIp: 'js.backend' })
+      router.setBackend('origin', { domainOrIp: 'example.com' })
 
       request = {
         url: '/',
@@ -176,6 +177,18 @@ describe('NextRoutes', () => {
                 source: '/rewrites',
                 has: [{ type: 'host', value: 'localhost' }],
                 destination: '/p/4',
+              },
+              {
+                source: '/rewrites/origin',
+                destination: 'https://example.com/path',
+              },
+              {
+                source: '/rewrites/origin/root',
+                destination: 'https://example.com',
+              },
+              {
+                source: '/rewrites/upstream/root',
+                destination: 'https://upstream.com',
               },
               {
                 source: '/rewrites/:id',
@@ -271,6 +284,28 @@ describe('NextRoutes', () => {
       })
 
       describe('rewrites', () => {
+        it('should proxy full URLs', done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites/origin'
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith('origin', { path: '/path' })
+            done()
+          })
+        })
+        it('should proxy full URLs without a path', done => {
+          process.nextTick(async () => {
+            request.path = '/rewrites/origin/root'
+            await router.run(request, response)
+            expect(proxy).toHaveBeenCalledWith('origin', { path: '/' })
+            done()
+          })
+        })
+        it('should warn the user when no matching backend could be found', done => {
+          process.nextTick(() => {
+            expect(warn).toHaveBeenCalledWith(expect.stringMatching(/No matching backend/))
+            done()
+          })
+        })
         it('should add routes for rewrites', async done => {
           process.nextTick(async () => {
             request.path = '/rewrites/1'
