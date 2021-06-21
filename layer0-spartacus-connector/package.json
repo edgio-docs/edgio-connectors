@@ -1,6 +1,6 @@
 {
   "name": "@layer0/spartacus",
-  "version": "3.15.0",
+  "version": "3.16.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -10,10 +10,10 @@
     "cls-hooked": "^4.2.2"
   },
   "devDependencies": {
-    "@layer0/angular": "^3.15.0",
-    "@layer0/cli": "^3.15.0",
-    "@layer0/core": "^3.15.0",
-    "@layer0/prefetch": "^3.15.0",
+    "@layer0/angular": "^3.16.0",
+    "@layer0/cli": "^3.16.0",
+    "@layer0/core": "^3.16.0",
+    "@layer0/prefetch": "^3.16.0",
     "@typescript-eslint/parser": "^4.5.0"
   },
   "peerDependencies": {
