@@ -7,6 +7,7 @@ import validateNextConfig from './validateNextConfig'
 import { existsSync } from 'fs'
 import { CopyOptionsSync } from 'fs-extra'
 import setSsgStaticAssetExpiration from './setSsgStaticAssetExpiration'
+import { nodeFileTrace } from '@vercel/nft'
 
 interface BuilderOptions {
   /**
@@ -84,6 +85,26 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
     await builder.build()
 
     const pages = join(builder.jsDir, distDir, 'serverless', 'pages')
+
+    // If the user has overrided the default target and is using serverless
+    // do not perform tracing for required node modules
+    if (nextConfig.target !== 'serverless') {
+      const pageHandlerFiles = globby
+        .sync('**/*.js', {
+          onlyFiles: true,
+          cwd: pages,
+        })
+        .map(file => {
+          const src = join(pages, file)
+          return src
+        })
+
+      const { fileList } = await nodeFileTrace(pageHandlerFiles)
+
+      fileList
+        .filter(file => file.indexOf('node_modules') === 0)
+        .forEach(file => builder.copySync(file, join(builder.layer0Dir, 'lambda', file)))
+    }
 
     // Remove all static pages from the lambda dir.  We don't need them in the lambda
     // since we're serving them from s3. so that @layer0/core doesn't.  Also, having them be present

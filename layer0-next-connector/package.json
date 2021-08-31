@@ -1,13 +1,15 @@
 {
   "name": "@layer0/next",
-  "version": "3.16.5",
+  "version": "3.16.6",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
+    "@vercel/nft": "^0.13.1",
     "chalk": "^3.0.0",
     "cross-spawn": "^7.0.3",
     "encoding": "^0.1.13",
     "globby": "^11.0.1",
+    "jscodeshift": "^0.13.0",
     "next-offline": "^5.0.3",
     "qs": "^6.9.4",
     "slash": "^3.0.0",
@@ -15,14 +17,16 @@
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@layer0/core": "^3.16.5",
+    "@layer0/core": "^3.16.6",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
+    "@types/jscodeshift": "^0.11.2",
     "@types/lodash": "^4.14.162",
     "@types/node": "^14.0.9",
     "@types/qs": "^6.9.3",
     "@types/webpack": "^4.41.26",
     "@types/webpack-sources": "^1.4.0",
+    "ast-types": "^0.14.2",
     "sync-files": "^1.0.3",
     "webpack-merge": "^5.7.3",
     "workbox-build": "^5.1.2"
