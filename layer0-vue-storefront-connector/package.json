@@ -1,17 +1,17 @@
 {
   "name": "@layer0/vue-storefront",
-  "version": "3.16.7",
+  "version": "3.16.8",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
-    "@layer0/apollo": "^3.16.7",
-    "@layer0/nuxt": "^3.16.7",
+    "@layer0/apollo": "^3.16.8",
+    "@layer0/nuxt": "^3.16.8",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^8.1.0",
     "jscodeshift": "^0.11.0"
   },
   "devDependencies": {
-    "@layer0/core": "^3.16.7",
+    "@layer0/core": "^3.16.8",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^9.0.7",
     "webpack": "^5.0.0",
