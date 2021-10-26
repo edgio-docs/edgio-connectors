@@ -5,6 +5,11 @@ import { join } from 'path'
 const OLD_EXPORT_VAR_NAME = '_preLayer0Export'
 
 module.exports = function transformNextConfig(fileInfo: FileInfo, api: API) {
+  // Do not transform the next config file mulitple times
+  if (fileInfo.source.indexOf('withLayer0') !== -1) {
+    return fileInfo.source
+  }
+
   const j = api.jscodeshift
   const root = j(fileInfo.source)
 
