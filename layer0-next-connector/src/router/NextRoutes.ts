@@ -382,6 +382,7 @@ export default class NextRoutes extends PluginBase {
     const pagesManifest = this.getPagesManifest()
     const prerenderManifest = this.getPrerenderManifest()
     const locales = routesManifest.i18n?.locales
+    const dynamicRoutes = new Set(routesManifest.dynamicRoutes.map((r: any) => r.page))
     this.defaultLocale = routesManifest.i18n?.defaultLocale
 
     const ssgRoutes = new Set<string>(
@@ -414,13 +415,23 @@ export default class NextRoutes extends PluginBase {
       if (page.startsWith('/api')) {
         // api routes
         addRoute('api', path, res => renderNextPage(page.slice(1), res))
-      } else if (file && file.endsWith('.html')) {
+      } else if (file?.endsWith('.html') || !dynamicRoutes.has(page)) {
         // static routes
         const assetPath = file.replace(/^pages\//, '').replace(/\.html$/, '')
 
         if (this.defaultLocale && page.startsWith(`/${this.defaultLocale}`)) {
           // When the app uses internationalization, we collapse all static localized routes into a single
           // route to save router spacer, so for example en-US/sale and fr/sale become /:locale(en-US|fr)?/category/sale
+          if (pagesWithDataRoutes.has(page)) {
+            addRoute(
+              'SSG json',
+              `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
+              this.createSSGHandler(page, {
+                localize: localizationEnabled,
+                dataRoute: true,
+              })
+            )
+          }
           addRoute(
             'SSG html',
             localize(locales, this.removeLocale(path)),
@@ -432,7 +443,23 @@ export default class NextRoutes extends PluginBase {
           // skip other locale routes as we collapse all into a single route above
         } else {
           // non-localized routes can simply be added verbatim
-          addRoute('SSG html', path, this.createSSGHandler(assetPath))
+          if (pagesWithDataRoutes.has(page)) {
+            addRoute(
+              'SSG json',
+              `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
+              this.createSSGHandler(page, {
+                localize: localizationEnabled,
+                dataRoute: true,
+              })
+            )
+          }
+          addRoute(
+            'SSG html',
+            localize(locales, path),
+            this.createSSGHandler(assetPath, {
+              localize: localizationEnabled,
+            })
+          )
         }
       } else {
         // dynamic routes

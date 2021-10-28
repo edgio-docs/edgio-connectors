@@ -126,13 +126,13 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
     if (defaultLocale) {
       builder.copySync(join(staticPagesDir, defaultLocale), staticPagesDir)
 
-      // example: copy "en-US.html" to ".html"
+      // example: copy "en-US.html" to "index.html"
       const indexHtml = join(staticPagesDir, `${defaultLocale}.html`)
       if (existsSync(indexHtml)) {
-        builder.copySync(indexHtml, join(staticPagesDir, '.html'))
+        builder.copySync(indexHtml, join(staticPagesDir, 'index.html'))
       }
 
-      // example: copy "en-US.json" to ".json"
+      // example: copy "en-US.json" to "index.json"
       const indexJson = join(staticPagesDir, `${defaultLocale}.json`)
       if (existsSync(indexJson)) {
         builder.copySync(indexJson, join(staticPagesDir, 'index.json'))
