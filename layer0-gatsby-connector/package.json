@@ -1,10 +1,10 @@
 {
   "name": "@layer0/gatsby",
-  "version": "4.2.2",
+  "version": "4.3.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "devDependencies": {
-    "@layer0/core": "^4.2.2"
+    "@layer0/core": "^4.3.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/gatsby/src/* dist",

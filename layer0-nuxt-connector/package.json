@@ -1,6 +1,6 @@
 {
   "name": "@layer0/nuxt",
-  "version": "4.2.2",
+  "version": "4.3.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -14,8 +14,8 @@
     "workbox-webpack-plugin": "^5.1.2"
   },
   "devDependencies": {
-    "@layer0/core": "^4.2.2",
-    "@layer0/prefetch": "^4.2.2",
+    "@layer0/core": "^4.3.0",
+    "@layer0/prefetch": "^4.3.0",
     "@nuxt/types": "^2.15.8",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
@@ -25,7 +25,7 @@
     "nuxt-start": "^2.15.8"
   },
   "peerDependencies": {
-    "@layer0/core": "^3.0.0",
+    "@layer0/core": "^4.0.0",
     "dotenv": "^8.2.0",
     "nuxt": "^2.15.8"
   },
