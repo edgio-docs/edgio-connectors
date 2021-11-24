@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import { readFileSync } from 'fs-extra'
 import { API, FileInfo } from 'jscodeshift'
 import { join } from 'path'

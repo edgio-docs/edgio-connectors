@@ -174,6 +174,7 @@ export default class NextRoutes extends PluginBase {
     this.addRewrites(this.rewrites?.afterFiles, group)
 
     if (isProductionBuild()) {
+      this.addMiddlewareManifest(group)
       this.addPagesInProd(group)
       this.addPrerendering()
     } else {
@@ -187,6 +188,19 @@ export default class NextRoutes extends PluginBase {
     }
 
     this.addRedirects(group)
+  }
+
+  /**
+   * Adds the route for server assets such as the middleware manifest
+   * @param group
+   */
+  private addMiddlewareManifest(group: RouteGroup) {
+    if (existsSync(join(this.distDir, 'server'))) {
+      group.match('/_next/server/:file*', ({ serveStatic, cache }) => {
+        cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
+        serveStatic(`${this.distDir}/server/:file*`)
+      })
+    }
   }
 
   /**
@@ -262,7 +276,7 @@ export default class NextRoutes extends PluginBase {
     }
 
     if (isProductionBuild()) {
-      console.log(`[rewrite] ${source} => ${normalizedDestination}`)
+      console.debug(`[rewrite] ${source} => ${normalizedDestination}`)
     }
 
     if (destination.match(/^https?:\/\//)) {
@@ -382,14 +396,7 @@ export default class NextRoutes extends PluginBase {
     const pagesManifest = this.getPagesManifest()
     const prerenderManifest = this.getPrerenderManifest()
     const locales = routesManifest.i18n?.locales
-    const dynamicRoutes = new Set(routesManifest.dynamicRoutes.map((r: any) => r.page))
     this.defaultLocale = routesManifest.i18n?.defaultLocale
-
-    const ssgRoutes = new Set<string>(
-      Object.entries(prerenderManifest.routes)
-        .filter(([_route, config]: [any, any]) => config.srcRoute == null)
-        .map(([route, _config]: [any, any]) => route)
-    )
 
     const pagesWithDataRoutes = new Set<string>(
       routesManifest.dataRoutes.map((route: any) => route.page)
@@ -400,7 +407,9 @@ export default class NextRoutes extends PluginBase {
       group.match(route, handler)
     }
 
-    const startsWithLocale = locales && new RegExp(`^/(${locales.join('|')})(/|$)`)
+    const startsWithLocale = (path: string) =>
+      locales && new RegExp(`^/(${locales.join('|')})(/|$)`).test(path)
+
     const localizationEnabled = locales?.length > 0
 
     console.debug(`Next.js routes (locales: ${locales?.join(', ') || 'none'})`)
@@ -409,95 +418,85 @@ export default class NextRoutes extends PluginBase {
     const pages = sortRoutes(Object.keys(pagesManifest), routesManifest)
 
     for (let page of pages) {
-      const file = pagesManifest[page]
       const path = toRouteSyntax(page)
+      const isPrerendered = this.isPrerendered(prerenderManifest, pagesManifest, page)
 
       if (page.startsWith('/api')) {
         // api routes
         addRoute('api', path, res => renderNextPage(page.slice(1), res))
-      } else if (file?.endsWith('.html') || !dynamicRoutes.has(page)) {
-        // static routes
-        const assetPath = file.replace(/^pages\//, '').replace(/\.html$/, '')
-
-        if (this.defaultLocale && page.startsWith(`/${this.defaultLocale}`)) {
-          // When the app uses internationalization, we collapse all static localized routes into a single
-          // route to save router spacer, so for example en-US/sale and fr/sale become /:locale(en-US|fr)?/category/sale
-          if (pagesWithDataRoutes.has(page)) {
-            addRoute(
-              'SSG json',
-              `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
-              this.createSSGHandler(page, {
-                localize: localizationEnabled,
-                dataRoute: true,
-              })
-            )
-          }
-          addRoute(
-            'SSG html',
-            localize(locales, this.removeLocale(path)),
-            this.createSSGHandler(
-              assetPath.replace(new RegExp(this.defaultLocale + '(/|$)'), ':locale$1')
-            )
-          )
-        } else if (locales && startsWithLocale.test(page)) {
-          // skip other locale routes as we collapse all into a single route above
-        } else {
-          // non-localized routes can simply be added verbatim
-          if (pagesWithDataRoutes.has(page)) {
-            addRoute(
-              'SSG json',
-              `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
-              this.createSSGHandler(page, {
-                localize: localizationEnabled,
-                dataRoute: true,
-              })
-            )
-          }
-          addRoute(
-            'SSG html',
-            localize(locales, path),
-            this.createSSGHandler(assetPath, {
-              localize: localizationEnabled,
-            })
-          )
-        }
-      } else {
-        // dynamic routes
+      } else if (startsWithLocale(page) && !page.startsWith(`/${this.defaultLocale}`)) {
+        // When the app uses internationalization, we collapse all localized routes into a single
+        // route to save router spacer, so for example en-US/sale and fr/sale become /:locale(en-US|fr)?/category/sale
+      } else if (isPrerendered) {
+        // SSG
         const dynamicRouteConfig = prerenderManifest.dynamicRoutes[page]
+        const nonLocalizedPath = startsWithLocale(path) ? this.removeLocale(path) : path
+        const nonLocalizedPage = startsWithLocale(page) ? this.removeLocale(page) : page
+        const modifier = dynamicRouteConfig
+          ? ` (λ${dynamicRouteConfig.fallback ? ' w/fallback' : ''})`
+          : ''
 
-        if (dynamicRouteConfig || ssgRoutes.has(page)) {
-          // only add data routes for getServerSideProps and getStaticProps
+        if (pagesWithDataRoutes.has(page)) {
+          // JSON
           addRoute(
-            'SSG (λ) json',
-            `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
-            this.createSSGHandler(page, {
+            `SSG ${modifier}json`,
+            `/_next/data/:__build__${localize(
+              locales,
+              toRouteSyntax(nonLocalizedPath, { suffix: 'json' })
+            )}`,
+            this.createSSGHandler(nonLocalizedPage, {
               dataRoute: true,
               localize: localizationEnabled,
+              dynamicRouteConfig,
             })
           )
-          // SSG: getStaticProps
-          addRoute(
-            `SSG (λ${dynamicRouteConfig?.fallback ? ' w/fallback' : ''}) html`,
-            localize(locales, toRouteSyntax(page)),
-            this.createSSGHandler(page, {
-              localize: localizationEnabled,
-            })
-          )
-        } else {
-          if (pagesWithDataRoutes.has(page)) {
-            // will not get here when the page uses getInitialProps
-            addRoute(
-              'SSR json',
-              `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
-              this.createSSRHandler(page)
-            )
-          }
-
-          // SSR: getServerSideProps or getInitialProps
-          addRoute('SSR html', localize(locales, toRouteSyntax(page)), this.createSSRHandler(page))
         }
+
+        // HTML
+        addRoute(
+          `SSG ${modifier}html`,
+          localize(locales, toRouteSyntax(nonLocalizedPath)),
+          this.createSSGHandler(nonLocalizedPage, {
+            localize: localizationEnabled,
+            dynamicRouteConfig,
+          })
+        )
+      } else {
+        // SSR
+        if (pagesWithDataRoutes.has(page)) {
+          // will not get here when the page uses getInitialProps
+          addRoute(
+            'SSR json',
+            `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
+            this.createSSRHandler(page)
+          )
+        }
+
+        // SSR: getServerSideProps or getInitialProps
+        addRoute('SSR html', localize(locales, toRouteSyntax(page)), this.createSSRHandler(page))
       }
     }
+  }
+
+  /**
+   * Returns true if the specified page was statically rendered at build time (no getServerSideProps or getInitialProps)
+   * @param prerenderManifest The prerender-manifest.json file
+   * @param pagesManifest the pages-manifest.json file
+   * @param page The page key
+   * @returns
+   */
+  private isPrerendered(prerenderManifest: any, pagesManifest: any, page: string) {
+    const file = pagesManifest[page]
+    const htmlPath = join(this.distDir, 'serverless', 'pages', `${page}.html`)
+    const routeKey =
+      (this.defaultLocale ? `/${this.defaultLocale}` : '') + `${page}`.replace(/\/$/, '')
+
+    return (
+      file.endsWith('.html') ||
+      prerenderManifest.routes[routeKey] != null ||
+      prerenderManifest.dynamicRoutes[page] != null ||
+      existsSync(htmlPath)
+    )
   }
 
   /**
@@ -521,10 +520,7 @@ export default class NextRoutes extends PluginBase {
     for (let htmlPath in routes) {
       const route = routes[htmlPath]
       requests.push({ path: htmlPath })
-
-      if (route.dataRoute) {
-        requests.push({ path: route.dataRoute })
-      }
+      requests.push({ path: route.dataRoute })
     }
 
     const router = <Router>this.router
@@ -545,28 +541,32 @@ export default class NextRoutes extends PluginBase {
 
   /**
    * Creates a handler for SSG pages that can be optionally configured with fallback: trlayer0dfdue
-   * @param page The next.js page path
+   * @param relativeAssetPath The asset path relative to .next/serverless
    * @param options
    */
   private createSSGHandler(
-    page: string,
+    relativeAssetPath: string,
     {
       dataRoute,
       localize,
+      dynamicRouteConfig,
     }: {
       dataRoute?: boolean
       localize?: boolean
-    } = {}
+      dynamicRouteConfig?: any
+    }
   ) {
     return (res: ResponseWriter) => {
       const suffix = dataRoute ? 'json' : 'html'
       const assetRoot = `${this.distDir}/serverless/pages${localize ? '/:locale' : ''}`
       const prerenderManifest = this.getPrerenderManifest()
-      const dynamicRouteConfig = prerenderManifest.dynamicRoutes[page]
 
       if (dynamicRouteConfig) {
         // will get here if the page has getStaticProps
-        const assetFile = toRouteSyntax(page, { suffix }).replace(/\/\.(json|html)$/, '.$1') // fix for :locale/index.js
+        const assetFile = toRouteSyntax(relativeAssetPath, { suffix }).replace(
+          /\/\.(json|html)$/,
+          '.$1'
+        ) // fix for :locale/index.js
         const assetPath = `${assetRoot}${assetFile}`
         let { fallback } = dynamicRouteConfig
         let loadingPage = !dataRoute && fallback ? `${assetRoot}${fallback}` : undefined
@@ -582,7 +582,7 @@ export default class NextRoutes extends PluginBase {
             // Note that fallback: 'blocking' in getStaticPaths results in fallback: null in prerender-manifest.json
             if (fallback !== false || isPrerendered || dataRoute) {
               // Fallback to SSR when fallback: true is set in getStaticPaths or when revalidating a prerendered page or when it's a data path
-              return renderNextPage(page, res)
+              return renderNextPage(relativeAssetPath, res)
             } else {
               // Render the custom 404 when a static page is not found.
               return this.render404(res)
@@ -591,14 +591,14 @@ export default class NextRoutes extends PluginBase {
         })
       } else {
         // well get here if the page does not have getStaticProps
-        let assetPath = `${slash(join(assetRoot, page))}`
+        let assetPath = `${slash(join(assetRoot, relativeAssetPath))}`
 
         if (assetPath.endsWith('/')) {
           assetPath += 'index'
         }
 
         res.serveStatic(`${assetPath}.${suffix}`, {
-          onNotFound: () => renderNextPage(page, res),
+          onNotFound: () => renderNextPage(relativeAssetPath, res),
         })
       }
     }
