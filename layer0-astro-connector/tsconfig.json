@@ -12,9 +12,8 @@
     "paths": {
       "@layer0/core": ["core/src"],
       "@layer0/core/*": ["core/src/*"]
-    },
-    "skipLibCheck": true
+    }
   },
-  "include": ["src", "files"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }

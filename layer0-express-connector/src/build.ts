@@ -2,6 +2,7 @@ import { BuildOptions, DeploymentBuilder } from '@layer0/core/deploy'
 import { bundle } from '@layer0/core/deploy/bundle-esbuild'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import { findDefaultAppPath } from './utils'
 
 export default async function build(_options: BuildOptions) {
   const config = require(join(process.cwd(), 'layer0.config.js'))
@@ -30,21 +31,4 @@ export default async function build(_options: BuildOptions) {
   }
 
   await builder.build()
-}
-
-/**
- * Attempts to find the express app entrypoint by looking for common files.
- */
-function findDefaultAppPath() {
-  return [
-    join(process.cwd(), 'src', 'server.js'),
-    join(process.cwd(), 'src', 'server.ts'),
-    join(process.cwd(), 'src', 'app.ts'),
-    join(process.cwd(), 'src', 'app.js'),
-    join(process.cwd(), 'src', 'index.js'),
-    join(process.cwd(), 'src', 'index.ts'),
-    join(process.cwd(), 'server.js'),
-    join(process.cwd(), 'app.js'),
-    join(process.cwd(), 'index.js'),
-  ].find(existsSync)
 }

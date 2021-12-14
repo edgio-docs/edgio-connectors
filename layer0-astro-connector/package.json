@@ -1,0 +1,37 @@
+{
+  "name": "@layer0/astro",
+  "version": "4.7.0",
+  "description": "Deploy Astro apps to Layer0",
+  "license": "Apache-2.0",
+  "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/astro/src/* dist;",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next"
+  },
+  "keywords": [],
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "peerDependencies": {
+    "@layer0/core": "^4.0.0"
+  },
+  "devDependencies": {
+    "@layer0/core": "^4.7.0",
+    "@types/node": "^14.0.9"
+  }
+}
