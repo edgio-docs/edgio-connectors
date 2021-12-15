@@ -1,6 +1,6 @@
 {
   "name": "@layer0/nuxt-nitro",
-  "version": "4.7.0",
+  "version": "3.17.6",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -10,18 +10,18 @@
     "workbox-webpack-plugin": "^5.1.2"
   },
   "devDependencies": {
-    "@layer0/core": "^4.7.0",
-    "@layer0/prefetch": "^4.7.0",
-    "@nuxt/types": "^2.15.8",
+    "@layer0/core": "^3.17.6",
+    "@layer0/prefetch": "^3.17.6",
+    "@nuxt/types": "^2.13.3",
     "@types/fs-extra": "^8.1.1",
     "@types/lodash": "^4.14.162",
     "@types/workbox-webpack-plugin": "^5.1.1",
-    "nuxt": "^2.15.8",
-    "nuxt-start": "^2.15.8"
+    "nuxt": "^2.13.3",
+    "nuxt-start": "^2.12.2"
   },
   "peerDependencies": {
-    "@layer0/core": "^4.0.0",
-    "@nuxt/nitro": "^0.10.0"
+    "@layer0/core": "^3.8.0",
+    "@nuxt/nitro": "^0.6.2"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt-nitro/src/* dist; webpack",
