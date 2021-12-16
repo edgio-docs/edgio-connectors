@@ -1,6 +1,6 @@
 {
   "name": "@layer0/frontity",
-  "version": "3.17.6",
+  "version": "4.7.1",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -12,7 +12,7 @@
     "yargs": "^15.1.0"
   },
   "peerDependencies": {
-    "@layer0/core": "^3.0.0",
+    "@layer0/core": "^4.0.0",
     "frontity": "^1.0.0"
   },
   "scripts": {
@@ -67,7 +67,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@layer0/core": "^3.17.6",
+    "@layer0/core": "^4.7.1",
     "@types/node": "^14.0.9",
     "@types/workbox-webpack-plugin": "^5.1.5"
   }

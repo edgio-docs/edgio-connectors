@@ -1,4 +1,5 @@
 {
+  "/": "pages/index.html",
   "/p/[id]": "pages/p/[id].js",
   "/static/[id]": "pages/static/[id].js",
   "/static-fallback/[id]": "pages/static-fallback/[id].js",
