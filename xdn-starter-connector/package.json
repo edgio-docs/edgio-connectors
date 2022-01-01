@@ -1,6 +1,6 @@
 {
   "name": "@xdn/starter",
-  "version": "2.53.3",
+  "version": "2.53.4",
   "license": "UNLICENSED",
   "xdn-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -12,7 +12,7 @@
   "devDependencies": {
     "@types/cheerio": "^0.22.23",
     "@types/fs-extra": "^9.0.6",
-    "@xdn/core": "^2.53.3",
+    "@xdn/core": "^2.53.4",
     "webpack": "^5.18.0"
   },
   "peerDependencies": {
