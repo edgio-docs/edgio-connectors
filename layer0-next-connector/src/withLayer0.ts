@@ -29,7 +29,7 @@ export = function withLayer0(_nextConfig: any) {
 
     return {
       ...nextConfig,
-      target: nextConfig.target === 'serverless' ? 'serverless' : 'experimental-serverless-trace',
+      target: nextConfig.target === 'serverless' ? 'serverless' : 'experimental-serverless-trace', // allow existing projects that have historically deployed with target: 'serverless', which was the old default, to keep using target: 'serverless' if target: 'experimental-serverless-trace' causes issues with their app.
       withLayer0Applied: true, // validateNextConfig looks for this to ensure that the configuration is valid
       webpack: (config: any, options: any) => {
         const webpackConfig = { ...(nextConfig.webpack?.(config, options) || config) }

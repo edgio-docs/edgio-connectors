@@ -7,7 +7,7 @@ export = function createAdapter() {
   const adapter = {
     name: '@sveltejs/adapter-layer0',
 
-    async adapt({ utils }: { utils: any }) {
+    async adapt(utils: any) {
       const outputDir = resolve('.layer0')
       const jsDir = join(outputDir, 'lambda')
       const staticDir = join(outputDir, 's3-permanent')
@@ -19,7 +19,6 @@ export = function createAdapter() {
         entryPoints: ['.layer0/entry.js'],
         outfile: join(jsDir, 'index.js'),
         bundle: true,
-        inject: [join(files, 'shims.js')],
         platform: 'node',
       })
 

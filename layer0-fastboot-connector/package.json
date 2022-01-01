@@ -1,6 +1,6 @@
 {
   "name": "@layer0/fastboot",
-  "version": "4.8.1",
+  "version": "3.17.7",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "scripts": {
@@ -24,7 +24,7 @@
     "yargs": "^15.1.0"
   },
   "peerDependencies": {
-    "@layer0/core": "^4.0.0"
+    "@layer0/core": "^3.0.0"
   },
   "watch": {
     "push-build": {

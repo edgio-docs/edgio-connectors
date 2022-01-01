@@ -1,7 +1,7 @@
 // This file was automatically added by xdn deploy.
 // You should commit this file to source control.
 const { Router } = require('@layer0/core/router')
-const { svelteKitRoutes } = require('@layer0/sveltekit/router')
+const { svelteKitRoutes } = require('@layer0/sveltekit')
 
 const cacheHandler = ({ removeUpstreamResponseHeader, cache }) => {
   removeUpstreamResponseHeader('cache-control')

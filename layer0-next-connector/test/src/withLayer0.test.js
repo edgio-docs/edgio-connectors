@@ -29,10 +29,6 @@ describe('withLayer0', () => {
     expect(() => withLayer0()).not.toThrowError()
   })
 
-  it('should preserve target: serverless', () => {
-    expect(withLayer0({ target: 'serverless' }).target).toBe('serverless')
-  })
-
   it('should work in production', () => {
     const NODE_ENV = process.env.NODE_ENV
 
