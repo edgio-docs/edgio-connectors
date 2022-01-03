@@ -186,6 +186,20 @@ describe('SvelteKitRoutes', () => {
       await router.run(request, response)
       expect(proxy).not.toHaveBeenCalled()
     })
+
+    it('should stream dev requests', async () => {
+      router.use(new SvelteKitRoutes())
+      request.path = '/.svelte-kit/hello'
+      await router.run(request, response)
+      request.path = '/src/lib/icon.svg'
+      await router.run(request, response)
+      request.path = '/node_modules/module.js'
+      await router.run(request, response)
+      request.path = '/@vite/client'
+      await router.run(request, response)
+      expect(stream).toHaveBeenCalledWith(BACKENDS.js)
+      expect(stream).toHaveBeenCalledTimes(4)
+    })
   })
 
   describe('in the cloud', () => {
@@ -212,7 +226,7 @@ describe('SvelteKitRoutes', () => {
       router.use(new SvelteKitRoutes())
       request.path = '/service-worker.js'
       await router.run(request, response)
-      expect(serviceWorker).toHaveBeenCalledWith('.svelte/output/client/service-worker.js')
+      expect(serviceWorker).toHaveBeenCalledWith('.svelte-kit/output/client/service-worker.js')
     })
   })
 

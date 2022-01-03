@@ -131,16 +131,20 @@ export default class SvelteKitRoutes extends PluginBase {
         production build, not in development.
       */
       group.match('/service-worker.js', ({ serviceWorker }) => {
-        serviceWorker(`.svelte/output/client/service-worker.js`)
+        serviceWorker(`.svelte-kit/output/client/service-worker.js`)
       })
     }
 
     /* istanbul ignore next */
     group.static('static', { handler: () => res => res.cache(PUBLIC_CACHE_CONFIG) })
 
-    // webpack hot loader
+    // development tools used by sveltekit
     if (!isCloud()) {
       group.match('/_app', ({ stream }) => stream('__js__'))
+      group.match('/.svelte-kit/:path*', ({ stream }) => stream('__js__'))
+      group.match('/src/:path*', ({ stream }) => stream('__js__'))
+      group.match('/node_modules/:path*', ({ stream }) => stream('__js__'))
+      group.match('/@vite/:path*', ({ stream }) => stream('__js__'))
     }
 
     // browser js

@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 import { join } from 'path'
 const withOffline = require('next-offline')
+const { GenerateSW, InjectManifest } = require('workbox-webpack-plugin')
 
 /**
  * A Next.js plugin that emits a service worker suitable for prefetching
@@ -54,6 +55,28 @@ export default function withServiceWorker(_nextConfig: any) {
         ...workboxOpts,
       },
       ...config,
+      webpack(webpackConfig: any, options: any) {
+        let hasExistingWorkboxPlugins = false
+        webpackConfig.plugins.forEach((plugin: any) => {
+          if (plugin instanceof GenerateSW || plugin instanceof InjectManifest) {
+            hasExistingWorkboxPlugins = true
+          }
+        })
+        if (hasExistingWorkboxPlugins) {
+          console.error(
+            '> [layer0/next/config/withServiceWorker] Warning: Detected existing Workbox service worker configuration.'
+          )
+          console.error(
+            '> This may result in build errors. It is recommended to either remove the existing configuration or the'
+          )
+          console.error('> `withServiceWorker` wrapper function from next.config.js config export.')
+        }
+        if (typeof config.webpack === 'function') {
+          return config.webpack(webpackConfig, options)
+        }
+
+        return webpackConfig
+      },
     })
   }
 

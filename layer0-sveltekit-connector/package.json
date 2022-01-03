@@ -1,11 +1,13 @@
 {
   "name": "@layer0/sveltekit",
-  "version": "3.17.7",
+  "version": "4.8.2",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
     "chalk": "^3.0.0",
+    "cross-spawn": "^7.0.3",
     "esbuild": "^0.11.13",
+    "jscodeshift": "0.11.0",
     "slash": "^3.0.0",
     "yargs": "^15.1.0"
   },
@@ -70,8 +72,9 @@
     "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@babel/plugin-proposal-private-methods": "^7.13.0",
     "@babel/preset-env": "^7.13.12",
-    "@layer0/core": "^3.17.7",
-    "@sveltejs/kit": "^1.0.0-next.1",
+    "@layer0/core": "^4.8.2",
+    "@sveltejs/kit": "^1.0.0-next.193",
+    "@types/jscodeshift": "^0.11.2",
     "@types/node": "^14.0.9",
     "babel-loader": "^8.2.2"
   }

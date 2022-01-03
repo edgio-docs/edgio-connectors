@@ -1,24 +1,24 @@
 {
   "name": "@layer0/vue-storefront",
-  "version": "3.17.7",
+  "version": "4.8.2",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
-    "@layer0/apollo": "^3.17.7",
-    "@layer0/nuxt": "^3.17.7",
+    "@layer0/apollo": "^4.8.2",
+    "@layer0/nuxt": "^4.8.2",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^8.1.0",
     "jscodeshift": "^0.11.0"
   },
   "devDependencies": {
-    "@layer0/core": "^3.17.7",
+    "@layer0/core": "^4.8.2",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^9.0.7",
     "webpack": "^5.0.0",
     "webpack-cli": "^4.0.0"
   },
   "peerDependencies": {
-    "@layer0/core": "^3.0.0"
+    "@layer0/core": "^4.0.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r src/* package.json README.md ./dist; tsc; cp -r stage/vue-storefront/src/* dist; webpack",
