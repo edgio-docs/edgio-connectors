@@ -1,6 +1,6 @@
 {
   "name": "@layer0/express",
-  "version": "4.8.5",
+  "version": "4.9.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "scripts": {
@@ -57,6 +57,11 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@types/node": "^14.0.9"
+    "@types/node": "^14.0.9",
+    "@types/tcp-port-used": "^1.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.0.0",
+    "tcp-port-used": "^1.0.2"
   }
 }

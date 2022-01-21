@@ -1,28 +1,23 @@
 {
-  "name": "@layer0/angular",
+  "name": "@layer0/nuxt3",
   "version": "4.9.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
-  "peerDependencies": {
-    "@layer0/core": "^4.0.0"
-  },
   "devDependencies": {
-    "@layer0/core": "^4.9.0",
-    "@types/cross-spawn": "^6.0.2"
+    "@layer0/core": "^4.9.0"
   },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/angular/src/* dist;",
+    "build": "echo \"No build needed\"",
     "watch": "npm-watch",
-    "push-build": "npm run build && cd dist && yalc push && cd ..",
-    "release": "npm run build; cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
-    "test": "jest"
+    "push-build": "yalc push",
+    "link": "npm unlink; npm link",
+    "release": "npm publish --access public",
+    "release:next": "npm run release -- --tag next"
   },
   "watch": {
     "push-build": {
       "patterns": [
         "src",
-        "package.json",
         "default-app"
       ],
       "extensions": "*",
@@ -45,15 +40,22 @@
       "<rootDir>/node_modules/"
     ],
     "collectCoverageFrom": [
-      "./src/router/**/*.ts",
-      "!**/index.ts"
+      "./src/**/*.{js,jsx}",
+      "./lambda/**/*.{js,jsx}",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.js"
     ],
     "moduleNameMapper": {
-      "^@layer0/core(.*)$": "<rootDir>/../core/dist/$1",
-      "^@layer0/angular(.*)$": "<rootDir>/../angular/src/$1"
+      "^@layer0/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@layer0/gatsby(.*)$": "<rootDir>/../gatsby/src/$1"
     }
   },
   "publishConfig": {
     "directory": "dist"
+  },
+  "dependencies": {
+    "chalk": "^4.1.0"
   }
 }

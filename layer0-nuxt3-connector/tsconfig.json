@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "allowJs": true,
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./stage",
+    "strict": false,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
+    "baseUrl": "..",
+    "paths": {
+      "@layer0/core": ["core/src"],
+      "@layer0/core/*": ["core/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
