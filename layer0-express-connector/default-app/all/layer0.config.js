@@ -13,6 +13,7 @@ module.exports = {
     // - ./src/app.js
     // - ./src/index.ts
     // - ./src/index.js
+    // - ./server.js
     // - ./app.js
     // - ./index.js
     //

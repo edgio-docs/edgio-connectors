@@ -1,13 +1,13 @@
 {
   "name": "@layer0/angular",
-  "version": "4.9.0",
+  "version": "4.10.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "peerDependencies": {
     "@layer0/core": "^4.0.0"
   },
   "devDependencies": {
-    "@layer0/core": "^4.9.0",
+    "@layer0/core": "^4.10.0",
     "@types/cross-spawn": "^6.0.2"
   },
   "scripts": {
