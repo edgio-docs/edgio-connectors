@@ -113,6 +113,7 @@ export default class NextRoutes extends PluginBase {
   private async loadRewritesInDev() {
     // @ts-ignore
     const app = global.LAYER0_NEXT_APP
+
     let nextConfig = app.nextConfig
 
     if (!nextConfig) {
