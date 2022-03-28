@@ -1,11 +1,11 @@
 {
   "name": "@layer0/next",
-  "version": "4.10.3",
+  "version": "4.11.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
     "@vercel/nft": "^0.13.1",
-    "chalk": "^3.0.0",
+    "chalk": "^4.1.2",
     "cross-spawn": "^7.0.3",
     "encoding": "^0.1.13",
     "globby": "^11.0.1",
@@ -18,7 +18,7 @@
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@layer0/core": "^4.10.3",
+    "@layer0/core": "^4.11.0",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
     "@types/jscodeshift": "^0.11.2",

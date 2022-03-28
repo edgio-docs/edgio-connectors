@@ -25,7 +25,8 @@ export function getAngularProject() {
 export function getOutputPath(type: 'build' | 'server') {
   const angularConfig = getAngularConfig()
   const angularProject = getAngularProject()
-  return angularConfig.projects[angularProject].architect[type].options.outputPath
+
+  return angularConfig.projects[angularProject].architect[type]?.options?.outputPath
 }
 
 export const getBuildPath = () => getOutputPath('build')

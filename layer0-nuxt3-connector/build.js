@@ -13,7 +13,7 @@ module.exports = async function build(options) {
     // run the nuxt.js build with --standalone so that dependencies are bundled and the user
     // doesn't need to add them to package.json dependencies, thus keeping the lambda as
     // small as possible.
-    let command = 'NITRO_PRESET=node npx nuxt build'
+    let command = 'npx cross-env NITRO_PRESET=node nuxt build'
 
     try {
       await builder.exec(command)

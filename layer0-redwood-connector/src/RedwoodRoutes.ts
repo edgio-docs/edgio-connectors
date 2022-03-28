@@ -2,6 +2,7 @@ import Router from '@layer0/core/router/Router'
 import PluginBase from '@layer0/core/plugins/PluginBase'
 import RouteGroup from '@layer0/core/router/RouteGroup'
 import loadRedwoodConfig from './utils/loadRedwoodConfig'
+import { isProductionBuild } from '@layer0/core/environment'
 
 const ONE_YEAR = 60 * 60 * 24 * 365
 
@@ -28,7 +29,11 @@ export default class RedwoodRoutes extends PluginBase {
   onRegister(router: Router) {
     this.router = router
 
-    this.router.group(this.routeGroupName, group => this.addRoutesToGroup(group))
+    if (isProductionBuild()) {
+      this.router.group(this.routeGroupName, group => this.addRoutesToGroup(group))
+    } else {
+      this.router.fallback(res => res.renderWithApp())
+    }
   }
 
   private addRoutesToGroup(group: RouteGroup) {
@@ -36,6 +41,27 @@ export default class RedwoodRoutes extends PluginBase {
 
     group.match(`${redwoodConfig.web.apiUrl}/:path*`, ({ renderWithApp }) => {
       renderWithApp()
+    })
+
+    group.match('/static/:path*', ({ cache, serveStatic }) => {
+      cache({
+        browser: false,
+        edge: {
+          maxAgeSeconds: ONE_YEAR,
+        },
+      })
+      serveStatic('web/dist/static/:path*')
+    })
+
+    group.match('/', ({ cache, serveStatic }) => {
+      cache({
+        browser: false,
+        edge: {
+          maxAgeSeconds: ONE_YEAR,
+        },
+      })
+
+      serveStatic('web/dist/index.html')
     })
 
     group.match('/:path*', ({ cache, serveStatic }) => {
@@ -49,7 +75,7 @@ export default class RedwoodRoutes extends PluginBase {
       // Attempt to serve the requested path
       // If not found, serve web/dist/200.html which will exist if routes are prerendered
       // If not found, fallback to web/dist/index.html
-      serveStatic('web/dist/:path*', {
+      serveStatic('web/dist/:path*.html', {
         onNotFound: async () => {
           await serveStatic('web/dist/200.html', {
             onNotFound: async () => {

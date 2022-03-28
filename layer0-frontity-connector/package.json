@@ -1,11 +1,11 @@
 {
   "name": "@layer0/frontity",
-  "version": "4.10.3",
+  "version": "4.11.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
     "babel-loader": "^8.2.2",
-    "chalk": "^3.0.0",
+    "chalk": "^4.1.2",
     "globby": "^11.0.2",
     "slash": "^3.0.0",
     "workbox-webpack-plugin": "^6.1.0",
@@ -67,7 +67,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@layer0/core": "^4.10.3",
+    "@layer0/core": "^4.11.0",
     "@types/node": "^14.0.9",
     "@types/workbox-webpack-plugin": "^5.1.5"
   }

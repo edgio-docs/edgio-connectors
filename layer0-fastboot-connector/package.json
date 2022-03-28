@@ -1,6 +1,6 @@
 {
   "name": "@layer0/fastboot",
-  "version": "4.10.3",
+  "version": "4.11.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "babel-loader": "^8.2.2",
-    "chalk": "^3.0.0",
+    "chalk": "^4.1.2",
     "express": "^4.17.1",
     "fastboot": "^3.1.2",
     "fastboot-express-middleware": "^3.1.0",
