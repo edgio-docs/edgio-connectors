@@ -1,24 +1,23 @@
 {
   "name": "@layer0/next",
-  "version": "4.12.0",
+  "version": "3.17.8",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
     "@vercel/nft": "^0.13.1",
-    "chalk": "^4.1.2",
+    "chalk": "^3.0.0",
     "cross-spawn": "^7.0.3",
     "encoding": "^0.1.13",
     "globby": "^11.0.1",
-    "jscodeshift": "^0.13.1",
+    "jscodeshift": "0.11.0",
     "next-offline": "^5.0.3",
-    "ora": "^4.0.0",
     "qs": "^6.9.4",
     "slash": "^3.0.0",
     "webpack": "^4.0.0",
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@layer0/core": "^4.12.0",
+    "@layer0/core": "^3.17.8",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
     "@types/jscodeshift": "^0.11.2",
@@ -33,15 +32,15 @@
     "workbox-build": "^5.1.2"
   },
   "peerDependencies": {
-    "next": "^9.3.5 || ^10.0.0 || ^11.0.0 || ^12.0.0"
+    "next": "^9.3.5 || ^10.0.0 || ^11.0.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/next/src/* dist; webpack",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
+    "release": "cd ./dist; npm publish --tag latest-v3 --access public",
+    "release:next": "npm run release -- --tag next-v3",
     "test": "jest"
   },
   "watch": {

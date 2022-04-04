@@ -1,10 +1,9 @@
 // adapted from https://github.com/sveltejs/kit/blob/master/packages/adapter-vercel/package.json
-import { getRawBody } from '@sveltejs/kit/node'
+import { getRawBody } from '@sveltejs/kit/http'
+import '@sveltejs/kit/install-fetch'
 
 // TODO hardcoding the relative location makes this brittle
-import { init, render } from '../.svelte-kit/output/server/app.js'
-
-init()
+import { render } from '../.svelte/output/server/app.js'
 
 export default async (req, res) => {
   const { pathname, searchParams } = new URL(req.url || '', 'http://localhost')

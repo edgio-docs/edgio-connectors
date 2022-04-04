@@ -1,46 +1,39 @@
 import { getOutputPath } from './utils/getBuildPath'
-import { read as readPackageJson } from '@layer0/core/utils/packageUtils'
 import FrameworkBuildError from '@layer0/core/errors/FrameworkBuildError'
 import { join } from 'path'
-import { DeploymentBuilder, BuildOptions } from '@layer0/core/deploy'
+import { DeploymentBuilder } from '@layer0/core/deploy'
 
 const appDir = process.cwd()
 const distDir = join(appDir, 'dist')
 const builder = new DeploymentBuilder(appDir)
 
-export default async function build({ skipFramework }: BuildOptions) {
+export default async function build(
+  { skipFramework }: { skipFramework: boolean } = {
+    skipFramework: false,
+  }
+) {
   builder.clearPreviousBuildOutput()
 
-  const pkg = readPackageJson()
-  const isSsr = pkg.scripts['build:ssr']
-
   if (!skipFramework) {
-    const command = `npm run build${isSsr ? ':ssr' : ''}`
+    const command = 'npm run build:ssr'
 
     // clear dist directory
     builder.emptyDirSync(distDir)
 
     try {
-      // run the build command
+      // run the ssr build command
       await builder.exec(command)
     } catch (e) {
       throw new FrameworkBuildError('Angular', command, e)
     }
   }
 
-  const assetsPath = getOutputPath('build')
   const serverPath = getOutputPath('server')
-
-  // if this is an SSR build, add the server to the bundle
-  if (serverPath) {
-    // Include the angular server which is loaded by the prod entrypoint
-    builder.addJSAsset(
-      join(appDir, serverPath, 'main.js'),
-      join('__backends__', 'angular-server.js')
-    )
-  }
+  const assetsPath = getOutputPath('build')
 
   builder
+    // Include the angular server which is loaded by the prod entrypoint
+    .addJSAsset(join(appDir, serverPath, 'main.js'), join('__backends__', 'angular-server.js'))
     // angular.json
     .addJSAsset(join(appDir, 'angular.json'), 'angular.json')
     // browser assets
@@ -48,6 +41,5 @@ export default async function build({ skipFramework }: BuildOptions) {
     // Index html required by Universal engine
     .addJSAsset(join(appDir, assetsPath, 'index.html'), join('/', assetsPath, 'index.html'))
 
-  // exclude the prod handler if we're building only static (no SSR)
-  await builder.build({ excludeProdEntryPoint: !serverPath })
+  await builder.build()
 }
