@@ -738,6 +738,13 @@ describe('NextRoutes', () => {
       expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
     })
 
+    it('should add routes for files in .next/server', async () => {
+      request.path = '/_next/server/middleware-manifest.json'
+      await router.run(request, response)
+      expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
+      expect(serveStatic).toHaveBeenCalledWith('.next/server/:file*')
+    })
+
     it('should serve / correctly', async () => {
       request.path = '/'
       await router.run(request, response)

@@ -196,12 +196,10 @@ export default class NextRoutes extends PluginBase {
    * @param group
    */
   private addMiddlewareManifest(group: RouteGroup) {
-    if (existsSync(join(this.distDir, 'server'))) {
-      group.match('/_next/server/:file*', ({ serveStatic, cache }) => {
-        cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
-        serveStatic(`${this.distDir}/server/:file*`)
-      })
-    }
+    group.match('/_next/server/:file*', ({ serveStatic, cache }) => {
+      cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
+      serveStatic(`${this.distDir}/server/:file*`)
+    })
   }
 
   /**

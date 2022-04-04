@@ -27,12 +27,13 @@ export default function withServiceWorker(_nextConfig: any) {
 
   const plugin = (...args: any[]): any => {
     const { workboxOpts, ...config } = normalizedNextConfig(...args)
+    const swSrc = join(process.cwd(), 'sw', 'service-worker.js')
 
     return withOffline({
       generateInDevMode: true,
       generateSw: false,
       workboxOpts: {
-        swSrc: join(process.cwd(), 'sw', 'service-worker.js'),
+        swSrc,
         swDest: join(process.cwd(), '.next', 'static', 'service-worker.js'),
         // The asset names for page chunks contain square brackets, eg [productId].js
         // Next internally injects these chunks encoded, eg %5BproductId%5D.js
@@ -57,11 +58,19 @@ export default function withServiceWorker(_nextConfig: any) {
       ...config,
       webpack(webpackConfig: any, options: any) {
         let hasExistingWorkboxPlugins = false
+
+        // Check if the app already configured to generate a service worker and warn them as this may have adverse effects.
+        // To preserve the existing service worker behavior, the user should add this code to their service worker
+        // https://docs.layer0.co/guides/prefetching#section_service_worker
         webpackConfig.plugins.forEach((plugin: any) => {
-          if (plugin instanceof GenerateSW || plugin instanceof InjectManifest) {
+          if (
+            (plugin instanceof GenerateSW || plugin instanceof InjectManifest) &&
+            plugin?.config?.swSrc !== swSrc
+          ) {
             hasExistingWorkboxPlugins = true
           }
         })
+
         if (hasExistingWorkboxPlugins) {
           console.error(
             '> [layer0/next/config/withServiceWorker] Warning: Detected existing Workbox service worker configuration.'
@@ -71,6 +80,7 @@ export default function withServiceWorker(_nextConfig: any) {
           )
           console.error('> `withServiceWorker` wrapper function from next.config.js config export.')
         }
+
         if (typeof config.webpack === 'function') {
           return config.webpack(webpackConfig, options)
         }
