@@ -1,31 +1,32 @@
 {
   "name": "@layer0/vue-storefront",
-  "version": "3.17.8",
+  "version": "4.13.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
-    "@layer0/apollo": "^3.17.8",
-    "@layer0/nuxt": "^3.17.8",
+    "@layer0/apollo": "^4.13.0",
+    "@layer0/nuxt": "^4.13.0",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^8.1.0",
-    "jscodeshift": "^0.11.0"
+    "jscodeshift": "^0.13.1"
   },
   "devDependencies": {
-    "@layer0/core": "^3.17.8",
+    "@layer0/core": "^4.13.0",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^9.0.7",
+    "@types/jscodeshift": "^0.11.2",
     "webpack": "^5.0.0",
     "webpack-cli": "^4.0.0"
   },
   "peerDependencies": {
-    "@layer0/core": "^3.0.0"
+    "@layer0/core": "^4.8.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r src/* package.json README.md ./dist; tsc; cp -r stage/vue-storefront/src/* dist; webpack",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "watch": "npm-watch",
-    "release": "cd ./dist; npm publish --tag latest-v3 --access public",
-    "release:next": "npm run release -- --tag next-v3",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
     "test": "jest --passWithNoTests",
     "precommit": "lint-staged"
   },

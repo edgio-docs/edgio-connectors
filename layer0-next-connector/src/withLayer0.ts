@@ -1,4 +1,19 @@
+import { getServerBuildAvailability } from './util/getServerBuildAvailability'
 import CommonsServerChunkPlugin from './webpack/CommonsServerChunkPlugin'
+
+const determineTarget = ({
+  useServerBuild,
+  target,
+}: {
+  useServerBuild?: boolean
+  target: string
+}) => {
+  return useServerBuild
+    ? 'server'
+    : target === 'serverless'
+    ? 'serverless'
+    : 'experimental-serverless-trace'
+}
 
 /**
  * Creates a Next.js config suitable for deployment on Layer0.
@@ -26,10 +41,15 @@ export = function withLayer0(_nextConfig: any) {
 
   const plugin = (...args: any[]): any => {
     const nextConfig = normalizedNextConfig(...args)
+    const { useServerBuild } = getServerBuildAvailability({ config: nextConfig })
 
     return {
       ...nextConfig,
-      target: nextConfig.target === 'serverless' ? 'serverless' : 'experimental-serverless-trace', // allow existing projects that have historically deployed with target: 'serverless', which was the old default, to keep using target: 'serverless' if target: 'experimental-serverless-trace' causes issues with their app.
+      target: determineTarget({ useServerBuild, target: nextConfig.target }),
+      experimental: {
+        ...nextConfig.experimental,
+        ...(useServerBuild ? { outputStandalone: true } : {}),
+      },
       withLayer0Applied: true, // validateNextConfig looks for this to ensure that the configuration is valid
       webpack: (config: any, options: any) => {
         const webpackConfig = { ...(nextConfig.webpack?.(config, options) || config) }
