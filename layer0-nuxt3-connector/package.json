@@ -1,10 +1,10 @@
 {
   "name": "@layer0/nuxt3",
-  "version": "4.13.6",
+  "version": "4.13.8",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "devDependencies": {
-    "@layer0/core": "^4.13.6"
+    "@layer0/core": "^4.13.8"
   },
   "scripts": {
     "build": "echo \"No build needed\"",

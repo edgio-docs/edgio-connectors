@@ -66,7 +66,7 @@ export = function withLayer0(_nextConfig: any) {
           })
         }
 
-        if (!options.isServer) {
+        if (!options.isServer && !nextConfig.disableLayer0DevTools) {
           // Adding Devtools to client JS file
           if (isLayer0DevtoolsInstalled()) {
             const originalEntry = config.entry

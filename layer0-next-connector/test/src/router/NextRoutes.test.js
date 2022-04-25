@@ -194,6 +194,11 @@ describe('NextRoutes', () => {
                 source: '/rewrites/:id',
                 destination: '/p/:id',
               },
+              // Same path as redirect added to test redirect being resolved with higher priority
+              {
+                source: '/redirects/:id',
+                destination: '/p/:id',
+              },
             ]
           },
           async redirects() {
@@ -379,7 +384,7 @@ describe('NextRoutes', () => {
         })
       })
 
-      it('should add routes for redirects', async done => {
+      it('should add routes for redirects (with priority over other routes)', async done => {
         process.nextTick(async () => {
           request.path = '/redirects/1'
           await router.run(request, response)

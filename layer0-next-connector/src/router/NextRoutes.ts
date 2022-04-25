@@ -182,6 +182,7 @@ export default class NextRoutes extends PluginBase {
    * @param group The RouteGroup to which Next.js routes should be added.
    */
   private addNextRoutesToGroup(group: RouteGroup) {
+    this.addRedirects(group)
     this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
     this.addImageOptimizerRoutes(group)
@@ -200,8 +201,6 @@ export default class NextRoutes extends PluginBase {
     if (Array.isArray(fallbackRewrites)) {
       this.addRewrites(fallbackRewrites, group)
     }
-
-    this.addRedirects(group)
   }
 
   /**

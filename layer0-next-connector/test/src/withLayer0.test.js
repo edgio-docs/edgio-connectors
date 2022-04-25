@@ -109,6 +109,20 @@ describe('withLayer0', () => {
       jest.mock('@layer0/devtools/widget/install', () => {}, { virtual: true })
     })
 
+    it('should not add devtools if `disableLayer0DevTools` option set to true', async () => {
+      const options = { isServer: false, webpack: { version: '5.0.0' } }
+      const webpackConfig = {
+        entry: () => Promise.resolve({ 'main.js': ['original-main'] }),
+        output: {},
+        optimization: {},
+        plugins: [],
+      }
+      withLayer0({ disableLayer0DevTools: true }).webpack(webpackConfig, options)
+      expect(await webpackConfig.entry()).toEqual({
+        'main.js': ['original-main'],
+      })
+    })
+
     it('should add devtools install script in client entries', async () => {
       const options = { isServer: false, webpack: { version: '5.0.0' } }
       const webpackConfig = {
