@@ -1,10 +1,10 @@
 {
   "name": "@layer0/razzle",
-  "version": "3.18.1",
+  "version": "4.13.15",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
-    "chalk": "^3.0.0",
+    "chalk": "^4.1.2",
     "slash": "^3.0.0",
     "yargs": "^15.1.0"
   },
@@ -16,8 +16,8 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --tag latest-v3 --access public",
-    "release:next": "npm run release -- --tag next-v3",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
     "test": "jest"
   },
   "watch": {
@@ -63,7 +63,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@layer0/core": "^3.18.1",
+    "@layer0/core": "^4.13.15",
     "@types/node": "^14.0.9"
   }
 }

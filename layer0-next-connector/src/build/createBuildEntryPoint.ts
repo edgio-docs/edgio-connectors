@@ -8,6 +8,7 @@ import { existsSync } from 'fs'
 import { CopyOptionsSync } from 'fs-extra'
 import setSsgStaticAssetExpiration from './setSsgStaticAssetExpiration'
 import { nodeFileTrace } from '@vercel/nft'
+import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
 
 interface BuilderOptions {
   /**
@@ -40,6 +41,10 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
     if (typeof nextConfig === 'function') {
       nextConfig = nextConfig('phase-production-build', {})
     }
+    const { useServerBuild } = getServerBuildAvailability({
+      config: nextConfig,
+    })
+    const buildOutputFolder = useServerBuild ? 'server' : 'serverless'
 
     builder.clearPreviousBuildOutput()
 
@@ -62,7 +67,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
 
     builder
       // React components and api endpoints
-      .addJSAsset(join(distDirAbsolute, 'serverless'), undefined, lambdaAssetCopyOptions)
+      .addJSAsset(join(distDirAbsolute, buildOutputFolder), undefined, lambdaAssetCopyOptions)
 
       // needed for rewrites and redirects
       .addJSAsset(join(distDirAbsolute, 'routes-manifest.json'))
@@ -70,25 +75,51 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       // needed for cache times
       .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json'))
 
-    // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
-    builder.writeFileSync(
-      join(builder.jsDir, 'next.config.js'),
-      `module.exports=${JSON.stringify({ distDir })}`
-    )
+    // We use server build for Next 12+. The server needs to be provided the server configuration at run time.
+    if (useServerBuild) {
+      // next uses this internally to derive the config from the file
+      const loadConfig = nonWebpackRequire('next/dist/server/config').default
+      const serverConfig = await loadConfig('phase-production-server', process.cwd())
+
+      builder.writeFileSync(
+        join(builder.jsDir, 'next.config.js'),
+        `module.exports=${JSON.stringify(serverConfig)}`
+      )
+    } else {
+      // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
+      builder.writeFileSync(
+        join(builder.jsDir, 'next.config.js'),
+        `module.exports=${JSON.stringify({ distDir })}`
+      )
+    }
 
     const prerenderManifest = <{ [key: string]: any }>(
       nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
     )
 
-    setSsgStaticAssetExpiration(builder, prerenderManifest, distDir)
+    setSsgStaticAssetExpiration(builder, prerenderManifest, `${distDir}/${buildOutputFolder}`)
+
+    // Copy over assets from the standalone build output
+    if (useServerBuild) {
+      // Main necessary files for next server to run
+      builder.copySync(join(distDirAbsolute, 'standalone', '.next'), join(builder.jsDir, '.next'))
+      builder.copySync(
+        join(distDirAbsolute, 'standalone', 'node_modules'),
+        join(builder.jsDir, 'node_modules')
+      )
+      builder.copySync(
+        join(distDirAbsolute, 'standalone', 'package.json'),
+        join(builder.jsDir, 'package.json')
+      )
+    }
 
     await builder.build()
 
-    const pages = join(builder.jsDir, distDir, 'serverless', 'pages')
+    const pages = join(builder.jsDir, distDir, buildOutputFolder, 'pages')
 
     // If the user has overrided the default target and is using serverless
     // do not perform tracing for required node modules
-    if (nextConfig.target !== 'serverless') {
+    if (!useServerBuild && nextConfig.target !== 'serverless') {
       const pageHandlerFiles = globby
         .sync('**/*.js', {
           onlyFiles: true,
@@ -116,12 +147,12 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       })
       .forEach(file => {
         const src = join(pages, file)
-        builder.addStaticAsset(src, join(distDir, 'serverless', 'pages', file))
+        builder.addStaticAsset(src, join(distDir, buildOutputFolder, 'pages', file))
         builder.removeSync(src)
       })
 
     const defaultLocale = nextConfig.i18n?.defaultLocale
-    const staticPagesDir = join(builder.staticAssetsDir, distDir, 'serverless', 'pages')
+    const staticPagesDir = join(builder.staticAssetsDir, distDir, buildOutputFolder, 'pages')
 
     if (defaultLocale) {
       builder.copySync(join(staticPagesDir, defaultLocale), staticPagesDir)

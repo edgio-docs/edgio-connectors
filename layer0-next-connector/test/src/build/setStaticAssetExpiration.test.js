@@ -19,7 +19,7 @@ describe('setSsgStaticAssetExpiration', () => {
       setStaticAssetExpiration,
     }
 
-    const distDir = 'dist'
+    const distDir = 'dist/serverless'
 
     setSsgStaticAssetExpiration(builder, manifest, distDir)
 

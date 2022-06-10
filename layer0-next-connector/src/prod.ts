@@ -1,18 +1,47 @@
 /* istanbul ignore file */
 import { join } from 'path'
 import qs from 'qs'
-import { createServer } from 'http'
+import { createServer, Server } from 'http'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import getDistDir from './util/getDistDir'
+import path from 'path'
 
 // Used in fetchFromAPI so that SSR pages don't call back into the lambda
 // which would result in Layer0 being double-billed for each SSR request
 process.env.API_HOST = `127.0.0.1:3001`
 
-export default async function prod(port: number) {
-  const distDir = getDistDir()
+let server: Server
 
-  const server = createServer(async (req, res) => {
+const createStandAloneServer = (
+  port: number,
+  config: { experimental: { isrFlushToDisk: boolean } }
+) => {
+  const NextServer = nonWebpackRequire('next/dist/server/next-server').default
+  // disable next writing ISR generated html files to disk
+  config.experimental.isrFlushToDisk = false
+  const nextServer = new NextServer({
+    hostname: 'localhost',
+    port: port,
+    dir: path.resolve(__dirname, '..'),
+    dev: false,
+    conf: config,
+  })
+  const handle = nextServer.getRequestHandler()
+  return createServer(async (req, res) => {
+    try {
+      handle(req, res)
+    } catch (e) {
+      const message = `An unexpected error occurred while processing the request with next.js.`
+      console.error(e.stack)
+      res.writeHead(500)
+      res.end(message)
+    }
+  })
+}
+
+const createServerlessServer = () => {
+  const distDir = getDistDir()
+  return createServer(async (req, res) => {
     const page = req.headers['x-next-page'] // sent by createNextRenderer
     const search = req.url?.split('?')[1]
 
@@ -48,6 +77,17 @@ export default async function prod(port: number) {
       res.end(message)
     }
   })
+}
+
+export default async function prod(port: number) {
+  if (!server) {
+    const config = nonWebpackRequire('../next.config.js')
+    if (config.target === 'server') {
+      server = createStandAloneServer(port, config)
+    } else {
+      server = createServerlessServer()
+    }
+  }
 
   return new Promise<void>((resolve, reject) => {
     try {

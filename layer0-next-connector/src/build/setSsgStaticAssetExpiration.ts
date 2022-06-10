@@ -19,12 +19,12 @@ export default function setSsgStaticAssetExpiration(
     if (initialRevalidateSeconds) {
       builder
         .setStaticAssetExpiration(
-          `${distDir}/serverless/pages${path}.html`,
+          `${distDir}/pages${path}.html`,
           initialRevalidateSeconds,
           initialRevalidateSeconds // temporary fix to pass build
         )
         .setStaticAssetExpiration(
-          `${distDir}/serverless/pages${path}.json`,
+          `${distDir}/pages${path}.json`,
           initialRevalidateSeconds,
           initialRevalidateSeconds // temporary fix to pass build
         )

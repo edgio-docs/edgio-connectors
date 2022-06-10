@@ -194,6 +194,11 @@ describe('NextRoutes', () => {
                 source: '/rewrites/:id',
                 destination: '/p/:id',
               },
+              // Same path as redirect added to test redirect being resolved with higher priority
+              {
+                source: '/redirects/:id',
+                destination: '/p/:id',
+              },
             ]
           },
           async redirects() {
@@ -379,7 +384,7 @@ describe('NextRoutes', () => {
         })
       })
 
-      it('should add routes for redirects', async done => {
+      it('should add routes for redirects (with priority over other routes)', async done => {
         process.nextTick(async () => {
           request.path = '/redirects/1'
           await router.run(request, response)
@@ -655,13 +660,22 @@ describe('NextRoutes', () => {
       it('should prerender everything in prerender-manifest.json', () => {
         expect(router.preloadRequests.options).toEqual([
           [
-            { path: '/' },
+            { path: '/en-US' },
+            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/index.json' },
+            { path: '/fr' },
+            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/fr/index.json' },
+            { path: '/nl-NL' },
+            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/nl-NL/index.json' },
             { path: '/en-US/static/1' },
             { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/static/1.json' },
             { path: '/en-US/static/2' },
             { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/static/2.json' },
-            { path: '/ssg/ssg' },
-            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/ssg/ssg.json' },
+            { path: '/en-US/ssg/ssg' },
+            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/ssg/ssg.json' },
+            { path: '/fr/ssg/ssg' },
+            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/fr/ssg/ssg.json' },
+            { path: '/nl-NL/ssg/ssg' },
+            { path: '/_next/data/YZASQ6pQlDxn8KydMz9qu/nl-NL/ssg/ssg.json' },
           ],
         ])
       })
@@ -729,6 +743,28 @@ describe('NextRoutes', () => {
       expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
     })
 
+    it('should add routes for files in .next/server', async () => {
+      request.path = '/_next/server/middleware-manifest.json'
+      await router.run(request, response)
+      expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
+      expect(serveStatic).toHaveBeenCalledWith('.next/server/:file*')
+    })
+
+    it('should serve / correctly', async () => {
+      request.path = '/'
+      await router.run(request, response)
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/index.html', {
+        onNotFound: expect.any(Function),
+      })
+    })
+
+    it('should serve server assets', async () => {
+      request.path = '/_next/server/middleware-manifest.json'
+      await router.run(request, response)
+      expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
+      expect(serveStatic).toHaveBeenCalledWith('.next/server/:file*')
+    })
+
     it('should add routes for all static assets', async () => {
       request.path = '/_next/static/development/pages/index.js'
       await router.run(request, response)
@@ -751,9 +787,7 @@ describe('NextRoutes', () => {
     it('should add routes for all static pages with getStaticProps only', async () => {
       request.path = '/ssg/ssg'
       await router.run(request, response)
-      // TODO: I don't think this is correct either, Next.js does not generate .js.html files
-      //       but we limit this fix routes with no dynamic segment
-      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/ssg/ssg.js.html', {
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/ssg/ssg.html', {
         onNotFound: expect.any(Function),
       })
     })
@@ -761,14 +795,10 @@ describe('NextRoutes', () => {
     it('should add routes for all static pages with getStaticPaths', async () => {
       request.path = '/static-fallback/1'
       await router.run(request, response)
-      // TODO: I don't think this is correct either, Next.js does not generate .js.html files
-      //       but we limit this fix routes with no dynamic segment
-      expect(serveStatic).toHaveBeenCalledWith(
-        '.next/serverless/pages/static-fallback/[id].js.html',
-        {
-          onNotFound: expect.any(Function),
-        }
-      )
+      expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/static-fallback/:id.html', {
+        loadingPage: '.next/serverless/pages/static-fallback/[id].html',
+        onNotFound: expect.any(Function),
+      })
     })
 
     it('should serve a 404 for unrendered static pages without a fallback', async () => {
