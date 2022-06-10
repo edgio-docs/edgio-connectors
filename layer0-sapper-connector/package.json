@@ -1,10 +1,10 @@
 {
   "name": "@layer0/sapper",
-  "version": "4.13.14",
+  "version": "3.18.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
-    "chalk": "^4.1.2",
+    "chalk": "^3.0.0",
     "slash": "^3.0.0",
     "yargs": "^15.1.0"
   },
@@ -16,8 +16,8 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
+    "release": "cd ./dist; npm publish --tag latest-v3 --access public",
+    "release:next": "npm run release -- --tag next-v3",
     "test": "jest --forceExit"
   },
   "watch": {
@@ -63,7 +63,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@layer0/core": "^4.13.14",
+    "@layer0/core": "^3.18.0",
     "@types/node": "^14.0.9",
     "chokidar": "^3.5.1"
   }

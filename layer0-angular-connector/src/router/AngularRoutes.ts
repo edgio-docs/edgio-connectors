@@ -1,7 +1,7 @@
 import { BACKENDS } from '@layer0/core/constants'
 import PluginBase from '@layer0/core/plugins/PluginBase'
 import { Router } from '@layer0/core/router'
-import { getBuildPath, getOutputPath } from '../utils/getBuildPath'
+import { getBuildPath } from '../utils/getBuildPath'
 
 /**
  * A TTL for assets that never change.  10 years in seconds.
@@ -37,23 +37,9 @@ export default class AngularRoutes extends PluginBase {
         handler: () => res => res.cache(PUBLIC_CACHE_CONFIG),
         glob: `*`,
       })
-
-      // we can determine SSR support by whether or not a server output path exists
-      const isSsr = !!getOutputPath('server')
-
-      if (isSsr) {
-        group.match('/:path*', async ({ proxy }) => {
-          proxy(BACKENDS.js)
-        })
-      } else {
-        group.match(
-          '/:path*',
-          async ({ serveStatic }) =>
-            await serveStatic(`${buildPath}/:path*`, {
-              onNotFound: async () => await serveStatic(`${buildPath}/index.html`),
-            })
-        )
-      }
+      group.match('/:path*', async ({ proxy }) => {
+        proxy(BACKENDS.js)
+      })
     })
   }
 }

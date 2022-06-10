@@ -29,10 +29,6 @@ describe('withLayer0', () => {
     expect(() => withLayer0()).not.toThrowError()
   })
 
-  it('should preserve target: serverless', () => {
-    expect(withLayer0({ target: 'serverless' }).target).toBe('serverless')
-  })
-
   it('should work in production', () => {
     const NODE_ENV = process.env.NODE_ENV
 
@@ -107,20 +103,6 @@ describe('withLayer0', () => {
   describe('when @layer0/devtools is installed', () => {
     beforeEach(() => {
       jest.mock('@layer0/devtools/widget/install', () => {}, { virtual: true })
-    })
-
-    it('should not add devtools if `disableLayer0DevTools` option set to true', async () => {
-      const options = { isServer: false, webpack: { version: '5.0.0' } }
-      const webpackConfig = {
-        entry: () => Promise.resolve({ 'main.js': ['original-main'] }),
-        output: {},
-        optimization: {},
-        plugins: [],
-      }
-      withLayer0({ disableLayer0DevTools: true }).webpack(webpackConfig, options)
-      expect(await webpackConfig.entry()).toEqual({
-        'main.js': ['original-main'],
-      })
     })
 
     it('should add devtools install script in client entries', async () => {
