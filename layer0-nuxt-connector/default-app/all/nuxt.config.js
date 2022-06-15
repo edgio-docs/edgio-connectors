@@ -20,7 +20,7 @@ export default {
   components: true,
 
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
-  buildModules: [['@xdn/nuxt/module', { layer0SourceMaps: true }]],
+  buildModules: [['@layer0/nuxt/module', { layer0SourceMaps: true }]],
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [],

@@ -115,7 +115,7 @@ describe('NuxtRoutes', () => {
       routes = [{ path: '/p/:id?' }]
       router.use(new NuxtRoutes())
       const group = router.routeGroups.findByName('nuxt_routes_group')
-      expect(group.routes.length).toBe(4)
+      expect(group.routes.length).toBe(5)
       watchCallback('change')
       expect(group.routes.map(route => route.criteria.path)).toContain('/p/:id')
     })
