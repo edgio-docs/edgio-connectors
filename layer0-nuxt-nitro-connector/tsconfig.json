@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2019",
+    "target": "es6",
     "module": "commonjs",
     "declaration": true,
     "outDir": "./stage",
@@ -9,9 +9,12 @@
     "downlevelIteration": true,
     "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
     "baseUrl": "..",
+    "skipLibCheck": true,
     "paths": {
       "@layer0/core": ["core/src"],
-      "@layer0/core/*": ["core/src/*"]
+      "@layer0/core/*": ["core/src/*"],
+      "@layer0/prefetch": ["prefetch/src"],
+      "@layer0/prefetch/*": ["prefetch/src/*"]
     }
   },
   "include": ["src"],

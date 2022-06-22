@@ -1,4 +1,4 @@
 import NextRoutes from './NextRoutes'
 
 export const nextRoutes = new NextRoutes()
-export { renderNextPage } from './renderNextPage'
+export { default as renderNextPage } from './renderNextPage'

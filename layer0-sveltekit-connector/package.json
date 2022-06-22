@@ -1,13 +1,11 @@
 {
   "name": "@layer0/sveltekit",
-  "version": "4.15.1",
+  "version": "3.19.0",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
-    "chalk": "^4.1.2",
-    "cross-spawn": "^7.0.3",
+    "chalk": "^3.0.0",
     "esbuild": "^0.11.13",
-    "jscodeshift": "^0.13.1",
     "slash": "^3.0.0",
     "yargs": "^15.1.0"
   },
@@ -19,8 +17,8 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
+    "release": "cd ./dist; npm publish --tag latest-v3 --access public",
+    "release:next": "npm run release -- --tag next-v3",
     "test": "jest"
   },
   "watch": {
@@ -72,9 +70,8 @@
     "@babel/plugin-proposal-class-properties": "^7.13.0",
     "@babel/plugin-proposal-private-methods": "^7.13.0",
     "@babel/preset-env": "^7.13.12",
-    "@layer0/core": "^4.15.1",
-    "@sveltejs/kit": "^1.0.0-next.193",
-    "@types/jscodeshift": "^0.11.2",
+    "@layer0/core": "^3.19.0",
+    "@sveltejs/kit": "^1.0.0-next.1",
     "@types/node": "^14.0.9",
     "babel-loader": "^8.2.2"
   }

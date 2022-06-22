@@ -1,7 +1,8 @@
 import PluginBase from '@layer0/core/plugins/PluginBase'
 import { join } from 'path'
+import { BACKENDS } from '@layer0/core/constants'
 import { existsSync, mkdirSync } from 'fs'
-import { Router } from '@layer0/core/router'
+import { Router, ResponseWriter } from '@layer0/core/router'
 import RouteGroup from '@layer0/core/router/RouteGroup'
 import { isProductionBuild } from '@layer0/core/environment'
 
@@ -79,9 +80,9 @@ export default class NuxtRoutes extends PluginBase {
    */
   private addAssets(group: RouteGroup) {
     // service worker
-    // group.match('/service-worker.js', ({ serviceWorker }) =>
-    //   serviceWorker('.nuxt/dist/service-worker.js')
-    // )
+    group.match('/service-worker.js', ({ serviceWorker }) =>
+      serviceWorker('.nuxt/dist/service-worker.js')
+    )
 
     if (isProductionBuild()) {
       group.static('.output/public', {
@@ -99,13 +100,18 @@ export default class NuxtRoutes extends PluginBase {
       /* istanbul ignore next */
       group.static('static', { handler: () => res => res.cache(PUBLIC_CACHE_CONFIG) })
 
+      // webpack hot loader
+      const streamHandler = (res: ResponseWriter) => res.stream(BACKENDS.js)
+      group.match('/__webpack_hmr/:path*', streamHandler)
+      group.match('/_nuxt/:hash.hot-update.json', streamHandler)
+
       // browser js
       group.match('/_nuxt/:path*', async ({ renderWithApp, cache }) => {
         // since Nuxt doesn't add a hash to asset file names in dev, we need to prevent caching,
         // otherwise Nuxt is prone to getting stuck in a browser refresh loop after making changes due to assets
         // failing to load without error.
         cache({ browser: false })
-        renderWithApp({ removeEmptySearchParamValues: true })
+        renderWithApp()
       })
     }
   }
