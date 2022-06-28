@@ -1,18 +1,18 @@
 {
   "name": "@layer0/gatsby",
-  "version": "3.19.0",
+  "version": "4.15.2",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "devDependencies": {
-    "@layer0/core": "^3.19.0"
+    "@layer0/core": "^4.15.2"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/gatsby/src/* dist",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --tag latest-v3 --access public",
-    "release:next": "npm run release -- --tag next-v3"
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next"
   },
   "watch": {
     "push-build": {
@@ -56,6 +56,6 @@
     "directory": "dist"
   },
   "dependencies": {
-    "chalk": "^4.1.0"
+    "chalk": "^4.1.2"
   }
 }

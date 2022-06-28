@@ -26,7 +26,7 @@ const installLayer0Middleware = ({
 
   const patchHttpModule = (module: any, orig: any) => {
     // @ts-ignore
-    module.request = ns.bind(function(...args) {
+    module.request = ns.bind(function (...args) {
       const requestsSet = ns.get('requests')
       if (requestsSet && args[0]) {
         let path

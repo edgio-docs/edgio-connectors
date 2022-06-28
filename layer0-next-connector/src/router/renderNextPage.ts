@@ -6,6 +6,36 @@ import Params from './Params'
 import { toRouteSyntax } from './nextPathFormatter'
 import qs from 'qs'
 import bindParamsToPath from '@layer0/core/utils/bindParamsToPath'
+import { nonWebpackRequire } from '@layer0/core/utils'
+import { join } from 'path'
+import { isCloud } from '@layer0/core/environment'
+import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
+
+let warnedOfDeprecation = false
+
+// The named export is user-facing while the default export is used internally.
+// When Next 12 users that have opted into `server` target use this function they
+// get a deprecation message once.
+export function renderNextPage(
+  page: string,
+  responseWriter: ResponseWriter,
+  params?: Params | ((p: Params, request: Request) => Params),
+  options: RenderOptions = { rewritePath: true }
+) {
+  if (!isCloud() && !warnedOfDeprecation) {
+    const config = nonWebpackRequire(join(process.cwd(), 'next.config.js'))
+    const { useServerBuild } = getServerBuildAvailability({ config })
+    if (useServerBuild) {
+      throw new Error(
+        'The use of `renderNextPage` is retired for use with a server target build. Use `renderWithApp()` instead.\n' +
+          'More information: https://docs.layer0.co/guides/next#section_next_js_version_12_and_next_js_middleware__beta_'
+      )
+    }
+    warnedOfDeprecation = true
+  }
+
+  return _renderNextPage(page, responseWriter, params, options)
+}
 
 /**
  * Creates a function that proxies a request to next.js.
@@ -26,7 +56,7 @@ import bindParamsToPath from '@layer0/core/utils/bindParamsToPath'
  * @param options
  * @return Promise A promise that resolves when the response has been received from Next.js
  */
-export default async function renderNextPage(
+export default async function _renderNextPage(
   page: string,
   responseWriter: ResponseWriter,
   params?: Params | ((p: Params, request: Request) => Params),
