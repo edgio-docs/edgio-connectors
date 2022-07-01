@@ -1,4 +1,5 @@
-const { join } = require('path')
+import getNextConfig from './getNextConfig'
+
 const chalk = require('chalk')
 
 /**
@@ -6,8 +7,7 @@ const chalk = require('chalk')
  * @param {String} appDir The path to Layer0 app's root directory
  */
 export default function validateNextConfig(appDir: string) {
-  const nextConfigPath = join(appDir, 'next.config.js')
-  let nextConfig = require(nextConfigPath)
+  let nextConfig = getNextConfig(appDir)
 
   if (typeof nextConfig === 'function') {
     nextConfig = nextConfig(null, {})

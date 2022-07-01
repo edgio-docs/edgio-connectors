@@ -64,11 +64,12 @@ export default class NextRoutes extends PluginBase {
     this.pagesDirRelative = 'pages'
     this.pagesDir = join(process.cwd(), this.nextRootDir, this.pagesDirRelative)
     this.distDir = getDistDir()
-
     this.renderMode = 'serverless'
+
     try {
       const config = nonWebpackRequire(join(process.cwd(), 'next.config.js'))
       const { useServerBuild } = getServerBuildAvailability({ config })
+      /* istanbul ignore next */
       this.renderMode = useServerBuild ? 'server' : 'serverless'
     } catch {
       // default to 'serverless'
@@ -636,6 +637,7 @@ export default class NextRoutes extends PluginBase {
   async render404(res: ResponseWriter) {
     // This method is retired for use with a server build. _render404 kept for internal use and backwards
     // compatibility with older versions using this method.
+    /* istanbul ignore if */
     if (this.renderMode === 'server') {
       throw new Error(
         'The use of `NextRoutes.render404` is retired for use with a server target build.\n' +
@@ -648,6 +650,7 @@ export default class NextRoutes extends PluginBase {
 
   private async _render404(res: ResponseWriter) {
     if (isCloud()) {
+      /* istanbul ignore if */
       if (this.renderMode === 'server') {
         // Delegate to server in server mode
         return renderNextPage('', res)

@@ -8,6 +8,7 @@ const determineTarget = ({
   useServerBuild?: boolean
   target: string
 }) => {
+  /* istanbul ignore next */
   return useServerBuild
     ? 'server'
     : target === 'serverless'
@@ -48,7 +49,7 @@ export = function withLayer0(_nextConfig: any) {
       target: determineTarget({ useServerBuild, target: nextConfig.target }),
       experimental: {
         ...nextConfig.experimental,
-        ...(useServerBuild ? { outputStandalone: true } : {}),
+        ...(useServerBuild ? /* istanbul ignore next */ { outputStandalone: true } : {}),
       },
       withLayer0Applied: true, // validateNextConfig looks for this to ensure that the configuration is valid
       webpack: (config: any, options: any) => {

@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import globby from 'globby'
 import { DeploymentBuilder, BuildOptions } from '@layer0/core/deploy'
 import { join } from 'path'
@@ -97,7 +99,14 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
     )
 
-    setSsgStaticAssetExpiration(builder, prerenderManifest, `${distDir}/${buildOutputFolder}`)
+    const defaultLocale = nextConfig.i18n?.defaultLocale
+
+    setSsgStaticAssetExpiration(
+      builder,
+      prerenderManifest,
+      `${distDir}/${buildOutputFolder}`,
+      defaultLocale
+    )
 
     // Copy over assets from the standalone build output
     if (useServerBuild) {
@@ -151,7 +160,6 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
         builder.removeSync(src)
       })
 
-    const defaultLocale = nextConfig.i18n?.defaultLocale
     const staticPagesDir = join(builder.staticAssetsDir, distDir, buildOutputFolder, 'pages')
 
     if (defaultLocale) {
