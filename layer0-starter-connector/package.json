@@ -1,6 +1,6 @@
 {
   "name": "@layer0/starter",
-  "version": "4.15.5",
+  "version": "4.15.6",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "dependencies": {
@@ -13,7 +13,7 @@
     "process": "^0.11.10"
   },
   "devDependencies": {
-    "@layer0/core": "^4.15.5",
+    "@layer0/core": "^4.15.6",
     "@types/cheerio": "^0.22.23",
     "@types/fs-extra": "^9.0.6"
   },
