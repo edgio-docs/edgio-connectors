@@ -19,7 +19,16 @@ module.exports = {
     // - ./index.js
     //
     // Uncomment the line below to specify the path to the app:
-    // appPath: './src/app.js'
+    // appPath: './src/app.js',
+    //
+    // Uncomment the line below to bundle your express app using @vercel/nft to reduce the bundle size and cold start times
+    // nft (Node file trace) produces an exploded, tree-shaken bundle with a node_modules directory containing only those modules
+    // used by your app.
+    // bundler: '@vercel/nft',
+    //
+    // Uncomment the line below to bundle your express app using @vercel/ncc to reduce the bundle size and cold start times
+    // NCC produces an a single-file, tree-shaken bundle containing only those modules used by your app.
+    // bundler: '@vercel/ncc',
   },
 
   // The name of the site in Layer0 to which this app should be deployed.

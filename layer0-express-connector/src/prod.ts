@@ -2,7 +2,7 @@ export default function prod(port: number) {
   return new Promise<void>((resolve, reject) => {
     try {
       process.env.PORT = port.toString()
-      let app = require(`../__express_bundle__`)
+      let app = require('./index')
 
       if (app.default) {
         app = app.default
