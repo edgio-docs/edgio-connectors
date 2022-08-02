@@ -70,7 +70,9 @@ export default class NuxtRoutes extends PluginBase {
    */
   addFallback() {
     /* istanbul ignore next - optional chaining */
-    this.router?.fallback(({ renderWithApp }) => renderWithApp())
+    this.router?.fallback(({ renderWithApp }) => {
+      renderWithApp()
+    })
   }
 
   /**
@@ -78,16 +80,16 @@ export default class NuxtRoutes extends PluginBase {
    * @param group
    */
   private addAssets(group: RouteGroup) {
-    // service worker
-    // group.match('/service-worker.js', ({ serviceWorker }) =>
-    //   serviceWorker('.nuxt/dist/service-worker.js')
-    // )
+    group.match('/service-worker.js', ({ serviceWorker }) =>
+      serviceWorker('.output/public/_nuxt/service-worker.js')
+    )
 
     if (isProductionBuild()) {
       group.static('.output/public', {
         ignore: '_nuxt/**/*',
         handler: file => res => res.cache(PUBLIC_CACHE_CONFIG),
       })
+
       group.match('/_nuxt/:path*', async ({ serveStatic, cache }) => {
         cache(FAR_FUTURE_CACHE_CONFIG)
         serveStatic('.output/public/_nuxt/:path*', {

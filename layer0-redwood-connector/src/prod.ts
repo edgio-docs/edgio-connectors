@@ -20,9 +20,11 @@ export default async function prod(port: number) {
       // event properties.
       const res = await handler({ ...request, ...event }, {})
 
-      const { body, statusCode, statusMessage, multiValueHeaders } = res
-      for (let name in multiValueHeaders) {
-        const value = multiValueHeaders[name]
+      const { body, statusCode, statusMessage, multiValueHeaders, headers } = res
+      const resHeaders = { ...headers, ...multiValueHeaders }
+
+      for (let name in resHeaders) {
+        const value = resHeaders[name]
         // Node will handle arrays correctly (multiple values means multiple headers,
         // single value means single header) so we leave them unconverted.
         response.setHeader(name, value)

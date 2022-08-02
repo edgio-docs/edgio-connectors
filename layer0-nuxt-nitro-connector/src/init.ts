@@ -6,6 +6,7 @@ import { DeploymentBuilder } from '@layer0/core/deploy'
  * over from src/default-app.
  */
 export default async function init() {
-  const builder = new DeploymentBuilder(process.cwd())
-  builder.addDefaultAppResources(join(__dirname, 'default-app')).addDefaultLayer0Scripts()
+  new DeploymentBuilder(process.cwd())
+    .addDefaultAppResources(join(__dirname, 'default-app'))
+    .addDefaultLayer0Scripts()
 }

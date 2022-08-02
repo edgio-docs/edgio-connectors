@@ -2,6 +2,7 @@ import { join } from 'path'
 import { BuildOptions, DeploymentBuilder } from '@layer0/core/deploy'
 import FrameworkBuildError from '@layer0/core/errors/FrameworkBuildError'
 import { browserAssetOpts } from './router/NuxtRoutes'
+import { injectManifestInServiceWorker } from './utils/injectManifestInServiceWorker'
 
 const appDir = process.cwd()
 const builder = new DeploymentBuilder(appDir)
@@ -22,6 +23,12 @@ export default async function build(options: BuildOptions) {
     } catch (e) {
       throw new FrameworkBuildError('Nuxt', command, e)
     }
+
+    // call this in this block, as it doesn't make sense to
+    // create again the same manifest if it is not rebuilt by
+    // Nuxt, or even incorrect one, as Nuxt folder could be
+    // deleted and manifest could be empty then
+    injectManifestInServiceWorker()
   }
 
   builder
