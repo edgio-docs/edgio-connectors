@@ -1,4 +1,4 @@
-import getNextConfig from './getNextConfig'
+import getNextConfig from '../getNextConfig'
 
 const chalk = require('chalk')
 

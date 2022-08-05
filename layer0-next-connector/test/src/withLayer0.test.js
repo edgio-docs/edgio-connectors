@@ -1,18 +1,23 @@
-import withLayer0 from '../../src/withLayer0'
 import webpackMerge from 'webpack-merge'
 
 describe('withLayer0', () => {
+  let withLayer0
+
   beforeEach(() => {
     jest.resetModules()
-    jest.mock(
-      '@layer0/devtools/widget/install',
-      () => {
-        const err = new Error()
-        err.code = 'MODULE_NOT_FOUND'
-        throw err
-      },
-      { virtual: true }
-    )
+    jest.isolateModules(() => {
+      withLayer0 = require('../../src/withLayer0')
+
+      jest.mock(
+        '@layer0/devtools/widget/install',
+        () => {
+          const err = new Error()
+          err.code = 'MODULE_NOT_FOUND'
+          throw err
+        },
+        { virtual: true }
+      )
+    })
   })
 
   it('should call the provided webpack config', () => {
@@ -158,10 +163,12 @@ describe('withLayer0', () => {
 
     beforeEach(() => {
       process.env.NODE_ENV = 'production'
+      process.env.NEXT_FORCE_SERVER_BUILD = 'true'
     })
 
     afterEach(() => {
       process.env.NODE_ENV = env
+      delete process.env.NEXT_FORCE_SERVER_BUILD
     })
 
     it('should set devtool: source-map', () => {

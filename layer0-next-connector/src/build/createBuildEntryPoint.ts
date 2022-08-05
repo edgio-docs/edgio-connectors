@@ -6,11 +6,10 @@ import { join } from 'path'
 import FrameworkBuildError from '@layer0/core/errors/FrameworkBuildError'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import validateNextConfig from './validateNextConfig'
-import { existsSync } from 'fs'
-import { CopyOptionsSync } from 'fs-extra'
-import setSsgStaticAssetExpiration from './setSsgStaticAssetExpiration'
 import { nodeFileTrace } from '@vercel/nft'
 import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
+import getNextConfig from '../getNextConfig'
+import { FAR_FUTURE_TTL } from '../router/constants'
 
 interface BuilderOptions {
   /**
@@ -38,144 +37,171 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
 
   return async function build(options: BuildOptions) {
     const { skipFramework } = options
-    let nextConfig = nonWebpackRequire(join(srcDirAbsolute, 'next.config.js'))
-
-    if (typeof nextConfig === 'function') {
-      nextConfig = nextConfig('phase-production-build', {})
-    }
-    const { useServerBuild } = getServerBuildAvailability({
-      config: nextConfig,
-    })
-    const buildOutputFolder = useServerBuild ? 'server' : 'serverless'
+    const config = getNextConfig()
+    const defaultLocale = config.i18n?.defaultLocale
 
     builder.clearPreviousBuildOutput()
 
     if (!skipFramework) {
-      // clear .next directory
-      builder.emptyDirSync(distDirAbsolute)
-
-      // ensure that next.config.js exists and has target: serverless
-      validateNextConfig(srcDirAbsolute)
-
-      try {
-        // run the next.js build
-        await builder.exec(buildCommand)
-      } catch (e) {
-        throw new FrameworkBuildError('Next.js', buildCommand, e)
-      }
+      await buildNextApp(srcDirAbsolute, distDirAbsolute, buildCommand, builder)
     }
 
-    const lambdaAssetCopyOptions: CopyOptionsSync = {}
+    const { useServerBuild } = getServerBuildAvailability({ config })
+    const buildOutputDir = useServerBuild ? 'server' : 'serverless'
+    const pagesDir = join(builder.jsDir, distDir, buildOutputDir, 'pages')
+    const prerenderManifest = nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
 
-    builder
-      // React components and api endpoints
-      .addJSAsset(join(distDirAbsolute, buildOutputFolder), undefined, lambdaAssetCopyOptions)
-
-      // needed for rewrites and redirects
-      .addJSAsset(join(distDirAbsolute, 'routes-manifest.json'))
-
-      // needed for cache times
-      .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json'))
-
-    // We use server build for Next 12+. The server needs to be provided the server configuration at run time.
     if (useServerBuild) {
-      // next uses this internally to derive the config from the file
-      const loadConfig = nonWebpackRequire('next/dist/server/config').default
-      const serverConfig = await loadConfig('phase-production-server', process.cwd())
-
-      builder.writeFileSync(
-        join(builder.jsDir, 'next.config.js'),
-        `module.exports=${JSON.stringify(serverConfig)}`
-      )
+      console.log('> Using Next standalone build...')
+      await addStandaloneBuildAssets(distDir, builder)
     } else {
-      // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
-      builder.writeFileSync(
-        join(builder.jsDir, 'next.config.js'),
-        `module.exports=${JSON.stringify({ distDir })}`
-      )
+      console.log(`> Using Next ${config.target} build...`)
+      await addLegacyBuildAssets(config.target, pagesDir, distDir, buildOutputDir, builder)
     }
 
-    const prerenderManifest = <{ [key: string]: any }>(
-      nonWebpackRequire(join(distDirAbsolute, 'prerender-manifest.json'))
-    )
-
-    const defaultLocale = nextConfig.i18n?.defaultLocale
-
-    setSsgStaticAssetExpiration(
-      builder,
+    addSSGPages(
+      join(distDirAbsolute, buildOutputDir, 'pages'),
+      join(distDir, buildOutputDir, 'pages'),
+      defaultLocale,
       prerenderManifest,
-      `${distDir}/${buildOutputFolder}`,
-      defaultLocale
+      builder
     )
 
-    // Copy over assets from the standalone build output
-    if (useServerBuild) {
-      // Main necessary files for next server to run
-      builder.copySync(join(distDirAbsolute, 'standalone', '.next'), join(builder.jsDir, '.next'))
-      builder.copySync(
-        join(distDirAbsolute, 'standalone', 'node_modules'),
-        join(builder.jsDir, 'node_modules')
-      )
-      builder.copySync(
-        join(distDirAbsolute, 'standalone', 'package.json'),
-        join(builder.jsDir, 'package.json')
-      )
-    }
+    await builder
+      .addJSAsset(join(distDirAbsolute, 'BUILD_ID')) // needed for NextRoutes
+      .addJSAsset(join(distDirAbsolute, 'routes-manifest.json')) // needed for rewrites and redirects
+      .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
+      .build()
+  }
+}
 
-    await builder.build()
+/**
+ * Copies the output of the Next standalone build to the lambda dir.
+ */
+async function addStandaloneBuildAssets(distDir: string, builder: DeploymentBuilder) {
+  const distDirAbsolute = join(process.cwd(), distDir)
+  const { jsDir } = builder
 
-    const pages = join(builder.jsDir, distDir, buildOutputFolder, 'pages')
+  // add the next config
+  const loadConfig = nonWebpackRequire('next/dist/server/config').default
+  const serverConfig = await loadConfig('phase-production-server', process.cwd())
+  const serverConfigSrc = `module.exports=${JSON.stringify(serverConfig)}`
+  builder.writeFileSync(join(jsDir, 'next.config.js'), serverConfigSrc)
 
-    // If the user has overrided the default target and is using serverless
-    // do not perform tracing for required node modules
-    if (!useServerBuild && nextConfig.target !== 'serverless') {
-      const pageHandlerFiles = globby
-        .sync('**/*.js', {
-          onlyFiles: true,
-          cwd: pages,
-        })
-        .map(file => {
-          const src = join(pages, file)
-          return src
-        })
+  // add the standalone app and dependencies
+  builder.copySync(join(distDirAbsolute, 'standalone'), jsDir, {
+    // exclude the server.js since we roll our own in prod.ts
+    filter: (file: string) => file !== join(distDirAbsolute, 'standalone', 'server.js'),
+  })
+}
 
-      const { fileList } = await nodeFileTrace(pageHandlerFiles)
+/**
+ * Handles bundling the lambda for Next.js prior to 12.2.0. This includes both 'serverless' and 'experimental-serverless-trace'
+ * targets.
+ */
+async function addLegacyBuildAssets(
+  target: string,
+  pagesDir: string,
+  distDir: string,
+  buildOutputDir: string,
+  builder: DeploymentBuilder
+) {
+  builder
+    // React components and api endpoints
+    .addJSAsset(join(distDir, buildOutputDir))
 
-      fileList
-        .filter(file => file.indexOf('node_modules') === 0)
-        .forEach(file => builder.copySync(file, join(builder.layer0Dir, 'lambda', file)))
-    }
+    // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
+    .writeFileSync(
+      join(builder.jsDir, 'next.config.js'),
+      `module.exports=${JSON.stringify({ distDir })}`
+    )
 
-    // Remove all static pages from the lambda dir.  We don't need them in the lambda
-    // since we're serving them from s3. so that @layer0/core doesn't.  Also, having them be present
-    // in the lambda will make NextRoutes add duplicate routes for each.
-    globby
-      .sync('**/*.{json,html}', {
+  if (target !== 'serverless') {
+    // If the user has overridden the default target and is using serverless do not perform tracing for required node modules
+    const pageHandlerFiles = globby
+      .sync('**/*.js', {
         onlyFiles: true,
-        cwd: pages,
+        cwd: pagesDir,
       })
-      .forEach(file => {
-        const src = join(pages, file)
-        builder.addStaticAsset(src, join(distDir, buildOutputFolder, 'pages', file))
-        builder.removeSync(src)
+      .map(file => {
+        const src = join(pagesDir, file)
+        return src
       })
 
-    const staticPagesDir = join(builder.staticAssetsDir, distDir, buildOutputFolder, 'pages')
+    const { fileList } = await nodeFileTrace(pageHandlerFiles)
 
-    if (defaultLocale) {
-      builder.copySync(join(staticPagesDir, defaultLocale), staticPagesDir)
+    fileList
+      .filter(file => file.indexOf('node_modules') === 0)
+      .forEach(file => builder.copySync(file, join(builder.layer0Dir, 'lambda', file)))
+  }
+}
 
-      // example: copy "en-US.html" to "index.html"
-      const indexHtml = join(staticPagesDir, `${defaultLocale}.html`)
-      if (existsSync(indexHtml)) {
-        builder.copySync(indexHtml, join(staticPagesDir, 'index.html'))
+/**
+ * Builds the Next app using the Next CLI
+ */
+async function buildNextApp(
+  srcDir: string,
+  distDir: string,
+  buildCommand: string,
+  builder: DeploymentBuilder
+) {
+  // clear .next directory
+  builder.emptyDirSync(distDir)
+  validateNextConfig(srcDir)
+
+  try {
+    // run the next.js build
+    await builder.exec(buildCommand)
+  } catch (e) {
+    throw new FrameworkBuildError('Next.js', buildCommand, e)
+  }
+}
+
+/**
+ * Move all static pages from the lambda dir to the s3 dir. We don't need them in the lambda
+ * since we're serving them from s3. so that @layer0/core doesn't.  Also, having them be present
+ * in the lambda will make NextRoutes add duplicate routes for each.
+ */
+function addSSGPages(
+  srcDir: string,
+  destDir: string,
+  defaultLocale: string,
+  prerenderManifest: any,
+  builder: DeploymentBuilder
+) {
+  builder.log(`Adding SSG pages from ${srcDir}`)
+
+  // Add SSG pages with normalized paths
+  // e.g. /path/to/page/index.html and /path/to/page/index.json
+  globby
+    .sync('**/*.{json,html}', {
+      onlyFiles: true,
+      ignore: ['**/*.nft.json'],
+      cwd: srcDir,
+    })
+    .forEach(file => {
+      const src = join(srcDir, file)
+      let dest = join(destDir, file.replace(/\.(html|json)$/, '/index.$1'))
+      builder.addStaticAsset(src, dest)
+
+      // Set TTL
+      const key = '/' + file.replace(/\.(html|json)$/, '')
+      const metadata = prerenderManifest.routes[key]
+
+      if (metadata?.initialRevalidateSeconds) {
+        builder.log(`Setting TTL of ${metadata.initialRevalidateSeconds} seconds for ${dest}`)
+        builder.setStaticAssetExpiration(dest, metadata.initialRevalidateSeconds, FAR_FUTURE_TTL)
+
+        if (defaultLocale) {
+          dest = dest.replace(new RegExp(`/${defaultLocale}/`), '/')
+          builder.log(`Setting TTL of ${metadata.initialRevalidateSeconds} seconds for ${dest}`)
+          builder.setStaticAssetExpiration(dest, metadata.initialRevalidateSeconds, FAR_FUTURE_TTL)
+        }
       }
+    })
 
-      // example: copy "en-US.json" to "index.json"
-      const indexJson = join(staticPagesDir, `${defaultLocale}.json`)
-      if (existsSync(indexJson)) {
-        builder.copySync(indexJson, join(staticPagesDir, 'index.json'))
-      }
-    }
+  if (defaultLocale) {
+    // copy assets for the default locale to the root dir so they can be served without a locale
+    builder.addStaticAsset(join(builder.staticAssetsDir, destDir, defaultLocale), destDir)
   }
 }

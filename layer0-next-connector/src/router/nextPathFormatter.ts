@@ -46,8 +46,8 @@ export const toRouteSyntax = (
   }
 }
 
-export function localize(locales: string[] | undefined, route: string) {
-  if (locales) {
+export function localize(locales: string[], route: string) {
+  if (locales.length) {
     return `/:locale(${locales.join('|')})?${route}`
       .replace(/\/$/, '') // remove trailing slash if one exists
       .replace(/\)\?\/(index)?\.(json|html)$/, '|index).json') // accept index.json instead of {locale}.json for the default locale

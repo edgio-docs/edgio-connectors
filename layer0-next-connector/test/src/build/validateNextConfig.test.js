@@ -5,7 +5,7 @@ describe('validateNextConfig', () => {
     jest.isolateModules(() => {
       exit = jest.spyOn(process, 'exit').mockImplementation()
       error = jest.spyOn(console, 'error').mockImplementation()
-      jest.doMock('../../../src/build/getNextConfig', () => _appDir => nextConfig)
+      jest.doMock('../../../src/getNextConfig', () => _appDir => nextConfig)
       validateNextConfig = require('../../../src/build/validateNextConfig').default
     })
   })

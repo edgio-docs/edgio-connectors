@@ -1,6 +1,6 @@
 import { LAYER0_ENV_VARIABLES } from '@layer0/core/constants'
 import { BACKENDS } from '@layer0/core/constants'
-import path from 'path'
+import { join } from 'path'
 import { mockRequest, mockResponse } from './mocks'
 import * as assets from '../../src/router/assets'
 import addPreloadHeaders from '@layer0/core/router/addPreloadHeaders'
@@ -23,7 +23,16 @@ describe('NuxtRoutes', () => {
     routes,
     nuxtConfig,
     NODE_ENV = process.env.NODE_ENV,
-    responseWriter
+    responseWriter,
+    originalDir = process.cwd()
+
+  beforeAll(() => {
+    process.chdir(join(__dirname, '..', 'test-app'))
+  })
+
+  afterAll(() => {
+    process.chdir(originalDir)
+  })
 
   beforeEach(() => {
     jest.isolateModules(() => {
@@ -70,37 +79,11 @@ describe('NuxtRoutes', () => {
         }
       })
 
-      jest.doMock(
-        path.join(process.cwd(), 'static-asset-manifest.json'),
-        () => ({
-          static: ['favicon.ico'],
-        }),
-        { virtual: true }
-      )
-
       Router = require('@layer0/core/router/Router').default
       router = new Router()
       router.setBackend('__js__', { domainOrIp: 'js.backend' })
-
-      const glob = require(path.join(
-        require.resolve('@layer0/core'),
-        '..',
-        '..',
-        'node_modules',
-        'globby'
-      ))
-
-      jest.spyOn(glob, 'sync').mockImplementation((pattern, options) => {
-        if (options.cwd && options.cwd.match(/static$/)) {
-          return ['favicon.ico']
-        } else {
-          return []
-        }
-      })
-
       request = mockRequest()
       response = mockResponse(responseHeaders)
-
       NuxtRoutes = require('../../src/router/NuxtRoutes').default
     })
   })
@@ -111,7 +94,7 @@ describe('NuxtRoutes', () => {
   })
 
   describe('#constructor', () => {
-    it('should watch the routes file in development', () => {
+    it.only('should watch the routes file in development', () => {
       routes = [{ path: '/p/:id?' }]
       router.use(new NuxtRoutes())
       const group = router.routeGroups.findByName('nuxt_routes_group')

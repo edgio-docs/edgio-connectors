@@ -42,14 +42,19 @@ export = function withLayer0(_nextConfig: any) {
 
   const plugin = (...args: any[]): any => {
     const nextConfig = normalizedNextConfig(...args)
-    const { useServerBuild } = getServerBuildAvailability({ config: nextConfig })
+
+    const { useServerBuild, standaloneBuildConfig } = getServerBuildAvailability({
+      config: nextConfig,
+      quiet: true,
+    })
 
     return {
       ...nextConfig,
       target: determineTarget({ useServerBuild, target: nextConfig.target }),
+      ...standaloneBuildConfig,
       experimental: {
         ...nextConfig.experimental,
-        ...(useServerBuild ? /* istanbul ignore next */ { outputStandalone: true } : {}),
+        ...standaloneBuildConfig.experimental,
       },
       withLayer0Applied: true, // validateNextConfig looks for this to ensure that the configuration is valid
       webpack: (config: any, options: any) => {
@@ -83,35 +88,39 @@ export = function withLayer0(_nextConfig: any) {
           }
         }
 
-        if (options.isServer && process.env.NODE_ENV === 'production') {
+        if (
+          options.isServer &&
+          (options.nextRuntime == null || options.nextRuntime === 'nodejs') && // make sure we aren't building middelware (options.nextRuntime === 'edge') or this will break
+          process.env.NODE_ENV === 'production'
+        ) {
           if (nextConfig.layer0SourceMaps) {
             // We force the 'source-map' value as this is what we expect to consume on
             // our lambda infrastructure
             config.devtool = 'source-map'
           }
 
-          config.output.chunkFilename = '[name].js'
-
-          config.optimization.splitChunks = {
-            cacheGroups: {
-              default: false,
-              vendors: false,
-              commons: {
-                // Note that the name of the chunk is very important.  If the name doesn't include "webpack-runtime",
-                // Next.js's PagesManifestPlugin will fail to include each page in the server build's pages-manifest.json
-                // and the build will fail with an error like "module not found for page /".
-                // See this line in PagesManifestPlugin:
-                // https://github.com/vercel/next.js/blob/210a6980d2d630e0ed7c67552a6ebf96921dac15/packages/next/build/webpack/plugins/pages-manifest-plugin.ts#L38
-                name: 'webpack-runtime-commons',
-                reuseExistingChunk: true,
-                minChunks: 1,
-                chunks: 'all',
-                test: /node_modules/,
+          if (!useServerBuild) {
+            config.plugins.push(new CommonsServerChunkPlugin())
+            config.output.chunkFilename = '[name].js'
+            config.optimization.splitChunks = {
+              cacheGroups: {
+                default: false,
+                vendors: false,
+                commons: {
+                  // Note that the name of the chunk is very important.  If the name doesn't include "webpack-runtime",
+                  // Next.js's PagesManifestPlugin will fail to include each page in the server build's pages-manifest.json
+                  // and the build will fail with an error like "module not found for page /".
+                  // See this line in PagesManifestPlugin:
+                  // https://github.com/vercel/next.js/blob/210a6980d2d630e0ed7c67552a6ebf96921dac15/packages/next/build/webpack/plugins/pages-manifest-plugin.ts#L38
+                  name: 'webpack-runtime-commons',
+                  reuseExistingChunk: true,
+                  minChunks: 1,
+                  chunks: 'all',
+                  test: /node_modules/,
+                },
               },
-            },
+            }
           }
-
-          config.plugins.push(new CommonsServerChunkPlugin())
         }
 
         return Object.assign(webpackConfig, config)

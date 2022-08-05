@@ -5,6 +5,7 @@ import { createServer, Server } from 'http'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import getDistDir from './util/getDistDir'
 import path from 'path'
+import getNextConfig from './getNextConfig'
 
 // Used in fetchFromAPI so that SSR pages don't call back into the lambda
 // which would result in Layer0 being double-billed for each SSR request
@@ -12,21 +13,30 @@ process.env.API_HOST = `127.0.0.1:3001`
 
 let server: Server
 
+/**
+ * Creates a server for target: 'server', output: 'standalone', which is the default from Next 12.2 onward.
+ * @param port The port to which to bind the Next server
+ */
 const createStandAloneServer = (
   port: number,
   config: { experimental: { isrFlushToDisk: boolean } }
 ) => {
   const NextServer = nonWebpackRequire('next/dist/server/next-server').default
-  // disable next writing ISR generated html files to disk
+
+  // Note: we considered using use minimal mode (process.env.NEXT_PRIVATE_MINIMAL_MODE = 'true') to prevent Next.js
+  // from flushing ISR pages to disk, but that also disables middleware, so instead we force revalidate by
+  // sending x-prerender-revalidate when making requests to Next. See NextRoutes for details.
+  // disable next writing ISR generated html files to disk.
   config.experimental.isrFlushToDisk = false
-  const nextServer = new NextServer({
+
+  const handle = new NextServer({
     hostname: 'localhost',
     port: port,
     dir: path.resolve(__dirname, '..'),
     dev: false,
     conf: config,
-  })
-  const handle = nextServer.getRequestHandler()
+  }).getRequestHandler()
+
   return createServer(async (req, res) => {
     try {
       handle(req, res)
@@ -39,6 +49,10 @@ const createStandAloneServer = (
   })
 }
 
+/**
+ * Creates the server for the legacy target: 'serverless' configuration which was prominent
+ * prior to Next 12
+ */
 const createServerlessServer = () => {
   const distDir = getDistDir()
   return createServer(async (req, res) => {
@@ -81,7 +95,8 @@ const createServerlessServer = () => {
 
 export default async function prod(port: number) {
   if (!server) {
-    const config = nonWebpackRequire('../next.config.js')
+    const config = getNextConfig()
+
     if (config.target === 'server') {
       server = createStandAloneServer(port, config)
     } else {

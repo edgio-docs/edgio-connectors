@@ -1,12 +1,12 @@
 import { BACKENDS, LAYER0_IMAGE_OPTIMIZER_PATH } from '@layer0/core/constants'
 import { isCloud, isProductionBuild } from '@layer0/core/environment'
 import { localize, toRouteSyntax } from './nextPathFormatter'
-import { existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import getDistDir from '../util/getDistDir'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import { join } from 'path'
 import PluginBase from '@layer0/core/plugins/PluginBase'
-import render from './renderNextPage'
+import renderNextPage from './renderNextPage'
 import Request from '@layer0/core/router/Request'
 import ResponseWriter from '@layer0/core/router/ResponseWriter'
 import RouteGroup from '@layer0/core/router/RouteGroup'
@@ -15,9 +15,10 @@ import { FAR_FUTURE_TTL } from './constants'
 import { PreloadRequestConfig } from '@layer0/core/router/Preload'
 import watch from '@layer0/core/utils/watch'
 import RouteCriteria from '@layer0/core/router/RouteCriteria'
-import slash from 'slash'
 import config from '@layer0/core/config'
 import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
+import getNextConfig from '../getNextConfig'
+import slash from 'slash'
 
 const FAR_FUTURE_CACHE_CONFIG = {
   browser: {
@@ -36,9 +37,6 @@ const PUBLIC_CACHE_CONFIG = {
 
 const TYPE = 'NextRoutes'
 
-// `page` param has no effect when using `server` target.
-const renderNextPage = (page: string, res: ResponseWriter) =>
-  render(page, res, /* istanbul ignore next */ params => params, { rewritePath: false })
 export default class NextRoutes extends PluginBase {
   private nextRouteGroupName = 'next_routes_group'
   private nextRootDir: string
@@ -47,10 +45,16 @@ export default class NextRoutes extends PluginBase {
   private router?: Router
   private rewrites?: any
   private redirects?: any[]
+  private locales: string[] = []
   private routesManifest: any
   private distDir: string
   private defaultLocale?: string
   private renderMode: string
+  private ssr: (res: ResponseWriter, page: string, forceRevalidate?: boolean) => Promise<void>
+  private localizationEnabled: boolean = false
+  private buildId: string = 'dev'
+  private prerenderManifest: any
+  private previewModeId: string | undefined
 
   type = TYPE
 
@@ -66,13 +70,25 @@ export default class NextRoutes extends PluginBase {
     this.distDir = getDistDir()
     this.renderMode = 'serverless'
 
-    try {
-      const config = nonWebpackRequire(join(process.cwd(), 'next.config.js'))
-      const { useServerBuild } = getServerBuildAvailability({ config })
-      /* istanbul ignore next */
-      this.renderMode = useServerBuild ? 'server' : 'serverless'
-    } catch {
-      // default to 'serverless'
+    this.ssr = (res: ResponseWriter, page: string, _forceRevalidate?: boolean) => {
+      return renderNextPage(page, res, params => params, {
+        rewritePath: false,
+      })
+    }
+
+    const { useServerBuild } = getServerBuildAvailability({ config: getNextConfig() })
+
+    if (useServerBuild) {
+      this.renderMode = 'server'
+
+      this.ssr = (res: ResponseWriter, _page: string, forceRevalidate?: boolean) => {
+        if (forceRevalidate && this.previewModeId) {
+          // This needs to be set in order to force Next server to render ISG pages. Without this it will
+          // always return the fallback (loading) page
+          res.setRequestHeader('x-prerender-revalidate', this.previewModeId)
+        }
+        return res.renderWithApp()
+      }
     }
 
     if (!existsSync(this.pagesDir)) {
@@ -81,6 +97,13 @@ export default class NextRoutes extends PluginBase {
     }
 
     if (isProductionBuild() || isCloud()) {
+      this.routesManifest = this.getRoutesManifest()
+      this.buildId = this.getBuildId()
+      this.locales = this.routesManifest.i18n?.locales || []
+      this.defaultLocale = this.routesManifest.i18n?.defaultLocale
+      this.localizationEnabled = this.locales.length > 0
+      this.prerenderManifest = this.getPrerenderManifest()
+      this.previewModeId = this.prerenderManifest?.preview?.previewModeId
       this.loadRewrites()
     } else {
       this.loadRewritesInDev().then(() => {
@@ -92,14 +115,28 @@ export default class NextRoutes extends PluginBase {
   }
 
   /**
-   * Attempt to get rewrites and redirects from routes-manifest.json in production.
+   * Returns the contents of .next/BUILD_ID
    */
-  private loadRewrites() {
-    const manifestPath =
+  private getBuildId() {
+    const buildIdFile = join(process.cwd(), this.distDir, 'BUILD_ID')
+    return readFileSync(buildIdFile, 'utf8')
+  }
+
+  /**
+   * Returns the contents of routes-manifest.json
+   */
+  private getRoutesManifest() {
+    const routesManifestPath =
       process.env.NEXT_ROUTES_MANIFEST_PATH ||
       join(process.cwd(), this.distDir, 'routes-manifest.json')
 
-    this.routesManifest = nonWebpackRequire(manifestPath)
+    return nonWebpackRequire(routesManifestPath)
+  }
+
+  /**
+   * Attempt to get rewrites and redirects from routes-manifest.json in production.
+   */
+  private loadRewrites() {
     const { rewrites, redirects } = this.routesManifest
     this.rewrites = rewrites
     this.redirects = redirects
@@ -115,10 +152,35 @@ export default class NextRoutes extends PluginBase {
   }
 
   /**
+   * Returns the contents of pages-manifest.json
+   */
+  private getMiddlewareManifest(): any {
+    const path = join(process.cwd(), this.distDir, this.renderMode, 'middleware-manifest.json')
+
+    if (existsSync(path)) {
+      return nonWebpackRequire(path)
+    } else {
+      return {
+        sortedMiddleware: [],
+        middleware: {},
+      }
+    }
+  }
+
+  /**
    * Returns the contents of prerender-manifest.json
    */
   private getPrerenderManifest() {
-    return nonWebpackRequire(join(process.cwd(), this.distDir, 'prerender-manifest.json'))
+    const path = join(process.cwd(), this.distDir, 'prerender-manifest.json')
+
+    try {
+      return nonWebpackRequire(path)
+    } catch (e) {
+      if (process.env.DEBUG === 'true') {
+        console.log(`${path} not found`)
+      }
+      return {}
+    }
   }
 
   /**
@@ -190,7 +252,7 @@ export default class NextRoutes extends PluginBase {
     this.addRewrites(this.rewrites?.afterFiles, group)
 
     if (isProductionBuild()) {
-      this.addMiddlewareManifest(group)
+      this.addServerAssets(group)
       this.addPagesInProd(group)
       this.addPrerendering()
     } else {
@@ -208,10 +270,17 @@ export default class NextRoutes extends PluginBase {
    * Adds the route for server assets such as the middleware manifest
    * @param group
    */
-  private addMiddlewareManifest(group: RouteGroup) {
-    group.match('/_next/server/:file*', ({ serveStatic, cache }) => {
+  private addServerAssets(group: RouteGroup) {
+    // Note: we don't include /.next/server/pages here because we explicitly copy those over during
+    // the build process (see createBuildEntryPoint.ts)
+    group.match('/_next/server/:file', ({ serveStatic, cache }) => {
       cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
-      serveStatic(`${this.distDir}/server/:file*`)
+      serveStatic(`${this.distDir}/${this.renderMode}/:file`)
+    })
+
+    group.match('/_next/server/chunks/:file', ({ serveStatic, cache }) => {
+      cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
+      serveStatic(`${this.distDir}/${this.renderMode}/chunks/:file`)
     })
   }
 
@@ -399,16 +468,32 @@ export default class NextRoutes extends PluginBase {
     })
   }
 
+  private startsWithLocale(path: string) {
+    return this.localizationEnabled && new RegExp(`^/(${this.locales.join('|')})(/|$)`).test(path)
+  }
+
+  /**
+   * Adds a route for each middleware that forces the edge to send the request to serverless so
+   * that middleware runs.
+   * @param group
+   */
+  // TODO uncomment this when we support RegExp as route critera
+  // private addMiddlewareInProd(group: RouteGroup) {
+  //   const manifest = this.getMiddlewareManifest()
+  //
+  //   for (let key of manifest.sortedMiddleware) {
+  //     const { regexp } = manifest.middleware[key]
+  //     group.match(new RegExp(regexp), res => this.ssr(res, '', false))
+  //   }
+  // }
+
   /**
    * Adds routes for react components and API handlers
    * @param group The group to which to add page routes
    */
   private addPagesInProd(group: RouteGroup) {
-    const { routesManifest } = this
+    const { routesManifest, locales, localizationEnabled, prerenderManifest } = this
     const pagesManifest = this.getPagesManifest()
-    const prerenderManifest = this.getPrerenderManifest()
-    const locales = routesManifest.i18n?.locales
-    this.defaultLocale = routesManifest.i18n?.defaultLocale
 
     const pagesWithDataRoutes = new Set<string>(
       routesManifest.dataRoutes.map((route: any) => route.page)
@@ -419,13 +504,12 @@ export default class NextRoutes extends PluginBase {
       group.match(route, handler)
     }
 
-    const startsWithLocale = (path: string) =>
-      locales && new RegExp(`^/(${locales.join('|')})(/|$)`).test(path)
-
-    const localizationEnabled = locales?.length > 0
-
+    console.debug('')
     console.debug(`Next.js routes (locales: ${locales?.join(', ') || 'none'})`)
     console.debug('--------------')
+
+    // TODO uncomment this when we support RegExp as route critera
+    // this.addMiddlewareInProd(group)
 
     const pages = sortRoutes(Object.keys(pagesManifest), routesManifest)
 
@@ -433,25 +517,25 @@ export default class NextRoutes extends PluginBase {
       const path = toRouteSyntax(page)
       const isPrerendered = this.isPrerendered(prerenderManifest, pagesManifest, page)
 
-      if (page.startsWith('/api')) {
+      if (page.match(/\/(_app|_document|_error|404|500)$/)) {
+        // skip templates
+      } else if (page.startsWith('/api')) {
         // api routes
-        addRoute('api', path, res => renderNextPage(page.slice(1), res))
-      } else if (startsWithLocale(page) && !page.startsWith(`/${this.defaultLocale}`)) {
+        addRoute('api', path, res => this.ssr(res, page.slice(1)))
+      } else if (this.startsWithLocale(page) && !page.startsWith(`/${this.defaultLocale}`)) {
         // When the app uses internationalization, we collapse all localized routes into a single
         // route to save router spacer, so for example en-US/sale and fr/sale become /:locale(en-US|fr)?/category/sale
       } else if (isPrerendered) {
         // SSG
         const dynamicRouteConfig = prerenderManifest.dynamicRoutes[page]
-        const nonLocalizedPath = startsWithLocale(path) ? this.removeLocale(path) : path
-        const nonLocalizedPage = startsWithLocale(page) ? this.removeLocale(page) : page
-        const modifier = dynamicRouteConfig
-          ? ` (λ${dynamicRouteConfig.fallback ? ' w/fallback' : ''})`
-          : ''
+        const renderType = this.shouldFallbackToSSR(dynamicRouteConfig) ? 'ISG' : 'SSG'
+        const nonLocalizedPath = this.startsWithLocale(path) ? this.removeLocale(path) : path
+        const nonLocalizedPage = this.startsWithLocale(page) ? this.removeLocale(page) : page
 
         if (pagesWithDataRoutes.has(page)) {
           // JSON
           addRoute(
-            `SSG ${modifier}json`,
+            `${renderType} json`,
             `/_next/data/:__build__${localize(
               locales,
               toRouteSyntax(nonLocalizedPath, { suffix: 'json' })
@@ -466,7 +550,7 @@ export default class NextRoutes extends PluginBase {
 
         // HTML
         addRoute(
-          `SSG ${modifier}html`,
+          `${renderType} html`,
           localize(locales, toRouteSyntax(nonLocalizedPath)),
           this.createSSGHandler(nonLocalizedPage, {
             localize: localizationEnabled,
@@ -488,6 +572,9 @@ export default class NextRoutes extends PluginBase {
         addRoute('SSR html', localize(locales, toRouteSyntax(page)), this.createSSRHandler(page))
       }
     }
+
+    console.debug('--------------')
+    console.debug('')
   }
 
   /**
@@ -500,8 +587,11 @@ export default class NextRoutes extends PluginBase {
   private isPrerendered(prerenderManifest: any, pagesManifest: any, page: string) {
     const file = pagesManifest[page]
     const htmlPath = join(this.distDir, this.renderMode, 'pages', `${page}.html`)
-    const routeKey =
-      (this.defaultLocale ? `/${this.defaultLocale}` : '') + `${page}`.replace(/\/$/, '')
+    let routeKey = (this.defaultLocale ? `/${this.defaultLocale}` : '') + `${page}`
+
+    if (routeKey !== '/') {
+      routeKey = routeKey.replace(/\/$/, '')
+    }
 
     return (
       file.endsWith('.html') ||
@@ -526,18 +616,15 @@ export default class NextRoutes extends PluginBase {
    * This only needs to be done during a production build.
    */
   private addPrerendering() {
-    const { routes } = this.getPrerenderManifest()
+    const { routes } = this.prerenderManifest
     const requests: PreloadRequestConfig[] = []
 
     for (let htmlPath in routes) {
-      const route = routes[htmlPath]
       requests.push({ path: htmlPath })
-      requests.push({ path: route.dataRoute })
+      requests.push({ path: `/_next/data/${this.buildId}${htmlPath}.json` })
     }
 
     const router = <Router>this.router
-
-    // @ts-ignore - The typings for this methods
     router.prerender(requests)
   }
 
@@ -548,7 +635,24 @@ export default class NextRoutes extends PluginBase {
   private createSSRHandler(page: string) {
     // Note, we do not need to look up revalidate times from prerender-manifest.json
     // because Next automatically set cache-control: s-maxage=(revalidate), stale-while-revalidate
-    return (res: ResponseWriter) => renderNextPage(page.slice(1), res)
+    return (res: ResponseWriter) => this.ssr(res, page.slice(1))
+  }
+
+  /**
+   * Returns true if a page with getStaticProps is configured to fallback to SSR
+   * Specifically, this function returns true if dynamicRouteConfig.fallback is null (fallback: 'blocking') or a string (fallback: true)
+   * @param dynamicRouteConfig
+   * @returns
+   */
+  private shouldFallbackToSSR(dynamicRouteConfig?: any) {
+    if (dynamicRouteConfig) {
+      return (
+        dynamicRouteConfig.fallback === null /* fallback: 'blocking' */ ||
+        typeof dynamicRouteConfig.fallback === 'string' /* fallback: true */
+      )
+    } else {
+      return false
+    }
   }
 
   /**
@@ -568,33 +672,46 @@ export default class NextRoutes extends PluginBase {
       dynamicRouteConfig?: any
     }
   ) {
-    return (res: ResponseWriter) => {
-      const suffix = dataRoute ? 'json' : 'html'
-      const assetRoot = `${this.distDir}/${this.renderMode}/pages${localize ? '/:locale' : ''}`
-      const prerenderManifest = this.getPrerenderManifest()
+    const suffix = dataRoute ? 'json' : 'html'
+    const assetRoot = `${this.distDir}/${this.renderMode}/pages${localize ? '/:locale' : ''}`
+    const { prerenderManifest } = this
 
+    let destPath: string
+
+    if (dynamicRouteConfig || dataRoute) {
+      // convert [param] to :param so that we can find the corresponding file on S3
+      destPath = `${assetRoot}${toRouteSyntax(relativeAssetPath)}/index.${suffix}`.replace(
+        /\/+/g,
+        '/'
+      ) // remove duplicate "/"'s
+    } else {
+      // leave [param] intact because routing will be done on the client
+      destPath = `${assetRoot}${slash(relativeAssetPath)}/index.html`
+    }
+
+    return (res: ResponseWriter) => {
       if (dynamicRouteConfig) {
-        // will get here if the page has getStaticProps
-        const assetFile = toRouteSyntax(relativeAssetPath, { suffix }).replace(
-          /\/\.(json|html)$/,
-          '.$1'
-        ) // fix for :locale/index.js
-        const assetPath = `${assetRoot}${assetFile}`
-        let { fallback } = dynamicRouteConfig
-        let loadingPage = !dataRoute && fallback ? `${assetRoot}${fallback}` : undefined
+        // will get here if the page has route params
+        let loadingPage: string | undefined = undefined
+        const { fallback } = dynamicRouteConfig
+
+        if (!dataRoute && fallback) {
+          loadingPage = `${assetRoot}${fallback}`.replace(/\.html$/, '/index.html')
+        }
 
         // Note that the cache TTL is stored as a header on S3 based on the prerender-manifest.json,
         // so we don't need to use res.cache() here.
 
-        res.serveStatic(assetPath, {
+        res.serveStatic(destPath, {
           loadingPage,
+          disableAutoPublish: true,
           onNotFound: () => {
             const isPrerendered = prerenderManifest.routes[res.request.path]
 
             // Note that fallback: 'blocking' in getStaticPaths results in fallback: null in prerender-manifest.json
-            if (fallback !== false || isPrerendered || dataRoute) {
+            if (this.shouldFallbackToSSR(dynamicRouteConfig) || isPrerendered || dataRoute) {
               // Fallback to SSR when fallback: true is set in getStaticPaths or when revalidating a prerendered page or when it's a data path
-              return renderNextPage(relativeAssetPath, res)
+              return this.ssr(res, relativeAssetPath, true)
             } else {
               // Render the custom 404 when a static page is not found.
               return this._render404(res)
@@ -602,15 +719,10 @@ export default class NextRoutes extends PluginBase {
           },
         })
       } else {
-        // well get here if the page does not have getStaticProps
-        let assetPath = `${slash(join(assetRoot, relativeAssetPath))}`
-
-        if (assetPath.endsWith('/')) {
-          assetPath += 'index'
-        }
-
-        res.serveStatic(`${assetPath}.${suffix}`, {
-          onNotFound: () => renderNextPage(relativeAssetPath, res),
+        // will get here if the page does not have route params
+        res.serveStatic(destPath, {
+          disableAutoPublish: true,
+          onNotFound: () => this.ssr(res, relativeAssetPath, true),
         })
       }
     }
@@ -650,32 +762,35 @@ export default class NextRoutes extends PluginBase {
 
   private async _render404(res: ResponseWriter) {
     if (isCloud()) {
-      /* istanbul ignore if */
-      if (this.renderMode === 'server') {
-        // Delegate to server in server mode
-        return renderNextPage('', res)
-      } else {
-        const pagesManifest = this.getPagesManifest()
-        const notFoundPage = pagesManifest['/404'] || pagesManifest[`/${this.defaultLocale}/404`]
-        const assetRoot = `${this.distDir}/${this.renderMode}/pages${
-          this.defaultLocale ? '/:locale' : ''
-        }`
+      const locale = res.request.params?.locale
 
-        if (notFoundPage && notFoundPage.endsWith('.html')) {
-          // static 404
-          await res.serveStatic(`${assetRoot}/404.html`, {
-            statusCode: 404,
-            statusMessage: 'Not Found',
-          })
-        } else {
-          // dynamic 404
-          res.response.statusCode = 404
-          res.response.statusMessage = 'Not Found'
-          await renderNextPage('404', res)
-        }
+      let prefix = ''
+
+      if (locale) {
+        prefix = `/${locale}`
+      } else if (this.defaultLocale) {
+        prefix = `/${this.defaultLocale}`
+      }
+
+      const pagesManifest = this.getPagesManifest()
+      const key = `${prefix}/404`
+      const notFoundPage = pagesManifest[key]
+      const assetRoot = `${this.distDir}/${this.renderMode}/pages`
+
+      if (notFoundPage && notFoundPage.endsWith('.html')) {
+        // static 404
+        await res.serveStatic(`${assetRoot}${key}/index.html`, {
+          statusCode: 404,
+          statusMessage: 'Not Found',
+        })
+      } else {
+        // dynamic 404
+        res.response.statusCode = 404
+        res.response.statusMessage = 'Not Found'
+        await this.ssr(res, '404')
       }
     } else {
-      return renderNextPage('404', res)
+      return this.ssr(res, '404')
     }
   }
 

@@ -1,8 +1,8 @@
 import { DeploymentBuilder, BuildOptions } from '@layer0/core/deploy'
 import { join } from 'path'
 import FrameworkBuildError from '@layer0/core/errors/FrameworkBuildError'
-import { readdir } from 'fs-extra'
 import { nodeFileTrace } from '@vercel/nft'
+import globby from 'globby'
 
 interface BuilderOptions {
   apiDistDir: string
@@ -53,8 +53,11 @@ export default function createBuildEntryPoint({
 
     // api dist functions and dependencies
     const functionsDir = join(apiDistDirAbsolute, 'functions')
-    const filesToBePacked = (await readdir(functionsDir))
-      .filter(path => path.endsWith('.js'))
+    const filesToBePacked = globby
+      .sync('**/*.js', {
+        onlyFiles: true,
+        cwd: functionsDir,
+      })
       .map(path => join(functionsDir, path))
 
     const { fileList } = await nodeFileTrace(filesToBePacked)
