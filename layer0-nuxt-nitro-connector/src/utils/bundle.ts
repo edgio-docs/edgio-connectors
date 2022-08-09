@@ -7,7 +7,6 @@ export async function bundle(options: BuildOptions = {}) {
   // Always exclude fsevents as it cannot be bundled - it's binary.
   const external = ['fsevents']
 
-
   const esBuildDefaults: BuildOptions = {
     bundle: true,
     minify: true,

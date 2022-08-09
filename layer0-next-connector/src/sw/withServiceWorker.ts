@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 import { join } from 'path'
+import { getDistDirFromConfig } from '../util/getDistDir'
 const withOffline = require('next-offline')
 const { GenerateSW, InjectManifest } = require('workbox-webpack-plugin')
 
@@ -28,13 +29,14 @@ export default function withServiceWorker(_nextConfig: any) {
   const plugin = (...args: any[]): any => {
     const { workboxOpts, ...config } = normalizedNextConfig(...args)
     const swSrc = join(process.cwd(), 'sw', 'service-worker.js')
+    const distDir = getDistDirFromConfig(normalizedNextConfig)
 
     return withOffline({
       generateInDevMode: true,
       generateSw: false,
       workboxOpts: {
         swSrc,
-        swDest: join(process.cwd(), '.next', 'static', 'service-worker.js'),
+        swDest: join(process.cwd(), distDir, 'static', 'service-worker.js'),
         // The asset names for page chunks contain square brackets, eg [productId].js
         // Next internally injects these chunks encoded, eg %5BproductId%5D.js
         // For precaching to work the cache keys need to match the name of the assets
@@ -48,6 +50,7 @@ export default function withServiceWorker(_nextConfig: any) {
               ) // these paths fail in development resulting in the service worker not being installed
               .map(entry => {
                 entry.url = encodeURI(entry.url)
+                entry.url = entry.url.replace(/\/\//g, '/')
                 return entry
               })
             return { manifest, warnings: [] }

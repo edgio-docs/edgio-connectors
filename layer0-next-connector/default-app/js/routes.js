@@ -1,9 +1,13 @@
 // This file was automatically added by layer0 deploy.
 // You should commit this file to source control.
-const { Router } = require('@layer0/core/router')
-const { nextRoutes } = require('@layer0/next')
+import { Router } from '@layer0/core/router'
+import { nextRoutes } from '@layer0/next'
 
-module.exports = new Router()
+// Remove this line to suppress Next's default behavior of removing trailing slashes via a redirect.
+// If trailingSlash: true is set in next.config.js, removing this line will remove the redirect that adds the trailing slash.
+nextRoutes.setEnforceTrailingSlash(true)
+
+export default new Router()
   .match('/service-worker.js', ({ serviceWorker }) => {
     return serviceWorker('.next/static/service-worker.js')
   })

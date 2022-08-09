@@ -55,6 +55,8 @@ export default class NextRoutes extends PluginBase {
   private buildId: string = 'dev'
   private prerenderManifest: any
   private previewModeId: string | undefined
+  private nextConfig: any
+  private enforceTrailingSlash: boolean = false
 
   type = TYPE
 
@@ -69,6 +71,7 @@ export default class NextRoutes extends PluginBase {
     this.pagesDir = join(process.cwd(), this.nextRootDir, this.pagesDirRelative)
     this.distDir = getDistDir()
     this.renderMode = 'serverless'
+    this.nextConfig = getNextConfig()
 
     this.ssr = (res: ResponseWriter, page: string, _forceRevalidate?: boolean) => {
       return renderNextPage(page, res, params => params, {
@@ -76,7 +79,7 @@ export default class NextRoutes extends PluginBase {
       })
     }
 
-    const { useServerBuild } = getServerBuildAvailability({ config: getNextConfig() })
+    const { useServerBuild } = getServerBuildAvailability({ config: this.nextConfig })
 
     if (useServerBuild) {
       this.renderMode = 'server'
@@ -112,6 +115,17 @@ export default class NextRoutes extends PluginBase {
         }
       })
     }
+  }
+
+  /**
+   * Set this to true to honor Next's internal redirects that either add or remove a trailing slash
+   * depending on the value of the `trailingSlash` config. By default these internal redirects are not
+   * honored so that sites that fallback to serving from an origin do not add or remove the trailing slash
+   * for origin URLs.
+   * @param value
+   */
+  setEnforceTrailingSlash(value: boolean) {
+    this.enforceTrailingSlash = value
   }
 
   /**
@@ -245,6 +259,12 @@ export default class NextRoutes extends PluginBase {
    * @param group The RouteGroup to which Next.js routes should be added.
    */
   private addNextRoutesToGroup(group: RouteGroup) {
+    if (isProductionBuild()) {
+      console.debug('')
+      console.debug(`Next.js routes (locales: ${this.locales?.join(', ') || 'none'})`)
+      console.debug('--------------')
+    }
+
     this.addRedirects(group)
     this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
@@ -263,6 +283,10 @@ export default class NextRoutes extends PluginBase {
 
     if (Array.isArray(fallbackRewrites)) {
       this.addRewrites(fallbackRewrites, group)
+    }
+
+    if (isProductionBuild()) {
+      console.debug('--------------\n')
     }
   }
 
@@ -425,15 +449,27 @@ export default class NextRoutes extends PluginBase {
    */
   private addRedirects(group: RouteGroup) {
     if (this.redirects) {
-      for (let { source, has, statusCode, destination } of this.redirects) {
-        if (source !== '/:path+/') {
-          // We remove the redirect that next.js automatically adds to remove trailing slashes because we already
-          // do this in our own serveStatic implementation, and this redirect would prevent the fallback from working
-          // because it would match all routes except '/'
-          group.match(this.createRouteCriteria(source, has), ({ redirect }) => {
-            redirect(destination, { statusCode: statusCode || 302 })
-          })
+      for (let { source, has, statusCode, destination, internal } of this.redirects) {
+        // next < 10 did not have the internal property
+        const isInternalRedirect = internal || source === '/:path+/'
+
+        if (isInternalRedirect && !this.enforceTrailingSlash) {
+          continue
         }
+
+        if (isInternalRedirect) {
+          // For Next's internal redirects, which either add or remove the trailing slash, depending on the value of the trailingSlash config,
+          // we need to ensure that the route matches the entire path or these redirects will cause an infinite loop.
+          source += '($)'
+        }
+
+        const criteria = this.createRouteCriteria(source, has)
+
+        group.match(criteria, ({ redirect }) => {
+          redirect(destination, { statusCode: statusCode || 302 })
+        })
+
+        console.log('[redirect]', criteria, 'to', destination)
       }
     }
   }
@@ -500,13 +536,13 @@ export default class NextRoutes extends PluginBase {
     )
 
     const addRoute = (label: string, route: string, handler: RouteHandler) => {
+      if (this.nextConfig.trailingSlash && route !== '/') {
+        route += '/'
+      }
+
       console.debug(`[${label}]`, route)
       group.match(route, handler)
     }
-
-    console.debug('')
-    console.debug(`Next.js routes (locales: ${locales?.join(', ') || 'none'})`)
-    console.debug('--------------')
 
     // TODO uncomment this when we support RegExp as route critera
     // this.addMiddlewareInProd(group)
@@ -572,9 +608,6 @@ export default class NextRoutes extends PluginBase {
         addRoute('SSR html', localize(locales, toRouteSyntax(page)), this.createSSRHandler(page))
       }
     }
-
-    console.debug('--------------')
-    console.debug('')
   }
 
   /**
@@ -680,14 +713,13 @@ export default class NextRoutes extends PluginBase {
 
     if (dynamicRouteConfig || dataRoute) {
       // convert [param] to :param so that we can find the corresponding file on S3
-      destPath = `${assetRoot}${toRouteSyntax(relativeAssetPath)}/index.${suffix}`.replace(
-        /\/+/g,
-        '/'
-      ) // remove duplicate "/"'s
+      destPath = `${assetRoot}${toRouteSyntax(relativeAssetPath)}/index.${suffix}`
     } else {
       // leave [param] intact because routing will be done on the client
       destPath = `${assetRoot}${slash(relativeAssetPath)}/index.html`
     }
+
+    destPath = destPath.replace(/\/+/g, '/') // remove duplicate "/"'s
 
     return (res: ResponseWriter) => {
       if (dynamicRouteConfig) {

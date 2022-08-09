@@ -181,7 +181,13 @@ function addSSGPages(
     })
     .forEach(file => {
       const src = join(srcDir, file)
-      let dest = join(destDir, file.replace(/\.(html|json)$/, '/index.$1'))
+      let dest = join(destDir, file)
+
+      if (!file.match(/index\.(html|json)$/)) {
+        // Index files are a special case. "/" should map to "/index.html", not "/index/index.html"
+        dest = join(destDir, file.replace(/\.(html|json)$/, '/index.$1'))
+      }
+
       builder.addStaticAsset(src, dest)
 
       // Set TTL

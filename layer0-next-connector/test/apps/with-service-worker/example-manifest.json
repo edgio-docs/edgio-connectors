@@ -1,0 +1,97 @@
+[
+  {
+    "url": "/_next//static/media//2.7cb34891.jpg",
+    "revision": "cc654fefba9a52fc1a3f6e78c0fd4a25",
+    "size": 1042615
+  },
+  {
+    "url": "/_next/static//chunks/framework-f99e4e38d5204d9a.js",
+    "revision": "23c92a0b532581d554611280068277e9",
+    "size": 141488
+  },
+  {
+    "url": "/_next//static/media/1.b789256f.jpg",
+    "revision": "95be0c2c57a2f84e8713ce580483c485",
+    "size": 114549
+  },
+  {
+    "url": "/_next/static/chunks/main-f224ec9d4400cc85.js",
+    "revision": "aacc026a769b4206a116543e3dd8bc13",
+    "size": 107886
+  },
+  {
+    "url": "/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js",
+    "revision": "837c0df77fd5009c9e46d446188ecfd0",
+    "size": 91460
+  },
+  {
+    "url": "/_next/static/chunks/944-3f0d3ddc5cb99cc8.js",
+    "revision": "38e8d96f3013ea9b6c30ea82187267d9",
+    "size": 23056
+  },
+  {
+    "url": "/_next/static/chunks/pages/_app-df9759dbf0a94555.js",
+    "revision": "a271b220fbaa44af90770128a8f5cbdc",
+    "size": 7494
+  },
+  {
+    "url": "/_next/static/css/4d69f9ca7a661e5b.css",
+    "revision": "74c6f7b564f0f389f49fcfae6598c0b5",
+    "size": 3607
+  },
+  {
+    "url": "/_next/static/chunks/pages/index-8727535ff3030c8f.js",
+    "revision": "2a298696734d2b34e5fe4f5049a8c1cd",
+    "size": 2679
+  },
+  {
+    "url": "/_next/static/chunks/pages/blog/[id]-d9a1f0bf37dfd1f7.js",
+    "revision": "b23af7a3ded195f38a540ab7000b9650",
+    "size": 2166
+  },
+  {
+    "url": "/_next/static/chunks/pages/blog-d4cf7a177f78487c.js",
+    "revision": "3c96fa3714f3897d9a4d1fa7aaf1f635",
+    "size": 1845
+  },
+  {
+    "url": "/_next/server/middleware-build-manifest.js",
+    "revision": "9cd0403016030b436c1a924199cd16ad",
+    "size": 1620
+  },
+  {
+    "url": "/_next/static/chunks/webpack-f58abffb4e180982.js",
+    "revision": "c596007b61abcdbec1fe0fccc7502c3d",
+    "size": 1444
+  },
+  {
+    "url": "/_next/static/chunks/pages/about-0962ffdebe276cd6.js",
+    "revision": "88e0406723581efe484da05b71397ebf",
+    "size": 1430
+  },
+  {
+    "url": "/_next/static/9mqYUZUopVTh3huikHDH0/_buildManifest.js",
+    "revision": "bec18a3f75b500d7a97618ae2a199a65",
+    "size": 596
+  },
+  {
+    "url": "/_next/static/chunks/pages/_error-7397496ca01950b1.js",
+    "revision": "0ab8361bd852a7e26222a8f447b00811",
+    "size": 252
+  },
+  {
+    "url": "/_next//static/css/27d177a30947857b.css",
+    "revision": "141213eadb0ecdb8ba0a6bd0f9202683",
+    "size": 222
+  },
+  {
+    "url": "/_next/static/9mqYUZUopVTh3huikHDH0/_ssgManifest.js",
+    "revision": "5352cb582146311d1540f6075d1f265e",
+    "size": 76
+  },
+  {
+    "url": "/_next/server/middleware-react-loadable-manifest.js",
+    "revision": "a4c4a1653077034e3444eee88e06e781",
+    "size": 33
+  }
+]
