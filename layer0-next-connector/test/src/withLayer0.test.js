@@ -6,7 +6,7 @@ describe('withLayer0', () => {
   beforeEach(() => {
     jest.resetModules()
     jest.isolateModules(() => {
-      withLayer0 = require('../../src/withLayer0')
+      jest.doMock('../../src/util/getNextVersion', () => () => '10.0.0')
 
       jest.mock(
         '@layer0/devtools/widget/install',
@@ -17,6 +17,8 @@ describe('withLayer0', () => {
         },
         { virtual: true }
       )
+
+      withLayer0 = require('../../src/withLayer0')
     })
   })
 

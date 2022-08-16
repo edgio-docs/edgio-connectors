@@ -31,7 +31,7 @@ export default function withServiceWorker(_nextConfig: any) {
     const swSrc = join(process.cwd(), 'sw', 'service-worker.js')
     const distDir = getDistDirFromConfig(normalizedNextConfig)
 
-    return withOffline({
+    const result = withOffline({
       generateInDevMode: true,
       generateSw: false,
       workboxOpts: {
@@ -91,6 +91,13 @@ export default function withServiceWorker(_nextConfig: any) {
         return webpackConfig
       },
     })
+
+    // Clean up expanded properties to suppress Next warnings in 12.2+
+    delete result.generateInDevMode
+    delete result.generateSw
+    delete result.workboxOpts
+
+    return result
   }
 
   if (typeof _nextConfig === 'function') {

@@ -1,16 +1,22 @@
 import getDistDir from '../../../src/util/getDistDir'
-import { withServiceWorker } from '@layer0/next/sw'
 import { join } from 'path'
 import getNextConfig from '../../../src/getNextConfig'
+import withOffline from 'next-offline'
 
 describe('withServiceWorker', () => {
-  beforeAll(() => {
-    jest.resetAllMocks()
-    process.chdir(join(__dirname, '..', '..', 'apps', 'with-service-worker'))
-    jest.spyOn(console, 'log').mockImplementation(() => {})
+  let withOfflineMock, withServiceWorker
+
+  beforeEach(() => {
+    jest.isolateModules(() => {
+      withOfflineMock = jest.fn(withOffline)
+      process.chdir(join(__dirname, '..', '..', 'apps', 'with-service-worker'))
+      jest.spyOn(console, 'log').mockImplementation(() => {})
+      jest.doMock('next-offline', () => withOfflineMock)
+      withServiceWorker = require('../../../src/sw').withServiceWorker
+    })
   })
 
-  afterAll(() => {
+  afterEach(() => {
     jest.resetAllMocks()
   })
 
@@ -18,8 +24,9 @@ describe('withServiceWorker', () => {
     it('should return workboxOpts', () => {
       const nextConfig = getNextConfig()
       expect(typeof nextConfig).toBe('object')
+      withServiceWorker(nextConfig)
 
-      const updatedNextConfig = withServiceWorker(nextConfig)
+      const updatedNextConfig = withOfflineMock.mock.calls[0][0]
       expect(typeof updatedNextConfig).toBe('object')
 
       const workboxOpts = updatedNextConfig.workboxOpts
@@ -44,7 +51,8 @@ describe('withServiceWorker', () => {
 
     it('transformFunction corrects double slashes', () => {
       const nextConfig = getNextConfig()
-      const updatedNextConfig = withServiceWorker(nextConfig)
+      withServiceWorker(nextConfig)
+      const updatedNextConfig = withOfflineMock.mock.calls[0][0]
       const transformFunctions = updatedNextConfig.workboxOpts.manifestTransforms
       const appRoot = process.cwd()
 
@@ -67,14 +75,14 @@ describe('withServiceWorker', () => {
 
     it('transformFunction returns correctly encoded URLs', () => {
       const nextConfig = getNextConfig()
-      const updatedNextConfig = withServiceWorker(nextConfig)
+      withServiceWorker(nextConfig)
+      const updatedNextConfig = withOfflineMock.mock.calls[0][0]
       const transformFunctions = updatedNextConfig.workboxOpts.manifestTransforms
 
       // Example data which is representing passed self.__WB_MANIFEST variable in /sw/service-worker.js file
       let exampleUrls = [
         {
-          url:
-            '/api/endpoint?param=Long sentence with spaces and special " ` chars, which should be encoded',
+          url: '/api/endpoint?param=Long sentence with spaces and special " ` chars, which should be encoded',
           revision: 'cc654fefba9a52fc1a3f6e78c0fd4a25',
           size: 104,
         },

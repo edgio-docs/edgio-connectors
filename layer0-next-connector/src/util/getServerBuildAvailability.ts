@@ -1,12 +1,6 @@
 import { satisfies } from 'semver'
-import resolvePackagePath from 'resolve-package-path'
-
-function getNextVersion(): string | null {
-  // This will return the path to the main module, which will not necessarily be in the root
-  // directory of the package. Next.js is one such example.
-  const packagePath = resolvePackagePath('next', process.cwd())
-  return packagePath ? eval('require')(packagePath).version : null
-}
+import getNextVersion from './getNextVersion'
+import isTargetSupported from './isTargetSupported'
 
 let memoized:
   | undefined
@@ -32,12 +26,12 @@ export const getServerBuildAvailability = ({
     } else if (nextVersion) {
       serverBuildAvailable = satisfies(nextVersion, '>= 12.0.0')
 
-      if (satisfies(nextVersion, '>= 12.2.0')) {
+      if (!isTargetSupported(nextVersion)) {
         useServerBuild = true
         standaloneBuildConfig = { output: 'standalone' }
       } else if (serverBuildAvailable && config.target === 'server') {
         useServerBuild = true
-        standaloneBuildConfig = { experimetal: { outputStandalone: true } }
+        standaloneBuildConfig = { experimental: { outputStandalone: true } }
       }
     }
 

@@ -54,6 +54,7 @@ describe('NextRoutes', () => {
         },
       }
     })
+    jest.doMock('../../../src/util/getNextVersion', () => () => '10.0.0')
 
     jest.doMock('../../../src/util/getDistDir', () => () => '.next')
 

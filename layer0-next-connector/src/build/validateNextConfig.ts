@@ -13,7 +13,7 @@ export default function validateNextConfig(appDir: string) {
     nextConfig = nextConfig(null, {})
   }
 
-  if (!nextConfig.withLayer0Applied /* see withLayer0 */) {
+  if (process.env.WITH_LAYER0_APPLIED !== 'true' /* see withLayer0 */) {
     console.error(ERROR_MESSAGE)
     process.exit(1)
   }

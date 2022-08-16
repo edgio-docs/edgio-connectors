@@ -6,6 +6,7 @@ describe('renderNextPage', () => {
     jest.resetModules()
 
     jest.isolateModules(() => {
+      jest.doMock('../../../src/util/getNextVersion', () => () => '10.0.0')
       warn = jest.spyOn(console, 'warn').mockImplementation()
       renderNextPage = require('../../../src/router/renderNextPage').renderNextPage
     })

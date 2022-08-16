@@ -1,4 +1,6 @@
+import getNextVersion from './util/getNextVersion'
 import { getServerBuildAvailability } from './util/getServerBuildAvailability'
+import isTargetSupported from './util/isTargetSupported'
 import CommonsServerChunkPlugin from './webpack/CommonsServerChunkPlugin'
 
 const determineTarget = ({
@@ -48,15 +50,16 @@ export = function withLayer0(_nextConfig: any) {
       quiet: true,
     })
 
-    return {
+    // validateNextConfig looks for this to ensure that the configuration is valid
+    process.env.WITH_LAYER0_APPLIED = 'true'
+
+    const result: any = {
       ...nextConfig,
-      target: determineTarget({ useServerBuild, target: nextConfig.target }),
       ...standaloneBuildConfig,
       experimental: {
         ...nextConfig.experimental,
         ...standaloneBuildConfig.experimental,
       },
-      withLayer0Applied: true, // validateNextConfig looks for this to ensure that the configuration is valid
       webpack: (config: any, options: any) => {
         const webpackConfig = { ...(nextConfig.webpack?.(config, options) || config) }
 
@@ -126,6 +129,16 @@ export = function withLayer0(_nextConfig: any) {
         return Object.assign(webpackConfig, config)
       },
     }
+
+    if (isTargetSupported(getNextVersion())) {
+      result.target = determineTarget({ useServerBuild, target: nextConfig.target })
+    }
+
+    // Clean up expanded properties to suppress Next warnings in 12.2+
+    delete result.layer0SourceMaps
+    delete result.disableLayer0DevTools
+
+    return result
   }
 
   if (typeof _nextConfig === 'function') {

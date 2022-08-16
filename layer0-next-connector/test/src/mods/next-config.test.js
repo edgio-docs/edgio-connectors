@@ -56,6 +56,9 @@ describe('next-config codemod', () => {
             // the logs in the Layer0 developer console.
             layer0SourceMaps: true,
 
+            // Set the following to \`true\` to disable the Layer0 dev tools.
+            disableLayer0DevTools: false,
+
             ..._preLayer0Export
           })
         )
@@ -87,6 +90,9 @@ describe('next-config codemod', () => {
             // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
             // the logs in the Layer0 developer console.
             layer0SourceMaps: true,
+
+            // Set the following to \`true\` to disable the Layer0 dev tools.
+            disableLayer0DevTools: false,
 
             ..._preLayer0Export
           })
@@ -132,6 +138,9 @@ describe('next-config codemod', () => {
             // the logs in the Layer0 developer console.
             layer0SourceMaps: true,
 
+            // Set the following to \`true\` to disable the Layer0 dev tools.
+            disableLayer0DevTools: false,
+
             ..._preLayer0Export(phase, config)
           })
         )
@@ -175,6 +184,9 @@ describe('next-config codemod', () => {
             // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
             // the logs in the Layer0 developer console.
             layer0SourceMaps: true,
+
+            // Set the following to \`true\` to disable the Layer0 dev tools.
+            disableLayer0DevTools: false,
 
             ..._preLayer0Export
           })

@@ -3,6 +3,7 @@ describe('validateNextConfig', () => {
 
   beforeEach(() => {
     jest.isolateModules(() => {
+      nextConfig = {}
       exit = jest.spyOn(process, 'exit').mockImplementation()
       error = jest.spyOn(console, 'error').mockImplementation()
       jest.doMock('../../../src/getNextConfig', () => _appDir => nextConfig)
@@ -15,30 +16,37 @@ describe('validateNextConfig', () => {
   })
 
   it('should exit if withLayer0 is not applied (object)', () => {
-    nextConfig = {}
     validateNextConfig('.')
     expect(error).toHaveBeenCalled()
     expect(exit).toHaveBeenCalledWith(1)
   })
 
   it('should exit if withLayer0 is not applied (function)', () => {
-    nextConfig = () => ({})
     validateNextConfig('.')
     expect(error).toHaveBeenCalled()
     expect(exit).toHaveBeenCalledWith(1)
   })
 
-  it('should not exit if withLayer0 is applied (object)', () => {
-    nextConfig = { withLayer0Applied: true }
-    validateNextConfig('.')
-    expect(error).not.toHaveBeenCalled()
-    expect(exit).not.toHaveBeenCalled()
-  })
+  describe('withLayer0 applied', () => {
+    beforeEach(() => {
+      process.env.WITH_LAYER0_APPLIED = 'true'
+    })
 
-  it('should not exit if withLayer0 is applied (function)', () => {
-    nextConfig = () => ({ withLayer0Applied: true })
-    validateNextConfig('.')
-    expect(error).not.toHaveBeenCalled()
-    expect(exit).not.toHaveBeenCalled()
+    afterEach(() => {
+      delete process.env.WITH_LAYER0_APPLIED
+    })
+
+    it('should not exit if withLayer0 is applied (object)', () => {
+      validateNextConfig('.')
+      expect(error).not.toHaveBeenCalled()
+      expect(exit).not.toHaveBeenCalled()
+    })
+
+    it('should not exit if withLayer0 is applied (function)', () => {
+      process.env.WITH_LAYER0_APPLIED = 'true'
+      validateNextConfig('.')
+      expect(error).not.toHaveBeenCalled()
+      expect(exit).not.toHaveBeenCalled()
+    })
   })
 })

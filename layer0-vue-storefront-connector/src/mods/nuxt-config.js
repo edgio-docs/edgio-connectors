@@ -68,11 +68,13 @@ module.exports = function transformNuxtConfig(fileInfo, api) {
     j.Property,
     node => node.key.name === 'plugins' && node.value.elements[0].type === 'NewExpression'
   )
-  if(pluginsConfig.length > 0){
+  if (pluginsConfig.length > 0) {
     const pluginsArray = pluginsConfig.get().value.value
 
-    if(pluginsArray && pluginsArray.type === 'ArrayExpression'){
-      pluginsConfig.find(j.ArrayExpression).replaceWith(`[webpack && ${j(pluginsArray.elements[0]).toSource()}]`)
+    if (pluginsArray && pluginsArray.type === 'ArrayExpression') {
+      pluginsConfig
+        .find(j.ArrayExpression)
+        .replaceWith(`[webpack && ${j(pluginsArray.elements[0]).toSource()}]`)
     }
   }
 
