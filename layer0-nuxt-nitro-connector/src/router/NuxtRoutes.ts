@@ -102,13 +102,15 @@ export default class NuxtRoutes extends PluginBase {
       group.static('static', { handler: () => res => res.cache(PUBLIC_CACHE_CONFIG) })
 
       // browser js
-      group.match('/_nuxt/:path*', async ({ renderWithApp, cache }) => {
+      const filesHandler = async ({ renderWithApp, cache }) => {
         // since Nuxt doesn't add a hash to asset file names in dev, we need to prevent caching,
         // otherwise Nuxt is prone to getting stuck in a browser refresh loop after making changes due to assets
         // failing to load without error.
         cache({ browser: false })
         renderWithApp({ removeEmptySearchParamValues: true })
-      })
+      }
+      group.match('/_nuxt/:path*', filesHandler)
+      group.match('/node_modules/:path*', filesHandler)
     }
   }
 }

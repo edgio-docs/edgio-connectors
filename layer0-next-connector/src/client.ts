@@ -7,6 +7,10 @@ export interface NextURLParams {
    * The values of any route params within the URL.
    */
   routeParams: { [name: string]: string } | undefined
+  /**
+   * The current locale (only needed when using localization)
+   */
+  locale?: string
 }
 
 /**
@@ -32,7 +36,7 @@ export interface NextURLParams {
  * @returns
  */
 export function createNextDataURL(params: NextURLParams): string | undefined {
-  let { href, routeParams = {} } = params
+  let { href, routeParams = {}, locale } = params
 
   // @ts-ignore Ignore error from use of global __NEXT_DATA__
   if (typeof __NEXT_DATA__ != 'undefined') {
@@ -50,8 +54,10 @@ export function createNextDataURL(params: NextURLParams): string | undefined {
       }
     }
 
+    const localeParam = locale ? `/${locale}` : ''
+
     // @ts-ignore Ignore error from use of global __NEXT_DATA__
-    return `/_next/data/${__NEXT_DATA__.buildId}${href}.json${qs}`
+    return `/_next/data/${__NEXT_DATA__.buildId}${localeParam}${href}.json${qs}`
   } else {
     return undefined
   }
