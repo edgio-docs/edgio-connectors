@@ -963,9 +963,9 @@ describe('NextRoutes', () => {
       delete process.env.NEXT_FORCE_SERVER_BUILD
     })
 
-    it('call renderWithApp', async () => {
+    it('call proxy', async () => {
       await router.run(request, response)
-      expect(renderWithApp).toHaveBeenCalled()
+      expect(proxy).toHaveBeenCalledWith(BACKENDS.js, expect.anything())
     })
   })
 })

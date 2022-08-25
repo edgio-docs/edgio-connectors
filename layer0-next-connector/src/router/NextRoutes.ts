@@ -11,7 +11,7 @@ import Request from '@layer0/core/router/Request'
 import ResponseWriter from '@layer0/core/router/ResponseWriter'
 import RouteGroup from '@layer0/core/router/RouteGroup'
 import Router, { RouteHandler } from '@layer0/core/router/Router'
-import { FAR_FUTURE_TTL } from './constants'
+import { FAR_FUTURE_TTL, REMOVE_HEADER_VALUE } from './constants'
 import { PreloadRequestConfig } from '@layer0/core/router/Preload'
 import watch from '@layer0/core/utils/watch'
 import RouteCriteria from '@layer0/core/router/RouteCriteria'
@@ -90,7 +90,20 @@ export default class NextRoutes extends PluginBase {
           // always return the fallback (loading) page
           res.setRequestHeader('x-prerender-revalidate', this.previewModeId)
         }
-        return res.renderWithApp()
+
+        return res.proxy(BACKENDS.js, {
+          transformResponse(res) {
+            // If we see Cache-Control: {REMOVE_HEADER_VALUE} here, which is set before the request is handled by prod.ts,
+            // we know that the user did not explicitly set a Cache-Control header. This prevents Next.js from
+            // adding Cache-Control: private, no-cache, no-store by default, which would disable caching at the edge unless
+            // the user adds forcePrivateCaching: true to their routes. This was the default behavior prior to switching to the
+            // Next.js standalone build. We preserve that legacy behavior here to err on the side of caching, which keeps the customer's
+            // site fast and costs low.
+            if (res.getHeader('Cache-Control') === REMOVE_HEADER_VALUE) {
+              res.removeHeader('Cache-Control')
+            }
+          },
+        })
       }
     }
 

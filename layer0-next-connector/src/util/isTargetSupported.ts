@@ -5,6 +5,10 @@ import { satisfies } from 'semver'
  * @param nextVersion
  * @returns
  */
-export default function isTargetSupported(nextVersion: string) {
-  return !satisfies(nextVersion, '>= 12.2.0')
+export default function isTargetSupported(nextVersion: string | null) {
+  if (nextVersion) {
+    return !satisfies(nextVersion, '>= 12.2.0')
+  } else {
+    return true
+  }
 }

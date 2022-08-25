@@ -6,6 +6,7 @@ import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
 import getDistDir from './util/getDistDir'
 import path from 'path'
 import getNextConfig from './getNextConfig'
+import { REMOVE_HEADER_VALUE } from './router/constants'
 
 // Used in fetchFromAPI so that SSR pages don't call back into the lambda
 // which would result in Layer0 being double-billed for each SSR request
@@ -39,6 +40,10 @@ const createStandAloneServer = (
 
   return createServer(async (req, res) => {
     try {
+      // See NextRoutes#ssr. Here we add a default Cache-Control header before handing the request off to Next.js.
+      // If Next.js sees this default value, it won't add it's own default, which is Cache-Control: private, no-cache, no-store.
+      // We then remove this default value so that there is no Cache-Control header in NextRoutes#ssr
+      res.setHeader('Cache-Control', REMOVE_HEADER_VALUE)
       handle(req, res)
     } catch (e) {
       const message = `An unexpected error occurred while processing the request with next.js.`
