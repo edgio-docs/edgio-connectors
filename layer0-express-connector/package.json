@@ -1,6 +1,6 @@
 {
   "name": "@layer0/express",
-  "version": "4.18.8",
+  "version": "4.18.9",
   "license": "Apache-2.0",
   "layer0-publish-to-repo": "layer0-docs/layer0-connectors",
   "scripts": {

@@ -3,4 +3,7 @@
 import { Router } from '@layer0/core/router'
 import { razzleRoutes } from '@layer0/razzle'
 
-export default new Router().use(razzleRoutes)
+export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(razzleRoutes)

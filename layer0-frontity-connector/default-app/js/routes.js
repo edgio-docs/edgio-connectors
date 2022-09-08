@@ -3,4 +3,7 @@
 const { Router } = require('@layer0/core/router')
 const { frontityRoutes } = require('@layer0/frontity')
 
-module.exports = new Router().use(frontityRoutes) // automatically adds all routes from your frontity app
+module.exports = new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(frontityRoutes) // automatically adds all routes from your frontity app

@@ -4,4 +4,7 @@
 const { Router } = require('@layer0/core/router')
 const { gatsbyRoutes } = require('@layer0/gatsby')
 
-module.exports = new Router().use(gatsbyRoutes)
+module.exports = new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(gatsbyRoutes)

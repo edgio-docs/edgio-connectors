@@ -4,13 +4,6 @@ import { Router } from '@layer0/core/router'
 import { fastbootRoutes } from '@layer0/fastboot'
 
 export default new Router()
-  .get('/', ({ cache }) => {
-    cache({
-      edge: {
-        maxAgeSeconds: 60 * 60 * 24 * 365,
-        staleWhileRevalidateSeconds: 60 * 60 * 24,
-      },
-      browser: false,
-    })
-  })
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
   .use(fastbootRoutes)

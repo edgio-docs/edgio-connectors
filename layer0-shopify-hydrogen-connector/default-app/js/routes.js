@@ -3,4 +3,7 @@
 import { Router } from '@layer0/core'
 import { shopifyHydrogenRoutes } from '@layer0/shopify-hydrogen'
 
-export default new Router().use(shopifyHydrogenRoutes)
+export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(shopifyHydrogenRoutes)

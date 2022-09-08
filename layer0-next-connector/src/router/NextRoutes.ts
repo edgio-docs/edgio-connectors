@@ -1,6 +1,6 @@
 import { BACKENDS, LAYER0_IMAGE_OPTIMIZER_PATH } from '@layer0/core/constants'
 import { isCloud, isProductionBuild } from '@layer0/core/environment'
-import { localize, toRouteSyntax } from './nextPathFormatter'
+import NextPathFormatter from './nextPathFormatter'
 import { existsSync, readFileSync } from 'fs'
 import getDistDir from '../util/getDistDir'
 import nonWebpackRequire from '@layer0/core/utils/nonWebpackRequire'
@@ -57,6 +57,7 @@ export default class NextRoutes extends PluginBase {
   private previewModeId: string | undefined
   private nextConfig: any
   private enforceTrailingSlash: boolean = false
+  private nextPathFormatter: NextPathFormatter
 
   type = TYPE
 
@@ -72,6 +73,7 @@ export default class NextRoutes extends PluginBase {
     this.distDir = getDistDir()
     this.renderMode = 'serverless'
     this.nextConfig = getNextConfig()
+    this.nextPathFormatter = new NextPathFormatter(this.nextConfig)
 
     this.ssr = (res: ResponseWriter, page: string, _forceRevalidate?: boolean) => {
       return renderNextPage(page, res, params => params, {
@@ -281,6 +283,7 @@ export default class NextRoutes extends PluginBase {
     this.addRedirects(group)
     this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
+    this.addExcludeRouteForSvgFiles(group)
     this.addImageOptimizerRoutes(group)
     this.addRewrites(this.rewrites?.afterFiles, group)
 
@@ -498,7 +501,7 @@ export default class NextRoutes extends PluginBase {
     group.dir(this.pagesDirRelative, {
       ignore: ['_*'],
       paths: (file: string) => {
-        let route = toRouteSyntax(file)
+        let route = this.nextPathFormatter.toRouteSyntax(file)
 
         if (route.endsWith('/')) {
           route += 'index'
@@ -512,7 +515,7 @@ export default class NextRoutes extends PluginBase {
     // SSR,
     group.dir(this.pagesDirRelative, {
       ignore: ['_*'],
-      paths: (file: string) => [toRouteSyntax(file)],
+      paths: (file: string) => [this.nextPathFormatter.toRouteSyntax(file)],
       handler: () => nextHandler,
     })
   }
@@ -563,7 +566,7 @@ export default class NextRoutes extends PluginBase {
     const pages = sortRoutes(Object.keys(pagesManifest), routesManifest)
 
     for (let page of pages) {
-      const path = toRouteSyntax(page)
+      const path = this.nextPathFormatter.toRouteSyntax(page)
       const isPrerendered = this.isPrerendered(prerenderManifest, pagesManifest, page)
 
       if (page.match(/\/(_app|_document|_error|404|500)$/)) {
@@ -585,9 +588,9 @@ export default class NextRoutes extends PluginBase {
           // JSON
           addRoute(
             `${renderType} json`,
-            `/_next/data/:__build__${localize(
+            `/_next/data/:__build__${this.nextPathFormatter.localize(
               locales,
-              toRouteSyntax(nonLocalizedPath, { suffix: 'json' })
+              this.nextPathFormatter.toRouteSyntax(nonLocalizedPath, { suffix: 'json' })
             )}`,
             this.createSSGHandler(nonLocalizedPage, {
               dataRoute: true,
@@ -600,7 +603,10 @@ export default class NextRoutes extends PluginBase {
         // HTML
         addRoute(
           `${renderType} html`,
-          localize(locales, toRouteSyntax(nonLocalizedPath)),
+          this.nextPathFormatter.localize(
+            locales,
+            this.nextPathFormatter.toRouteSyntax(nonLocalizedPath)
+          ),
           this.createSSGHandler(nonLocalizedPage, {
             localize: localizationEnabled,
             dynamicRouteConfig,
@@ -612,13 +618,20 @@ export default class NextRoutes extends PluginBase {
           // will not get here when the page uses getInitialProps
           addRoute(
             'SSR json',
-            `/_next/data/:__build__${localize(locales, toRouteSyntax(page, { suffix: 'json' }))}`,
+            `/_next/data/:__build__${this.nextPathFormatter.localize(
+              locales,
+              this.nextPathFormatter.toRouteSyntax(page, { suffix: 'json' })
+            )}`,
             this.createSSRHandler(page)
           )
         }
 
         // SSR: getServerSideProps or getInitialProps
-        addRoute('SSR html', localize(locales, toRouteSyntax(page)), this.createSSRHandler(page))
+        addRoute(
+          'SSR html',
+          this.nextPathFormatter.localize(locales, this.nextPathFormatter.toRouteSyntax(page)),
+          this.createSSRHandler(page)
+        )
       }
     }
   }
@@ -726,7 +739,9 @@ export default class NextRoutes extends PluginBase {
 
     if (dynamicRouteConfig || dataRoute) {
       // convert [param] to :param so that we can find the corresponding file on S3
-      destPath = `${assetRoot}${toRouteSyntax(relativeAssetPath)}/index.${suffix}`
+      destPath = `${assetRoot}${this.nextPathFormatter.toRouteSyntax(
+        relativeAssetPath
+      )}/index.${suffix}`
     } else {
       // leave [param] intact because routing will be done on the client
       destPath = `${assetRoot}${slash(relativeAssetPath)}/index.html`
@@ -877,6 +892,30 @@ export default class NextRoutes extends PluginBase {
   }
 
   /**
+   * Adds route to exclude svg images from image optimization
+   * @param group The RouterGroup to which exclude route should be added
+   */
+  addExcludeRouteForSvgFiles(group: RouteGroup) {
+    group.match(
+      {
+        path: '/_next/image',
+        method: /GET/i,
+        query: { url: /\.svg/ },
+      },
+      ({ proxy }) => {
+        // Due to way how older next versions are serving SVG files
+        // we need to tell optimizer to exclude all svg files to prevent converting them to WEBP
+
+        const production = isProductionBuild()
+        const backend = production ? BACKENDS.imageOptimizer : BACKENDS.js
+        // u param tells optimizer to return these files unchanged
+        const opts = production ? { path: `${LAYER0_IMAGE_OPTIMIZER_PATH}?u` } : undefined
+        proxy(backend, opts)
+      }
+    )
+  }
+
+  /**
    * Adds routes for image-optimizer
    * @param group The RouterGroup to which image optimizer routes should be added
    */
@@ -887,6 +926,7 @@ export default class NextRoutes extends PluginBase {
       // local framework will, by default, optimize the image for us.
       // But in the cloud we replace '/_next/image' the '/__layer0_image_optimizer'
       // so Layer0 Buffer Proxy can route to the right lambda.
+
       const production = isProductionBuild()
       const backend = production ? BACKENDS.imageOptimizer : BACKENDS.js
       const opts = production ? { path: LAYER0_IMAGE_OPTIMIZER_PATH } : undefined

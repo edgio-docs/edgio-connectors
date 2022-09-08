@@ -4,4 +4,7 @@
 const { Router } = require('@layer0/core/router')
 const { angularRoutes } = require('@layer0/angular')
 
-module.exports = new Router().use(angularRoutes)
+module.exports = new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(angularRoutes)

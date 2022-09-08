@@ -21,6 +21,8 @@ function cacheHTML({ cache, removeUpstreamResponseHeader }: ResponseWriter) {
 }
 
 export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
   .match('/service-worker.js', ({ serviceWorker }) => {
     serviceWorker('.nuxt/dist/client/service-worker.js')
   })

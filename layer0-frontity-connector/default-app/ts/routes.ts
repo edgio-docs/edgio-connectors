@@ -3,4 +3,7 @@
 import { Router } from '@layer0/core/router'
 import { frontityRoutes } from '@layer0/frontity'
 
-export default new Router().use(frontityRoutes) // automatically adds all routes from your frontity app
+export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(frontityRoutes) // automatically adds all routes from your frontity app

@@ -4,4 +4,7 @@
 import { Router } from '@layer0/core/router'
 import { gatsbyRoutes } from '@layer0/gatsby'
 
-export default new Router().use(gatsbyRoutes)
+export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(gatsbyRoutes)

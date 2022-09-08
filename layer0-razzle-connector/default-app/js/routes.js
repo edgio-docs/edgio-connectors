@@ -3,4 +3,7 @@
 const { Router } = require('@layer0/core/router')
 const { razzleRoutes } = require('@layer0/razzle')
 
-module.exports = new Router().use(razzleRoutes)
+module.exports = new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(razzleRoutes)

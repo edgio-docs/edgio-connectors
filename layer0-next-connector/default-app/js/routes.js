@@ -8,6 +8,8 @@ import { nextRoutes } from '@layer0/next'
 nextRoutes.setEnforceTrailingSlash(true)
 
 export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
   .match('/service-worker.js', ({ serviceWorker }) => {
     return serviceWorker('.next/static/service-worker.js')
   })

@@ -3,4 +3,7 @@
 import { Router } from '@layer0/core'
 import { astroRoutes } from '@layer0/astro'
 
-export default new Router().use(astroRoutes)
+export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(astroRoutes)

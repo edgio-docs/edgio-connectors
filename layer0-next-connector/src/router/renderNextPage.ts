@@ -3,7 +3,7 @@ import { BACKENDS } from '@layer0/core/constants'
 import ResponseWriter from '@layer0/core/router/ResponseWriter'
 import Request from '@layer0/core/router/Request'
 import Params from './Params'
-import { toRouteSyntax } from './nextPathFormatter'
+import NextPathFormatter from './nextPathFormatter'
 import qs from 'qs'
 import bindParamsToPath from '@layer0/core/utils/bindParamsToPath'
 import { isProductionBuild } from '@layer0/core/environment'
@@ -87,7 +87,10 @@ export default async function _renderNextPage(
         search = `?${search}`
       }
 
-      const path = options.rewritePath ? rewritePath(request, page, params) : request.path
+      const nextConfig = getNextConfig()
+      const path = options.rewritePath
+        ? rewritePath(request, page, params, nextConfig)
+        : request.path
 
       return `${path}${search}`
     },
@@ -106,9 +109,11 @@ export default async function _renderNextPage(
  * @param request
  * @param page
  * @param params
+ * @param nextConfig
  */
-function rewritePath(request: Request, page: string, params: any) {
-  let destinationRoute = toRouteSyntax(page)
+function rewritePath(request: Request, page: string, params: any, nextConfig: any) {
+  const nextPathFormatter = new NextPathFormatter(nextConfig)
+  let destinationRoute = nextPathFormatter.toRouteSyntax(page)
 
   if (request.path && request.path.startsWith('/_next/data/')) {
     destinationRoute = `/_next/data/:__build__/${destinationRoute.replace(/^\//, '')}.json`

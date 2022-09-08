@@ -3,4 +3,7 @@
 import { Router } from '@layer0/core'
 import { redwoodRoutes } from '@layer0/redwood'
 
-export default new Router().use(redwoodRoutes)
+export default new Router()
+  // Prevent search engines from indexing permalink URLs
+  .noIndexPermalink()
+  .use(redwoodRoutes)
