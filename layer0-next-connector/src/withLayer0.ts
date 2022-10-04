@@ -52,6 +52,7 @@ export = function withLayer0(_nextConfig: any) {
 
     // validateNextConfig looks for this to ensure that the configuration is valid
     process.env.WITH_LAYER0_APPLIED = 'true'
+    process.env.LAYER0_SOURCE_MAPS = nextConfig.layer0SourceMaps === false ? 'false' : 'true'
 
     const result: any = {
       ...nextConfig,

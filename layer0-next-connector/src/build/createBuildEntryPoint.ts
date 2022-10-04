@@ -72,6 +72,12 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       .addJSAsset(join(distDirAbsolute, 'routes-manifest.json')) // needed for rewrites and redirects
       .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
       .build()
+
+    if (process.env.LAYER0_SOURCE_MAPS === 'false') {
+      console.log(`> Found layer0SourceMaps set to false`)
+      console.log(`> Deleting .map files from lambda folder`)
+      builder.deleteMapFiles(builder.jsDir)
+    }
   }
 }
 

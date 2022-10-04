@@ -86,6 +86,12 @@ export default async function build(options: BuildOptions) {
   }
 
   await builder.build()
+
+  if (getlayer0SourceMapsValue(config) === false) {
+    console.log(`> Found layer0SourceMaps set to false`)
+    console.log(`> Deleting .map files from lambda folder`)
+    builder.deleteMapFiles(builder.jsDir)
+  }
 }
 
 async function createLayer0NuxtConfig({ target, generate }: any) {
@@ -104,4 +110,24 @@ async function createLayer0NuxtConfig({ target, generate }: any) {
       }),
     },
   }
+}
+
+/**
+ * Returns layer0SourceMaps value from Nuxt config
+ * @param config NuxtConfig
+ * @return The value of layer0SourceMaps option or null when it's missing
+ */
+function getlayer0SourceMapsValue(config: any): boolean | null {
+  let value = null
+  ;(config?.buildModules ?? []).forEach((module: any) => {
+    if (Array.isArray(module)) {
+      const moduleOption = module.find(
+        item => typeof item === 'object' && Object.keys(item).includes('layer0SourceMaps')
+      )
+      if (moduleOption) {
+        value = moduleOption.layer0SourceMaps
+      }
+    }
+  })
+  return value
 }
