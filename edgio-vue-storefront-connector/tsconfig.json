@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./stage",
+    "strict": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
+    "baseUrl": "..",
+    "skipLibCheck": true,
+    "paths": {
+      "@edgio/core": ["core/src"],
+      "@edgio/core/*": ["core/src/*"],
+      "@edgio/nuxt": ["nuxt/src"],
+      "@edgio/nuxt/*": ["nuxt/src/*"],
+      "@edgio/apollo": ["apollo/src"],
+      "@edgio/apollo/*": ["apollo/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "predefined", "mods", "helpers"]
+}

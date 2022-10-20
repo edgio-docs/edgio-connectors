@@ -1,0 +1,12 @@
+{
+  "/p/[id]": "pages/p/[id].js",
+  "/static/[id]": "pages/static/[id].js",
+  "/not-localized": "pages/not-localized.html",
+  "/ssg/ssg": "pages/ssg/ssg.js",
+  "/api/session": "pages/api/session.js",
+  "/en-US/no-props/no-props": "pages/en-US/no-props/no-props.html",
+  "/fr/no-props/no-props": "pages/fr/no-props/no-props.html",
+  "/en-US/404": "pages/en-US/404.html",
+  "/fs/404": "pages/fr/404.html",
+  "/": "pages/index.js"
+}

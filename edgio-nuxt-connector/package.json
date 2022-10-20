@@ -1,0 +1,82 @@
+{
+  "name": "@edgio/nuxt",
+  "version": "5.0.3",
+  "license": "Apache-2.0",
+  "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "content-type": "^1.0.4",
+    "cross-spawn": "^7.0.3",
+    "fs-extra": "^8.1.0",
+    "lodash": "^4.17.21",
+    "ora": "^4.1.1",
+    "terminal-link": "^2.1.1",
+    "workbox-webpack-plugin": "^5.1.2"
+  },
+  "devDependencies": {
+    "@edgio/core": "^5.0.3",
+    "@edgio/prefetch": "^5.0.3",
+    "@nuxt/types": "^2.15.8",
+    "@types/cross-spawn": "^6.0.2",
+    "@types/fs-extra": "^8.1.1",
+    "@types/lodash": "^4.14.162",
+    "@types/workbox-webpack-plugin": "^5.1.1",
+    "nuxt": "^2.15.8",
+    "nuxt-start": "^2.15.8"
+  },
+  "peerDependencies": {
+    "@edgio/core": "^5.0.0",
+    "dotenv": "^8.2.0",
+    "nuxt": "^2.15.8"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt/src/* dist; webpack",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
+    "test": "jest --runInBand --watchAll=false"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/router/**/*.ts",
+      "./src/utils/**/updateDependencies.ts",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.ts"
+    ],
+    "moduleNameMapper": {
+      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@edgio/nuxt(.*)$": "<rootDir>/../nuxt/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  }
+}

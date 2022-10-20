@@ -1,0 +1,61 @@
+{
+  "name": "@edgio/gatsby",
+  "version": "5.0.3",
+  "license": "Apache-2.0",
+  "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
+  "devDependencies": {
+    "@edgio/core": "^5.0.3"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/gatsby/src/* dist",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/**/*.{js,jsx}",
+      "./lambda/**/*.{js,jsx}",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.js"
+    ],
+    "moduleNameMapper": {
+      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@edgio/gatsby(.*)$": "<rootDir>/../gatsby/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2"
+  }
+}

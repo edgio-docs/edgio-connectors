@@ -1,0 +1,52 @@
+{
+  "routes": {
+    "/en-US": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/index.json"
+    },
+    "/fr": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/fr/index.json"
+    },
+    "/nl-NL": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/nl-NL/index.json"
+    },
+    "/en-US/static/1": {
+      "initialRevalidateSeconds": 3600,
+      "srcRoute": "/static/[id]",
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/static/1.json"
+    },
+    "/en-US/static/2": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/static/[id]",
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/static/2.json"
+    },
+    "/en-US/ssg/ssg": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/en-US/ssg/ssg.json"
+    },
+    "/fr/ssg/ssg": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/fr/ssg/ssg.json"
+    },
+    "/nl-NL/ssg/ssg": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/nl-NL/ssg/ssg.json"
+    }
+  },
+  "dynamicRoutes": {
+    "/static/[id]": {
+      "routeRegex": "^/static/([^/]+?)(?:/)?$",
+      "dataRoute": "/_next/data/YZASQ6pQlDxn8KydMz9qu/static/[id].json",
+      "fallback": "/static/[id].html",
+      "dataRouteRegex": "^/_next/data/YZASQ6pQlDxn8KydMz9qu/static/([^/]+?)\\.json$"
+    }
+  }
+}

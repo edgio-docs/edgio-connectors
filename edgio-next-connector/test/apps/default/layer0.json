@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "backends": {
+    "legacy": "https://www.domain.com"
+  }
+}

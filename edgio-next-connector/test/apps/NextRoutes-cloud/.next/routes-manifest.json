@@ -1,0 +1,52 @@
+{
+  "version": 3,
+  "pages404": true,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    },
+    {
+      "source": "/temp-redirects/:id",
+      "destination": "/p/:id",
+      "statusCode": 307
+    },
+    {
+      "source": "/perm-redirects/:id",
+      "destination": "/p/:id",
+      "statusCode": 308
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/rewrites/:id",
+      "destination": "/p/:id"
+    }
+  ],
+  "headers": [],
+  "dynamicRoutes": [
+    {
+      "page": "/p/[id]"
+    },
+    {
+      "page": "/static/[id]"
+    },
+    {
+      "page": "/initial-props/[id]"
+    }
+  ],
+  "dataRoutes": [
+    {
+      "page": "/p/[id]"
+    },
+    {
+      "page": "/ssg/ssg"
+    },
+    {
+      "page": "/static/[id]"
+    }
+  ]
+}

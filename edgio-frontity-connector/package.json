@@ -1,0 +1,74 @@
+{
+  "name": "@edgio/frontity",
+  "version": "5.0.3",
+  "license": "Apache-2.0",
+  "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
+  "dependencies": {
+    "babel-loader": "^8.2.2",
+    "chalk": "^4.1.2",
+    "globby": "^11.0.2",
+    "slash": "^3.0.0",
+    "workbox-webpack-plugin": "^6.1.0",
+    "yargs": "^15.1.0"
+  },
+  "peerDependencies": {
+    "@edgio/core": "^5.0.0",
+    "frontity": "^1.0.0"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/frontity/src/* dist;",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
+    "test": "jest"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/**/*.ts",
+      "./lambda/**/*.ts",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.ts"
+    ],
+    "moduleNameMapper": {
+      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@edgio/frontity(.*)$": "<rootDir>/../frontity/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "devDependencies": {
+    "@edgio/core": "^5.0.3",
+    "@types/node": "^14.0.9",
+    "@types/workbox-webpack-plugin": "^5.1.5"
+  }
+}

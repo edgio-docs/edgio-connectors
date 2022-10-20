@@ -1,0 +1,69 @@
+{
+  "name": "@edgio/razzle",
+  "version": "5.0.3",
+  "license": "Apache-2.0",
+  "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "slash": "^3.0.0",
+    "yargs": "^15.1.0"
+  },
+  "peerDependencies": {
+    "razzle": "^4.0.0"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/razzle/src/* dist; webpack",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next",
+    "test": "jest"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/**/*.ts",
+      "./lambda/**/*.ts",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.ts"
+    ],
+    "moduleNameMapper": {
+      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@edgio/razzle(.*)$": "<rootDir>/../razzle/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "devDependencies": {
+    "@edgio/core": "^5.0.3",
+    "@types/node": "^14.0.9"
+  }
+}
