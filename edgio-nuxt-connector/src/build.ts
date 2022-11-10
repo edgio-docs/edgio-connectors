@@ -1,10 +1,10 @@
 import { join } from 'path'
+import { CopyOptionsSync } from 'fs-extra'
 import validateNuxtConfig from './utils/validateNuxtConfig'
 import { validateDependencies } from './utils/updateDependencies'
 import { BuildOptions, DeploymentBuilder } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import { browserAssetOpts, EDGIO_NUXT_CONFIG_PATH } from './router/NuxtRoutes'
-import { CopyOptionsSync } from 'fs-extra'
 
 const { loadNuxtConfig } = require('@nuxt/config')
 const appDir = process.cwd()
@@ -96,9 +96,10 @@ export default async function build(options: BuildOptions) {
   }
 }
 
-async function createEdgioNuxtConfig({ target, generate }: any) {
+async function createEdgioNuxtConfig({ buildDir, target, generate }: any) {
   return {
     target,
+    buildDir,
     generate: generate && {
       fallback: generate.fallback,
       exclude: generate.exclude?.map((entry: string | RegExp) => {

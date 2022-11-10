@@ -1,7 +1,7 @@
-import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
 import { join } from 'path'
-import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import { nodeFileTrace } from '@vercel/nft'
+import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
+import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 
 interface BuilderOptions {
   /**
@@ -26,7 +26,6 @@ export default function createBuildEntryPoint({ buildCommand }: BuilderOptions) 
       if (!skipFramework) {
         await builder.exec(buildCommand)
       }
-
       builder.addJSAsset(join(appDir, 'dist'))
       await builder.build()
     } catch (e) {

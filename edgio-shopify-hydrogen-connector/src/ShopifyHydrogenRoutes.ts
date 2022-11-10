@@ -1,9 +1,5 @@
 import Router from '@edgio/core/router/Router'
 import PluginBase from '@edgio/core/plugins/PluginBase'
-import RouteGroup from '@edgio/core/router/RouteGroup'
-
-const ONE_HOUR = 60 * 60
-const ONE_DAY = 24 * ONE_HOUR
 
 /**
  * Adds all routes from your Shopify Hydrogen app to Edgio router
@@ -17,9 +13,9 @@ const ONE_DAY = 24 * ONE_HOUR
  * export default new Router().use(shopifyHydrogenRoutes)
  * ```
  */
+
 export default class ShopifyHydrogenRoutesRoutes extends PluginBase {
   private router?: Router
-  private readonly routeGroupName = 'shopify_hydrogen_routes'
 
   /**
    * Called when plugin is registered. Adds a route for static assets.
@@ -27,88 +23,6 @@ export default class ShopifyHydrogenRoutesRoutes extends PluginBase {
    */
   onRegister(router: Router) {
     this.router = router
-    this.router
-      .group(this.routeGroupName, group => this.addRoutesToGroup(group))
-      .fallback(({ renderWithApp }) => renderWithApp())
-  }
-
-  private addRoutesToGroup(group: RouteGroup) {
-    group
-      .match('/assets/:path*', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-            forcePrivateCaching: true,
-          },
-          browser: {
-            maxAgeSeconds: 0,
-            serviceWorkerSeconds: ONE_DAY,
-          },
-        })
-      })
-      .match('/', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-          },
-          browser: false,
-        })
-      })
-      .match('/collections', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-          },
-          browser: false,
-        })
-      })
-      .match('/products', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-          },
-          browser: false,
-        })
-      })
-      .match('/journal', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-          },
-          browser: false,
-        })
-      })
-      .match('/collections/:path*', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-          },
-          browser: false,
-        })
-      })
-      .match('/products/:path*', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-            forcePrivateCaching: true,
-          },
-          browser: {
-            maxAgeSeconds: 0,
-            serviceWorkerSeconds: ONE_DAY,
-          },
-        })
-      })
-      .match('/journal/:path*', ({ cache }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: ONE_DAY,
-            forcePrivateCaching: true,
-          },
-          browser: {
-            maxAgeSeconds: 0,
-            serviceWorkerSeconds: ONE_DAY,
-          },
-        })
-      })
+    this.router.fallback(({ renderWithApp }) => renderWithApp())
   }
 }

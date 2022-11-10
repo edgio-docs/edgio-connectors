@@ -12,4 +12,5 @@ import ShopifyHydrogenRoutes from './ShopifyHydrogenRoutes'
  * export default new Router().use(shopifyHydrogenRoutes)
  * ```
  */
+
 export const shopifyHydrogenRoutes = new ShopifyHydrogenRoutes()

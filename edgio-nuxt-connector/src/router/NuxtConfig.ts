@@ -3,12 +3,13 @@ export interface ExcludeConfig {
   value: string
 }
 
-export interface NuxtConfig {
-  target?: string
-  generate?: GenerateConfig
-}
-
 export interface GenerateConfig {
   fallback?: string | boolean
   exclude?: ExcludeConfig[]
+}
+
+export interface NuxtConfig {
+  target?: string
+  generate?: GenerateConfig
+  buildDir?: string
 }

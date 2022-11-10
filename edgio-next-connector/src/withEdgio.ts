@@ -2,6 +2,7 @@ import getNextVersion from './util/getNextVersion'
 import { getServerBuildAvailability } from './util/getServerBuildAvailability'
 import isTargetSupported from './util/isTargetSupported'
 import CommonsServerChunkPlugin from './webpack/CommonsServerChunkPlugin'
+import config from '@edgio/core/config'
 
 const determineTarget = ({
   useServerBuild,
@@ -51,13 +52,24 @@ export = function withEdgio(_nextConfig: any) {
     })
 
     // validateNextConfig looks for this to ensure that the configuration is valid
-
     process.env.WITH_EDGIO_APPLIED = 'true'
     process.env.EDGIO_SOURCE_MAPS = nextConfig.edgioSourceMaps === false ? 'false' : 'true'
+
+    // By default all next/image images are proxied to our image optimizer
+    // When our image optimizer is disabled we need to transform relative paths to absolute paths
+    // and add allowed domains to config for next/image optimizer
+    const disableImageOptimizer = config.get('disableImageOptimizer', false)
+    const predefinedDomains = disableImageOptimizer
+      ? ['localhost', '127.0.0.1', '[::1]', 'SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE']
+      : []
 
     const result: any = {
       ...nextConfig,
       ...standaloneBuildConfig,
+      images: {
+        ...(nextConfig.images ?? {}),
+        domains: [...predefinedDomains, ...(nextConfig.images?.domains ?? [])],
+      },
       experimental: {
         ...nextConfig.experimental,
         ...standaloneBuildConfig.experimental,

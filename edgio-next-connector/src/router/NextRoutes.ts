@@ -1,5 +1,5 @@
 import { BACKENDS, EDGIO_IMAGE_OPTIMIZER_PATH } from '@edgio/core/constants'
-import { isCloud, isProductionBuild } from '@edgio/core/environment'
+import { isCloud, isProductionBuild, isLocal } from '@edgio/core/environment'
 import NextPathFormatter from './nextPathFormatter'
 import { existsSync, readFileSync } from 'fs'
 import getDistDir from '../util/getDistDir'
@@ -283,8 +283,15 @@ export default class NextRoutes extends PluginBase {
     this.addRedirects(group)
     this.addRewrites(this.rewrites?.beforeFiles, group)
     this.addAssets(group)
-    this.addExcludeRouteForSvgFiles(group)
-    this.addImageOptimizerRoutes(group)
+
+    const disableImageOptimizer = config.get('disableImageOptimizer', false)
+    if (!disableImageOptimizer) {
+      this.addEdgioImageOptimizerRoutes(group)
+    }
+    if (disableImageOptimizer && this.nextConfig.target === 'server') {
+      this.addNextImageOptimizerRoutes(group)
+    }
+
     this.addRewrites(this.rewrites?.afterFiles, group)
 
     if (isProductionBuild()) {
@@ -892,10 +899,11 @@ export default class NextRoutes extends PluginBase {
   }
 
   /**
-   * Adds route to exclude svg images from image optimization
-   * @param group The RouterGroup to which exclude route should be added
+   * Adds routes for edgio image-optimizer when app run in production mode
+   * @param group The RouterGroup to which image optimizer routes should be added
    */
-  addExcludeRouteForSvgFiles(group: RouteGroup) {
+  addEdgioImageOptimizerRoutes(group: RouteGroup) {
+    // Add route to exclude svg images from image optimization
     group.match(
       {
         path: '/_next/image',
@@ -903,33 +911,47 @@ export default class NextRoutes extends PluginBase {
         query: { url: /\.svg/ },
       },
       ({ proxy }) => {
+        if (!isProductionBuild()) return
         // Due to way how older next versions are serving SVG files
         // we need to tell optimizer to exclude all svg files to prevent converting them to WEBP
-
-        const production = isProductionBuild()
-        const backend = production ? BACKENDS.imageOptimizer : BACKENDS.js
-        // u param tells optimizer to return these files unchanged
-        const opts = production ? { path: `${EDGIO_IMAGE_OPTIMIZER_PATH}?u=true` } : undefined
-        proxy(backend, opts)
+        proxy(BACKENDS.imageOptimizer, { path: `${EDGIO_IMAGE_OPTIMIZER_PATH}?u=true` })
       }
     )
+
+    // We replace '/_next/image' the '/__edgio_image_optimizer'
+    // so Edgio Buffer Proxy can route to the right lambda in the cloud.
+    group.match('/_next/(image|future/image)', ({ proxy }) => {
+      if (!isProductionBuild()) return
+      proxy(BACKENDS.imageOptimizer, { path: EDGIO_IMAGE_OPTIMIZER_PATH })
+    })
   }
 
   /**
-   * Adds routes for image-optimizer
-   * @param group The RouterGroup to which image optimizer routes should be added
+   * Adds route for next image-optimizer when app run in production mode
+   * @param group The RouterGroup to which routes should be added
    */
-  addImageOptimizerRoutes(group: RouteGroup) {
-    group.match('/_next/image', ({ proxy }) => {
-      // By default '/_next/image' indicates the image is to be optimized.
-      // When we are local, we do not need to modify the path as the
-      // local framework will, by default, optimize the image for us.
-      // But in the cloud we replace '/_next/image' the '/__edgio_image_optimizer'
-      // so Edgio Buffer Proxy can route to the right lambda.
-      const production = isProductionBuild()
-      const backend = production ? BACKENDS.imageOptimizer : BACKENDS.js
-      const opts = production ? { path: EDGIO_IMAGE_OPTIMIZER_PATH } : undefined
-      proxy(backend, opts)
+  addNextImageOptimizerRoutes(group: RouteGroup) {
+    // We need to transform relative image paths to absolute to force next/image optimizer in server built to fully work.
+    // This route is used when our image optimizer is disabled
+    group.match('/_next/(image|future/image)', ({ proxy }) => {
+      if (!isProductionBuild()) return
+      proxy(BACKENDS.js, {
+        transformRequest: req => {
+          const protocol = req.secure ? 'https://' : 'http://'
+
+          // The request will be proxied to the same host on local
+          // Deployed app will use permalink host from EDGIO_IMAGE_OPTIMIZER_HOST
+          const hostname = isLocal() ? req.headers['host'] : process.env.EDGIO_IMAGE_OPTIMIZER_HOST
+          const url = new URL(req.url, `${protocol}${hostname}`)
+          const imgUrl = url.searchParams.get('url')
+
+          // ignore absolute paths
+          if (!imgUrl || imgUrl.startsWith('http')) return
+
+          url.searchParams.set('url', `${protocol}${hostname}${imgUrl}`)
+          req.url = `${url.pathname}?${url.searchParams.toString()}`
+        },
+      })
     })
   }
 }

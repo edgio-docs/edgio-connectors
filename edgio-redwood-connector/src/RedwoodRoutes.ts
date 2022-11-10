@@ -1,10 +1,8 @@
 import Router from '@edgio/core/router/Router'
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import RouteGroup from '@edgio/core/router/RouteGroup'
+import PluginBase from '@edgio/core/plugins/PluginBase'
 import loadRedwoodConfig from './utils/loadRedwoodConfig'
 import { isProductionBuild } from '@edgio/core/environment'
-
-const ONE_YEAR = 60 * 60 * 24 * 365
 
 /**
  * Adds all routes from your RedwoodJS app to Edgio router
@@ -43,35 +41,15 @@ export default class RedwoodRoutes extends PluginBase {
       renderWithApp()
     })
 
-    group.match('/static/:path*', ({ cache, serveStatic }) => {
-      cache({
-        browser: false,
-        edge: {
-          maxAgeSeconds: ONE_YEAR,
-        },
-      })
+    group.match('/static/:path*', ({ serveStatic }) => {
       serveStatic('web/dist/static/:path*')
     })
 
-    group.match('/', ({ cache, serveStatic }) => {
-      cache({
-        browser: false,
-        edge: {
-          maxAgeSeconds: ONE_YEAR,
-        },
-      })
-
+    group.match('/', ({ serveStatic }) => {
       serveStatic('web/dist/index.html')
     })
 
-    group.match('/:path*', ({ cache, serveStatic }) => {
-      cache({
-        browser: false,
-        edge: {
-          maxAgeSeconds: ONE_YEAR,
-        },
-      })
-
+    group.match('/:path*', ({ serveStatic }) => {
       // Attempt to serve the requested path
       // If not found, serve web/dist/200.html which will exist if routes are prerendered
       // If not found, fallback to web/dist/index.html

@@ -1,6 +1,6 @@
 {
   "name": "@edgio/nuxt",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -14,8 +14,8 @@
     "workbox-webpack-plugin": "^5.1.2"
   },
   "devDependencies": {
-    "@edgio/core": "^5.0.3",
-    "@edgio/prefetch": "^5.0.3",
+    "@edgio/core": "^5.0.4",
+    "@edgio/prefetch": "^5.0.4",
     "@nuxt/types": "^2.15.8",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",

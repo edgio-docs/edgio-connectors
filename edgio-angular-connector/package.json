@@ -1,13 +1,13 @@
 {
   "name": "@edgio/angular",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "peerDependencies": {
     "@edgio/core": "^5.0.0"
   },
   "devDependencies": {
-    "@edgio/core": "^5.0.3",
+    "@edgio/core": "^5.0.4",
     "@types/cross-spawn": "^6.0.2"
   },
   "scripts": {
@@ -16,7 +16,7 @@
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "release": "npm run build; cd ./dist; npm publish --access public",
     "release:next": "npm run release -- --tag next",
-    "test": "jest"
+    "test": "jest --watchAll=false --collectCoverage=false --runInBand --forceExit"
   },
   "watch": {
     "push-build": {

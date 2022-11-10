@@ -15,7 +15,18 @@ export function getAngularConfig() {
  */
 export function getAngularProject() {
   const angularConfig = getAngularConfig()
-  return process.env.ANGULAR_PROJECT || angularConfig.defaultProject
+  // If there's no ANGULAR_PROJECT env variable and there's no defaultProject inside the angularConfig
+  if (!process.env.ANGULAR_PROJECT && angularConfig && angularConfig.projects) {
+    if (Object.keys(angularConfig.projects).length > 0) {
+      if (!angularConfig.defaultProject) {
+        console.log('> Falling back to the first project in the angular.json projects key.')
+        return Object.keys(angularConfig.projects)[0]
+      }
+    }
+  }
+  const projectName = process.env.ANGULAR_PROJECT || angularConfig.defaultProject
+  console.log('> Angular Project name:', projectName, 'is being used.')
+  return projectName!
 }
 
 /**

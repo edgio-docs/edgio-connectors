@@ -9,6 +9,8 @@ import validateNextConfig from './validateNextConfig'
 import { nodeFileTrace } from '@vercel/nft'
 import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
 import getNextConfig from '../getNextConfig'
+import config from '@edgio/core/config'
+
 import { FAR_FUTURE_TTL } from '../router/constants'
 
 interface BuilderOptions {
@@ -91,7 +93,17 @@ async function addStandaloneBuildAssets(distDir: string, builder: DeploymentBuil
   // add the next config
   const loadConfig = nonWebpackRequire('next/dist/server/config').default
   const serverConfig = await loadConfig('phase-production-server', process.cwd())
-  const serverConfigSrc = `module.exports=${JSON.stringify(serverConfig)}`
+  let serverConfigSrc = `module.exports=${JSON.stringify(serverConfig)}`
+
+  // All variables in domains config field are resolved during build time but
+  // the process.env.EDGIO_IMAGE_OPTIMIZER_HOST is available during runtime.
+  // If disableImageOptimizer is set to true, the next/image optimizer is used and
+  // we need to replace 'SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE' by process.env.EDGIO_IMAGE_OPTIMIZER_HOST when build finish to force next/image optimizer to work.
+  serverConfigSrc = serverConfigSrc.replace(
+    /["']SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE["']/,
+    'process.env.EDGIO_IMAGE_OPTIMIZER_HOST'
+  )
+
   builder.writeFileSync(join(jsDir, 'next.config.js'), serverConfigSrc)
 
   // add the standalone app and dependencies
@@ -139,6 +151,13 @@ async function addLegacyBuildAssets(
     fileList
       .filter(file => file.indexOf('node_modules') === 0)
       .forEach(file => builder.copySync(file, join(builder.edgioDir, 'lambda', file)))
+  }
+
+  const disableImageOptimizer = config.get('disableImageOptimizer', false)
+  if (disableImageOptimizer) {
+    console.warn(
+      "[Edgio] WARNING: This build target doesn't contain next image optimizer. All images will be unoptimized when Edgio image optimizer is disabled and other optimizer is not provided."
+    )
   }
 }
 

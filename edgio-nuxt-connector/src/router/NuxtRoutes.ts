@@ -1,34 +1,14 @@
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import { join } from 'path'
-import { isLocal, isProductionBuild } from '@edgio/core/environment'
-import { BACKENDS } from '@edgio/core/constants'
+import { readAsset } from './assets'
+import { NuxtConfig } from './NuxtConfig'
+import watch from '@edgio/core/utils/watch'
 import renderNuxtPage from './renderNuxtPage'
+import { BACKENDS } from '@edgio/core/constants'
+import RouteGroup from '@edgio/core/router/RouteGroup'
+import PluginBase from '@edgio/core/plugins/PluginBase'
 import { existsSync, writeFileSync, mkdirSync } from 'fs'
 import { Router, ResponseWriter } from '@edgio/core/router'
-import RouteGroup from '@edgio/core/router/RouteGroup'
-import { NuxtConfig } from './NuxtConfig'
-import { readAsset } from './assets'
-import watch from '@edgio/core/utils/watch'
-
-/**
- * A TTL for assets that never change.  10 years in seconds.
- */
-const FAR_FUTURE_TTL = 60 * 60 * 24 * 365 * 10
-
-const FAR_FUTURE_CACHE_CONFIG = {
-  browser: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-  edge: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-}
-
-const PUBLIC_CACHE_CONFIG = {
-  edge: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-}
+import { isLocal, isProductionBuild } from '@edgio/core/environment'
 
 const TYPE = 'NuxtRoutes'
 
@@ -40,23 +20,28 @@ export const browserAssetOpts = {
 }
 
 export default class NuxtRoutes extends PluginBase {
-  private readonly nuxtRouteGroupName = 'nuxt_routes_group'
-  private router?: Router
-  private readonly routesJsonPath: string
-  private readonly config: NuxtConfig
-
   readonly type = TYPE
+
+  private router?: Router
+  private readonly config: NuxtConfig
+  private readonly routesJsonPath: string
+  private readonly nuxtRouteGroupName = 'nuxt_routes_group'
 
   /**
    * Provides nuxt registered routes to router
    */
   constructor() {
     super()
-    const nuxtDir = join(process.cwd(), '.nuxt')
+    let nuxtDir = join(process.cwd(), '.nuxt')
     this.routesJsonPath = join(nuxtDir, 'routes.json')
 
     if (isProductionBuild()) {
       this.config = <NuxtConfig>JSON.parse(readAsset(join(process.cwd(), EDGIO_NUXT_CONFIG_PATH)))
+      if (this.config.buildDir) {
+        console.log('> Found buildDir inside nuxt.config.* to be', `"${this.config.buildDir}"`)
+        nuxtDir = join(process.cwd(), this.config.buildDir)
+        this.routesJsonPath = join(nuxtDir, 'routes.json')
+      }
     } else {
       /* istanbul ignore if */
       if (!existsSync(nuxtDir)) {
@@ -256,9 +241,7 @@ export default class NuxtRoutes extends PluginBase {
    */
   private addAssets(group: RouteGroup) {
     /* istanbul ignore next */
-    group.static('static', {
-      handler: file => res => res.cache(PUBLIC_CACHE_CONFIG),
-    })
+    group.static('static', {})
 
     // webpack hot loader
     if (!isProductionBuild()) {
@@ -268,16 +251,15 @@ export default class NuxtRoutes extends PluginBase {
     }
 
     // browser js
-    group.match('/_nuxt/:path*', async ({ proxy, serveStatic, cache }) => {
+    group.match('/_nuxt/:path*', async ({ renderWithApp, serveStatic, cache }) => {
       if (isProductionBuild()) {
-        cache(FAR_FUTURE_CACHE_CONFIG)
-        serveStatic('.nuxt/dist/client/:path*', browserAssetOpts)
+        serveStatic(`${this.config.buildDir ?? '.nuxt'}/dist/client/:path*`, browserAssetOpts)
       } else {
         // since Nuxt doesn't add a hash to asset file names in dev, we need to prevent caching,
         // otherwise Nuxt is prone to getting stuck in a browser refresh loop after making changes due to assets
         // failing to load without error.
         cache({ browser: false })
-        proxy(BACKENDS.js)
+        renderWithApp()
       }
     })
   }

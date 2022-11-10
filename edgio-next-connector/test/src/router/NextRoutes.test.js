@@ -247,7 +247,7 @@ describe('NextRoutes', () => {
         it('should call router image optimizer with pass through', async () => {
           request.path = '/_next/image'
           await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js, undefined)
+          expect(proxy).not.toHaveBeenCalledWith(BACKENDS.imageOptimizer)
         })
 
         it('should add routes for all pages and api endpoints', async () => {
@@ -943,8 +943,7 @@ describe('NextRoutes', () => {
           request.path = '/_next/image'
           await router.run(request, response)
           expect(proxy).toHaveBeenCalledWith(BACKENDS.imageOptimizer, {
-            // TODO: APPOPS-15850 We are unable to affect this path from XDN repo
-            path: '/__layer0_image_optimizer',
+            path: EDGIO_IMAGE_OPTIMIZER_PATH,
           })
         }
       })

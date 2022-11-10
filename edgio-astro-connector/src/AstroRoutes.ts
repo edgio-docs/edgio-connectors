@@ -1,3 +1,4 @@
+import { notFoundPageHTML } from './404'
 import getAstroConfig from './getAstroConfig'
 import Router from '@edgio/core/router/Router'
 import PluginBase from '@edgio/core/plugins/PluginBase'
@@ -42,7 +43,13 @@ export default class AstroRoutes extends PluginBase {
     if (mode) {
       this.router?.fallback(res => res.renderWithApp())
     } else {
-      this.router?.fallback(res => res.serveStatic(`${dist}/404.html`))
+      this.router?.fallback(res =>
+        res.serveStatic(`${dist}/404.html`, {
+          onNotFound: async () => {
+            res.send(notFoundPageHTML, 404, 'Not Found')
+          },
+        })
+      )
     }
   }
 

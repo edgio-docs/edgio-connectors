@@ -23,7 +23,7 @@ export default async function build(_options: BuildOptions) {
   writeFileSync(join(builder.jsDir, 'package.json'), JSON.stringify({ name: 'app' }), 'utf8')
 
   // path to portUtils.js file from this module
-  const portUtilsPath = 'node_modules/@layer0/express/portUtils.js'
+  const portUtilsPath = 'node_modules/@edgio/express/portUtils.js'
   builder.copySync(join(process.cwd(), portUtilsPath), join(builder.jsDir, portUtilsPath))
 
   if (appPath) {
