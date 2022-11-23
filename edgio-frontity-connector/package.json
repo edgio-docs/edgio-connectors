@@ -1,6 +1,6 @@
 {
   "name": "@edgio/frontity",
-  "version": "5.0.4",
+  "version": "5.0.5",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -22,7 +22,7 @@
     "link": "npm run build; cd dist; npm unlink; npm link",
     "release": "cd ./dist; npm publish --access public",
     "release:next": "npm run release -- --tag next",
-    "test": "jest"
+    "test": "jest --watchAll=false --collectCoverage=false --runInBand --forceExit"
   },
   "watch": {
     "push-build": {
@@ -67,7 +67,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^5.0.4",
+    "@edgio/core": "^5.0.5",
     "@types/node": "^14.0.9",
     "@types/workbox-webpack-plugin": "^5.1.5"
   }

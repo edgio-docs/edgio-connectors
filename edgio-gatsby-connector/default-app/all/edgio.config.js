@@ -4,6 +4,12 @@
 module.exports = {
   connector: '@edgio/gatsby',
 
+  // gatsby: {
+  //   The pathPrefix flag to indiciate to Edgio to build and serve
+  //   with Gatsby's path prefix option in production
+  //   pathPrefix: false // true
+  // },
+
   // The name of the site in Edgio to which this app should be deployed.
   // name: 'my-site-name',
 

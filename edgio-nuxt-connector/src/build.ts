@@ -82,6 +82,9 @@ export default async function build(options: BuildOptions) {
     // Nuxt config
     .addJSAsset(join(appDir, 'nuxt.config.js'))
 
+    // Nuxt config (TS)
+    .addJSAsset(join(appDir, 'nuxt.config.ts'))
+
   if (isStatic) {
     // static pages
     builder.addStaticAsset(join(appDir, 'dist'))

@@ -1,11 +1,11 @@
 import fs from 'fs'
 import path from 'path'
-import toml from 'toml'
+import { parse as parseTOML } from '@iarna/toml'
 import chalk from 'chalk'
 
 export default function loadRedwoodConfig(configPath?: string) {
   try {
-    return toml.parse(
+    return parseTOML(
       fs.readFileSync(configPath || path.join(process.cwd(), 'redwood.toml'), 'utf8')
     )
   } catch (e) {

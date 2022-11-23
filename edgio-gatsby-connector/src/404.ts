@@ -689,7 +689,6 @@ export const notFoundPageHTML = `
           <div class="space-y-6 py-8 text-base leading-7 text-gray-600">
             <h1 class="font-bold">404: Page Not Found</h1>
             <p>Sorry, we couldn’t find what you were looking for.</p>
-            <p>Need help finding something? Email <a class="border-b" href="mailto:support@edg.io">support@edg.io</a> and we’ll help you.</p>
             <button onclick="history.back()" class="rounded border border-E95495 py-2 px-4 text-sm text-E95495 hover-bg-E95495 hover-text-white">&larr; Go Back</button>
           </div>
         </div>

@@ -1,12 +1,10 @@
 /* istanbul ignore file */
-import { DeploymentBuilder } from '@edgio/core/deploy'
-import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
-import { BuildOptions } from '@edgio/core/deploy'
 import webpack from 'webpack'
-import createWebpackConfig from './createWebpackConfig'
-import { existsSync } from 'fs'
 import { join, resolve } from 'path'
-import { unlinkSync } from 'fs'
+import { existsSync, unlinkSync } from 'fs'
+import createWebpackConfig from './createWebpackConfig'
+import { BuildOptions, DeploymentBuilder } from '@edgio/core/deploy'
+import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 
 const SW_SOURCE = resolve(process.cwd(), 'sw', 'service-worker.js')
 
@@ -23,6 +21,8 @@ module.exports = async function build(options: BuildOptions) {
     }
   }
 
+  builder.addJSAsset(join(process.cwd(), 'build', 'server.js'))
+
   if (existsSync(SW_SOURCE)) {
     console.log('> Building service worker...')
     await buildServiceWorker()
@@ -30,8 +30,6 @@ module.exports = async function build(options: BuildOptions) {
   } else {
     console.warn('> sw/service-worker.js not found... skipping.')
   }
-
-  builder.addJSAsset('build')
 
   await builder.build()
 }

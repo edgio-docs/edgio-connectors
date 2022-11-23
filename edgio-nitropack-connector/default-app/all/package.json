@@ -1,0 +1,17 @@
+{
+  "name": "nitropack",
+  "scripts": {
+    "dev": "nitropack dev",
+    "build": "nitropack build",
+    "edgio:dev": "edgio dev",
+    "edgio:build": "edgio build",
+    "edgio:deploy": "edgio deploy"
+  },
+  "devDependencies": {
+    "@edgio/cli": "latest",
+    "@edgio/core": "latest",
+    "@edgio/prefetch": "latest",
+    "@edgio/devtools": "latest",
+    "@edgio/nitropack": "latest"
+  }
+}

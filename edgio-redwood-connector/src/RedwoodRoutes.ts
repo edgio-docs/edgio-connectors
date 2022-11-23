@@ -3,6 +3,7 @@ import RouteGroup from '@edgio/core/router/RouteGroup'
 import PluginBase from '@edgio/core/plugins/PluginBase'
 import loadRedwoodConfig from './utils/loadRedwoodConfig'
 import { isProductionBuild } from '@edgio/core/environment'
+import { JsonMap } from '@iarna/toml'
 
 /**
  * Adds all routes from your RedwoodJS app to Edgio router
@@ -37,7 +38,7 @@ export default class RedwoodRoutes extends PluginBase {
   private addRoutesToGroup(group: RouteGroup) {
     const redwoodConfig = loadRedwoodConfig()
 
-    group.match(`${redwoodConfig.web.apiUrl}/:path*`, ({ renderWithApp }) => {
+    group.match(`${(redwoodConfig.web as JsonMap)?.apiUrl ?? ''}/:path*`, ({ renderWithApp }) => {
       renderWithApp()
     })
 

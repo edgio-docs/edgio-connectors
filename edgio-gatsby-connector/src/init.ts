@@ -8,7 +8,5 @@ import { DeploymentBuilder } from '@edgio/core/deploy'
 export default function init() {
   new DeploymentBuilder(process.cwd())
     .addDefaultAppResources(join(__dirname, 'default-app'))
-    .addDefaultEdgioScripts({
-      'edgio:deploy': 'gatsby clean && edgio deploy',
-    })
+    .addDefaultEdgioScripts()
 }
