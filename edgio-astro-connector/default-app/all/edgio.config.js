@@ -1,3 +1,4 @@
+// const { join } = require('path');
 // This file was automatically added by edgio init.
 // You should commit this file to source control.
 // Learn more about this file at https://docs.edg.io/guides/edgio_config
@@ -8,7 +9,7 @@ module.exports = {
   //   The path of the standalone server that runs Astro SSR
   //   The dependencies for this file are automatically bundled
   //   appPath: join(process.cwd(), 'dist', 'server', 'entry.mjs')
-  // }
+  // },
 
   // The name of the site in Edgio to which this app should be deployed.
   // name: 'my-site-name',

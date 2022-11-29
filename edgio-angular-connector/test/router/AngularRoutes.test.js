@@ -11,6 +11,7 @@ describe('router/AngularRoutes.ts', () => {
     response,
     responseHeaders = {},
     renderWithApp,
+    appShell,
     serveStatic
 
   const mockGetOutputPath = mockReturnValue =>
@@ -21,6 +22,7 @@ describe('router/AngularRoutes.ts', () => {
 
   const mocksInit = () =>
     jest.isolateModules(() => {
+      appShell = jest.fn()
       renderWithApp = jest.fn()
       serveStatic = jest.fn()
 
@@ -35,6 +37,7 @@ describe('router/AngularRoutes.ts', () => {
             this.onRouteError = jest.fn()
             this.serveStatic = serveStatic
             this.renderWithApp = renderWithApp
+            this.appShell = appShell
           }
         }
       })
@@ -86,18 +89,6 @@ describe('router/AngularRoutes.ts', () => {
           mockGetOutputPath('dist/server')
           mocksInit()
         })
-        it('should proxy to JS backend via renderWithApp', async () => {
-          request.path = '/'
-          await router.run(request, response)
-          expect(renderWithApp).toHaveBeenCalled()
-        })
-      })
-
-      describe('is not SSR', () => {
-        beforeEach(() => {
-          mockGetOutputPath(undefined)
-          mocksInit()
-        })
         it('should call router.static()', async () => {
           const routerStaticFunc = jest.spyOn(router, 'static').mockImplementation()
           router.use(plugin)
@@ -117,6 +108,38 @@ describe('router/AngularRoutes.ts', () => {
           request.path = '/static_asset.txt'
           await router.run(request, response)
           expect(serveStatic).toHaveBeenCalled()
+        })
+        it('should proxy to JS backend via renderWithApp', async () => {
+          request.path = '/some-random-url'
+          await router.run(request, response)
+          expect(renderWithApp).toHaveBeenCalled()
+        })
+      })
+
+      describe('is not SSR', () => {
+        beforeEach(() => {
+          mockGetOutputPath(undefined)
+          mocksInit()
+        })
+        it('should serve index.html via serveStatic function', async () => {
+          request.path = '/'
+          await router.run(request, response)
+          expect(serveStatic).toHaveBeenCalled()
+        })
+        it('should serve style.css via serveStatic function', async () => {
+          request.path = '/style.css'
+          await router.run(request, response)
+          expect(serveStatic).toHaveBeenCalled()
+        })
+        it('should serve static_asset.txt via serveStatic function', async () => {
+          request.path = '/static_asset.txt'
+          await router.run(request, response)
+          expect(serveStatic).toHaveBeenCalled()
+        })
+        it('should appShell any random route', async () => {
+          request.path = '/some-random-url'
+          await router.run(request, response)
+          expect(appShell).toHaveBeenCalled()
         })
       })
     })
@@ -135,18 +158,6 @@ describe('router/AngularRoutes.ts', () => {
           mockGetOutputPath('dist/server')
           mocksInit()
         })
-        it('should proxy to JS backend via renderWithApp', async () => {
-          request.path = '/'
-          await router.run(request, response)
-          expect(renderWithApp).toHaveBeenCalled()
-        })
-      })
-
-      describe('is not SSR', () => {
-        beforeEach(() => {
-          mockGetOutputPath(undefined)
-          mocksInit()
-        })
         it('should call router.static()', async () => {
           const routerStaticFunc = jest.spyOn(router, 'static').mockImplementation()
           router.use(plugin)
@@ -166,6 +177,23 @@ describe('router/AngularRoutes.ts', () => {
           request.path = '/static_asset.txt'
           await router.run(request, response)
           expect(serveStatic).toHaveBeenCalled()
+        })
+        it('should proxy to JS backend via renderWithApp', async () => {
+          request.path = '/some-random-url'
+          await router.run(request, response)
+          expect(renderWithApp).toHaveBeenCalled()
+        })
+      })
+
+      describe('is not SSR', () => {
+        beforeEach(() => {
+          mockGetOutputPath(undefined)
+          mocksInit()
+        })
+        it('should serveStatic any random route', async () => {
+          request.path = '/some-random-url'
+          await router.run(request, response)
+          expect(appShell).toHaveBeenCalled()
         })
       })
     })

@@ -18,11 +18,8 @@ export default async function build(options: BuildOptions) {
     }
   }
 
-  builder
-    // Nitro's asset
-    .addStaticAsset(join(appDir, '.output', 'public'))
-    // SSR folder
-    .addJSAsset(join(appDir, '.output', 'server'))
+  // SSR folder
+  builder.addJSAsset(join(appDir, '.output', 'server'))
 
   await builder.build()
 }

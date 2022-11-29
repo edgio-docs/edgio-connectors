@@ -1,11 +1,14 @@
 import { join } from 'path'
+import { existsSync } from 'fs-extra'
+import { browserAssetOpts } from './router/NuxtRoutes'
 import { BuildOptions, DeploymentBuilder } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
-import { browserAssetOpts } from './router/NuxtRoutes'
-import { buildServiceWorker } from './utils/buildServiceWorker'
 
 const appDir = process.cwd()
 const builder = new DeploymentBuilder(appDir)
+
+const SW_SRC = join(process.cwd(), 'sw', 'service-worker.js')
+const SW_DEST = join(process.cwd(), '.output', 'public', '_nuxt', 'service-worker.js')
 
 export default async function build(options: BuildOptions) {
   builder.clearPreviousBuildOutput()
@@ -24,11 +27,19 @@ export default async function build(options: BuildOptions) {
       throw new FrameworkBuildError('Nuxt', command, e)
     }
 
-    // call this in this block, as it doesn't make sense to
-    // create again the same manifest if it is not rebuilt by
-    // Nuxt, or even incorrect one, as Nuxt folder could be
-    // deleted and manifest could be empty then
-    buildServiceWorker()
+    if (existsSync(SW_SRC)) {
+      console.log('> Building service worker...')
+      // call this in this block, as it doesn't make sense to
+      // create again the same manifest if it is not rebuilt by
+      // Nuxt, or even incorrect one, as Nuxt folder could be
+      // deleted and manifest could be empty then
+      builder.buildServiceWorker(SW_SRC, SW_DEST, true, {
+        globDirectory: join(process.cwd(), '.output', 'public'),
+        globPatterns: ['_nuxt/*.*'],
+      })
+    } else {
+      console.warn('> sw/service-worker.js not found... skipping.')
+    }
   }
 
   builder

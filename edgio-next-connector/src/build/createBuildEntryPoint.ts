@@ -75,12 +75,46 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
       .build()
 
+    if (useServerBuild) {
+      await optimizeAndCompileServerBuild(builder)
+    }
+
     if (process.env.EDGIO_SOURCE_MAPS === 'false') {
       console.log(`> Found edgioSourceMaps set to false`)
       console.log(`> Deleting .map files from lambda folder`)
       builder.deleteMapFiles(builder.jsDir)
     }
   }
+}
+
+/**
+ * There is an issue with Next12 where their server source code is not bundled into single file.
+ * This leads to very long cold starts on the platform ~5s+, with bundling everything into single
+ * we are able to get under ~1s load time from the Lambda disk.
+ * @param builder
+ */
+async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
+  // Dependencies from the next server which we don't want to bundle
+  const externalDependencies = [
+    'critters',
+    'next/dist/compiled/@edge-runtime/primitives/*',
+    // Anything which is used for SSR rendering can't be easily bundled
+    'styled-jsx',
+    'react',
+    'react-dom',
+    'render',
+    './render',
+  ]
+
+  const nextServerFile = 'next-server.js'
+  const outputFile = 'next-server-optimized.js'
+
+  const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --outfile=${outputFile} ${externalDependencies
+    .map(l => `--external:${l}`)
+    .join(' ')}`
+  const nextSourceFiles = join(builder.edgioDir, 'lambda', 'node_modules', 'next', 'dist', 'server')
+
+  await builder.exec(buildCommand, { cwd: nextSourceFiles })
 }
 
 /**

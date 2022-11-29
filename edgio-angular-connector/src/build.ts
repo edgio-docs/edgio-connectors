@@ -46,8 +46,6 @@ export default async function build({ skipFramework }: BuildOptions) {
     builder
       // angular.json
       .addJSAsset(join(appDir, 'angular.json'), 'angular.json')
-      // browser assets
-      .addJSAsset(join(appDir, assetsPath), join('/', assetsPath))
       // Index html required by Universal engine
       .addJSAsset(join(appDir, assetsPath, 'index.html'), join('/', assetsPath, 'index.html'))
   }

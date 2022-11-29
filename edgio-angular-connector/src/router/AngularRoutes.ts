@@ -16,12 +16,19 @@ export default class AngularRoutes extends PluginBase {
       // Determine SSR if server output path exists in angular.json
       const isSsr = !!getOutputPath('server')
 
+      // Cache the buildPath directory by default
+      router.static(buildPath)
+
       if (isSsr) {
+        // Rest of the requests go to SSR
         router.fallback(({ renderWithApp }) => {
           renderWithApp()
         })
       } else {
-        router.static(buildPath)
+        // If not SSR, serve SPA fallback
+        router.fallback(({ appShell }) => {
+          appShell(`${buildPath}/index.html`)
+        })
       }
     } else {
       router.fallback(({ renderWithApp }) => {
