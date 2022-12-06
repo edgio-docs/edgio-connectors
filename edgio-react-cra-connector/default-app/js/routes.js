@@ -3,7 +3,4 @@
 import { Router } from '@edgio/core'
 import { reactCRARoutes } from '@edgio/react-cra'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(reactCRARoutes)
+export default new Router().use(reactCRARoutes)

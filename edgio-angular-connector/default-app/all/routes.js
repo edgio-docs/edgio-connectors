@@ -4,7 +4,4 @@
 const { Router } = require('@edgio/core/router')
 const { angularRoutes } = require('@edgio/angular')
 
-module.exports = new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(angularRoutes)
+module.exports = new Router().use(angularRoutes)

@@ -4,7 +4,4 @@
 import { Router } from '@edgio/core/router'
 import { gatsbyRoutes } from '@edgio/gatsby'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(gatsbyRoutes)
+export default new Router().use(gatsbyRoutes)

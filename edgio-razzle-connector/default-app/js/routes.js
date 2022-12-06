@@ -3,7 +3,4 @@
 const { Router } = require('@edgio/core/router')
 const { razzleRoutes } = require('@edgio/razzle')
 
-module.exports = new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(razzleRoutes)
+module.exports = new Router().use(razzleRoutes)

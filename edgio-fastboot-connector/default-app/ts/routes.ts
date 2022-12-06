@@ -3,7 +3,4 @@
 import { Router } from '@edgio/core/router'
 import { fastbootRoutes } from '@edgio/fastboot'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(fastbootRoutes)
+export default new Router().use(fastbootRoutes)

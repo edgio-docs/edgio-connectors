@@ -18,8 +18,7 @@ const cacheHandler = ({ removeUpstreamResponseHeader, cache }) => {
 }
 
 module.exports = new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
+
   // add routes for specific assets to configure caching
   .match('/:path*/:file.json', cacheHandler)
   // automatically adds routes for all files under /pages

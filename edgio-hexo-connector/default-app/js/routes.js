@@ -3,7 +3,4 @@
 import { Router } from '@edgio/core'
 import { hexoRoutes } from '@edgio/hexo'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(hexoRoutes)
+export default new Router().use(hexoRoutes)

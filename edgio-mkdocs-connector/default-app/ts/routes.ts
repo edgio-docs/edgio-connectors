@@ -3,7 +3,4 @@
 import { Router } from '@edgio/core'
 import { mkdocsRoutes } from '@edgio/mkdocs'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(mkdocsRoutes)
+export default new Router().use(mkdocsRoutes)

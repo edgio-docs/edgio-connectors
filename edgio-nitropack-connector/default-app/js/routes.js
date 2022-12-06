@@ -4,7 +4,4 @@
 import { Router } from '@edgio/core'
 import { nitropackRoutes } from '@edgio/nitropack'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(nitropackRoutes)
+export default new Router().use(nitropackRoutes)

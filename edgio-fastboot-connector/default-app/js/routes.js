@@ -3,7 +3,4 @@
 const { Router } = require('@edgio/core/router')
 const { fastbootRoutes } = require('@edgio/fastboot')
 
-module.exports = new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(fastbootRoutes)
+module.exports = new Router().use(fastbootRoutes)

@@ -3,7 +3,4 @@
 import { Router } from '@edgio/core'
 import { astroRoutes } from '@edgio/astro'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(astroRoutes)
+export default new Router().use(astroRoutes)

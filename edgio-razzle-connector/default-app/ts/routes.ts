@@ -3,7 +3,4 @@
 import { Router } from '@edgio/core/router'
 import { razzleRoutes } from '@edgio/razzle'
 
-export default new Router()
-  // Prevent search engines from indexing permalink URLs
-  .noIndexPermalink()
-  .use(razzleRoutes)
+export default new Router().use(razzleRoutes)
