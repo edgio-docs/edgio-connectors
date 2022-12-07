@@ -1,10 +1,10 @@
 {
   "name": "@edgio/gatsby",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "devDependencies": {
-    "@edgio/core": "^6.0.0"
+    "@edgio/core": "^6.0.1"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/gatsby/src/* dist",
