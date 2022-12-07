@@ -1,13 +1,13 @@
 {
   "name": "@edgio/angular",
-  "version": "5.1.0",
+  "version": "6.0.0",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "peerDependencies": {
     "@edgio/core": "^5.0.0"
   },
   "devDependencies": {
-    "@edgio/core": "^5.1.0",
+    "@edgio/core": "^6.0.0",
     "@types/cross-spawn": "^6.0.2"
   },
   "scripts": {
