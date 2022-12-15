@@ -1,6 +1,6 @@
 {
   "name": "@edgio/sapper",
-  "version": "6.0.1",
+  "version": "6.0.2",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -63,7 +63,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.1",
+    "@edgio/core": "^6.0.2",
     "@types/node": "^14.0.9",
     "chokidar": "^3.5.1"
   }
