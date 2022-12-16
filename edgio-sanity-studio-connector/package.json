@@ -1,6 +1,6 @@
 {
   "name": "@edgio/sanity-studio",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "description": "Deploy Sanity Studio apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",

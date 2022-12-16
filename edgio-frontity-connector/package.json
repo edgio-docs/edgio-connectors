@@ -1,6 +1,6 @@
 {
   "name": "@edgio/frontity",
-  "version": "6.0.2",
+  "version": "6.0.3",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -67,7 +67,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.2",
+    "@edgio/core": "^6.0.3",
     "@types/node": "^14.0.9",
     "@types/workbox-webpack-plugin": "^5.1.5"
   }

@@ -10,10 +10,8 @@ import { nodeFileTrace } from '@vercel/nft'
 import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
 import getNextConfig from '../getNextConfig'
 import config from '@edgio/core/config'
-import { lt } from 'semver'
 
 import { FAR_FUTURE_TTL } from '../router/constants'
-import getNextVersion from '../util/getNextVersion'
 
 interface BuilderOptions {
   /**
@@ -77,9 +75,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
       .build()
 
-    const nextVersion = getNextVersion()
-
-    if (useServerBuild && nextVersion && lt(nextVersion, '13.0.0')) {
+    if (useServerBuild) {
       // Our optimizations will throw an error on Next 13+, so we skip them for now.
       // In fact, I'm not sure if we need this any more if if Next 13 fixed the cold start issue itself.
       await optimizeAndCompileServerBuild(builder)
@@ -110,6 +106,11 @@ async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
     'react-dom',
     'render',
     './render',
+    // Next 13
+    './initialize-require-hook',
+    'webpack',
+    '*require-hook',
+    '*bundle5',
   ]
 
   const nextServerFile = 'next-server.js'
