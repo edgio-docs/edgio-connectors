@@ -1,6 +1,6 @@
 {
   "name": "@edgio/nuxt",
-  "version": "5.1.1",
+  "version": "6.0.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -14,8 +14,8 @@
     "workbox-webpack-plugin": "^5.1.2"
   },
   "devDependencies": {
-    "@edgio/core": "^5.1.1",
-    "@edgio/prefetch": "^5.1.1",
+    "@edgio/core": "^6.0.4",
+    "@edgio/prefetch": "^6.0.4",
     "@nuxt/types": "^2.15.8",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
@@ -25,7 +25,7 @@
     "nuxt-start": "^2.15.8"
   },
   "peerDependencies": {
-    "@edgio/core": "^5.0.0",
+    "@edgio/core": "^6.0.0",
     "dotenv": "^8.2.0",
     "nuxt": "^2.15.8"
   },

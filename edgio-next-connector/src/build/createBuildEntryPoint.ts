@@ -10,8 +10,10 @@ import { nodeFileTrace } from '@vercel/nft'
 import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
 import getNextConfig from '../getNextConfig'
 import config from '@edgio/core/config'
+import { lt } from 'semver'
 
 import { FAR_FUTURE_TTL } from '../router/constants'
+import getNextVersion from '../util/getNextVersion'
 
 interface BuilderOptions {
   /**
@@ -75,7 +77,9 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
       .build()
 
-    if (useServerBuild) {
+    const nextVersion = getNextVersion()
+    // Build optimizations for server build on Next 12, until Next13
+    if (useServerBuild && nextVersion && lt(nextVersion, '13.0.0')) {
       await optimizeAndCompileServerBuild(builder)
     }
 
@@ -91,6 +95,8 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
  * There is an issue with Next12 where their server source code is not bundled into single file.
  * This leads to very long cold starts on the platform ~5s+, with bundling everything into single
  * we are able to get under ~1s load time from the Lambda disk.
+ *
+ * We are not seeing these problems with Next 13
  * @param builder
  */
 async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
@@ -104,12 +110,18 @@ async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
     'react-dom',
     'render',
     './render',
+    // We have disabled optimizations for next 13 as the perf seems to be OK
+    // Next 13
+    // './initialize-require-hook',
+    // 'webpack',
+    // '*require-hook',
+    // '*bundle5',
   ]
 
   const nextServerFile = 'next-server.js'
   const outputFile = 'next-server-optimized.js'
 
-  const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --outfile=${outputFile} ${externalDependencies
+  const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --allow-overwrite --outfile=${outputFile} ${externalDependencies
     .map(l => `--external:${l}`)
     .join(' ')}`
   const nextSourceFiles = join(builder.edgioDir, 'lambda', 'node_modules', 'next', 'dist', 'server')
