@@ -76,8 +76,6 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       .build()
 
     if (useServerBuild) {
-      // Our optimizations will throw an error on Next 13+, so we skip them for now.
-      // In fact, I'm not sure if we need this any more if if Next 13 fixed the cold start issue itself.
       await optimizeAndCompileServerBuild(builder)
     }
 
@@ -106,11 +104,6 @@ async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
     'react-dom',
     'render',
     './render',
-    // Next 13
-    './initialize-require-hook',
-    'webpack',
-    '*require-hook',
-    '*bundle5',
   ]
 
   const nextServerFile = 'next-server.js'

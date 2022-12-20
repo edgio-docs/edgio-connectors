@@ -1,6 +1,6 @@
 {
   "name": "@edgio/mkdocs",
-  "version": "6.0.3",
+  "version": "5.1.1",
   "description": "Deploy MkDocs apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -31,7 +31,7 @@
     "@edgio/core": "^5.0.0"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.3",
+    "@edgio/core": "^5.1.1",
     "@types/node": "^14.0.9"
   }
 }

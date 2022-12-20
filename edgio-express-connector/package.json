@@ -1,6 +1,6 @@
 {
   "name": "@edgio/express",
-  "version": "6.0.3",
+  "version": "5.1.1",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
@@ -12,7 +12,7 @@
     "release:next": "npm run release -- --tag next"
   },
   "peerDependencies": {
-    "@edgio/core": "^6.0.0"
+    "@edgio/core": "^5.0.0"
   },
   "watch": {
     "push-build": {
