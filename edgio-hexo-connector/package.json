@@ -1,6 +1,6 @@
 {
   "name": "@edgio/hexo",
-  "version": "6.0.4",
+  "version": "6.0.5",
   "description": "Deploy Hexo apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -28,10 +28,10 @@
     "directory": "dist"
   },
   "peerDependencies": {
-    "@edgio/core": "^5.0.0"
+    "@edgio/core": "^6.0.0"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.4",
+    "@edgio/core": "^6.0.5",
     "@types/node": "^14.0.9"
   },
   "dependencies": {
