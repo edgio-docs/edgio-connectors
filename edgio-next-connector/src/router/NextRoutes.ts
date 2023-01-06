@@ -181,7 +181,30 @@ export default class NextRoutes extends PluginBase {
   }
 
   /**
-   * Returns the contents of pages-manifest.json
+   * Returns the content of app-paths-manifest.json
+   * and changes the format of keys to correct URLs
+   */
+  private getAppPathsManifest() {
+    const location = join(process.cwd(), this.distDir, this.renderMode, 'app-paths-manifest.json')
+    if (!existsSync(location)) return {}
+
+    const appPaths = nonWebpackRequire(location)
+    let appPathsOutput = {}
+
+    // Removes the /page from path
+    Object.keys(appPaths).forEach((key: string) => {
+      let editedPath = key.substring(0, key.lastIndexOf('/page'))
+      editedPath = editedPath.length === 0 ? '/' : editedPath
+      appPathsOutput = {
+        ...appPathsOutput,
+        [editedPath]: appPaths[key],
+      }
+    })
+    return appPathsOutput
+  }
+
+  /**
+   * Returns the contents of middleware-manifest.json
    */
   private getMiddlewareManifest(): any {
     const path = join(process.cwd(), this.distDir, this.renderMode, 'middleware-manifest.json')
@@ -328,6 +351,16 @@ export default class NextRoutes extends PluginBase {
     group.match('/_next/server/chunks/:file', ({ serveStatic, cache }) => {
       cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
       serveStatic(`${this.distDir}/${this.renderMode}/chunks/:file`)
+    })
+
+    // static assets required by next 13
+    const assets = ['app-build-manifest.json', 'build-manifest.json']
+    assets.forEach(asset => {
+      if (!existsSync(`${this.distDir}/${asset}`)) return
+      group.match(`/_next/${asset}`, ({ serveStatic, cache }) => {
+        cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
+        serveStatic(`${this.distDir}/${asset}`)
+      })
     })
   }
 
@@ -552,7 +585,8 @@ export default class NextRoutes extends PluginBase {
    */
   private addPagesInProd(group: RouteGroup) {
     const { routesManifest, locales, localizationEnabled, prerenderManifest } = this
-    const pagesManifest = this.getPagesManifest()
+
+    const pagesManifest = { ...this.getPagesManifest(), ...this.getAppPathsManifest() }
 
     const pagesWithDataRoutes = new Set<string>(
       routesManifest.dataRoutes.map((route: any) => route.page)
@@ -652,7 +686,9 @@ export default class NextRoutes extends PluginBase {
    */
   private isPrerendered(prerenderManifest: any, pagesManifest: any, page: string) {
     const file = pagesManifest[page]
-    const htmlPath = join(this.distDir, this.renderMode, 'pages', `${page}.html`)
+    const htmlPagesPath = join(this.distDir, this.renderMode, 'pages', `${page}.html`)
+    const htmlAppPath = join(this.distDir, this.renderMode, 'app', `${page}.html`)
+
     let routeKey = (this.defaultLocale ? `/${this.defaultLocale}` : '') + `${page}`
 
     if (routeKey !== '/') {
@@ -663,7 +699,8 @@ export default class NextRoutes extends PluginBase {
       file.endsWith('.html') ||
       prerenderManifest.routes[routeKey] != null ||
       prerenderManifest.dynamicRoutes[page] != null ||
-      existsSync(htmlPath)
+      existsSync(htmlPagesPath) ||
+      existsSync(htmlAppPath)
     )
   }
 
@@ -840,6 +877,7 @@ export default class NextRoutes extends PluginBase {
       }
 
       const pagesManifest = this.getPagesManifest()
+
       const key = `${prefix}/404`
       const notFoundPage = pagesManifest[key]
       const assetRoot = `${this.distDir}/${this.renderMode}/pages`

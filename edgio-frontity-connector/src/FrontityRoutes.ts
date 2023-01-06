@@ -22,11 +22,11 @@ export default class FrontityRoutes extends PluginBase {
    */
   onRegister(router: Router) {
     if (isProductionBuild()) {
-      router.match('/service-worker.js', ({ serviceWorker }) =>
-        serviceWorker('build/service-worker.js')
-      )
-      router.static('build', { ignore: ['server.js'] })
+      router.static('build', { ignore: ['server.js', 'service-worker.js'] })
     }
+    router.match('/service-worker.js', ({ serviceWorker }) =>
+      serviceWorker('.edgio/sw_temp/service-worker.js')
+    )
     router.fallback(({ renderWithApp }) => {
       renderWithApp()
     })

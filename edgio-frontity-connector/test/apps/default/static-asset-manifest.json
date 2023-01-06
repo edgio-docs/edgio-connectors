@@ -1,3 +1,3 @@
 {
-  "build": ["static_asset.txt", "style.css", "service-worker.js"]
+  "build": ["static_asset.txt", "style.css"]
 }

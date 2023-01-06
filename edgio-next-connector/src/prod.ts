@@ -22,8 +22,7 @@ const createStandAloneServer = (
   port: number,
   config: { experimental: { isrFlushToDisk: boolean } }
 ) => {
-  // This is our custom build on next
-  const NextServer = nonWebpackRequire('next/dist/server/next-server-optimized').default
+  const NextServer = nonWebpackRequire('next/dist/server/next-server').default
 
   // Note: we considered using use minimal mode (process.env.NEXT_PRIVATE_MINIMAL_MODE = 'true') to prevent Next.js
   // from flushing ISR pages to disk, but that also disables middleware, so instead we force revalidate by

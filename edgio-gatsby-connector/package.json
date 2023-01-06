@@ -1,18 +1,18 @@
 {
   "name": "@edgio/gatsby",
-  "version": "5.1.2",
+  "version": "6.0.6",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "devDependencies": {
-    "@edgio/core": "^5.1.2"
+    "@edgio/core": "^6.0.6"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/gatsby/src/* dist",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public --tag latest-v5",
-    "release:next": "cd ./dist; npm publish --access public --tag next-v5"
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next"
   },
   "watch": {
     "push-build": {

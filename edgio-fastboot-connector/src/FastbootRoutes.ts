@@ -1,6 +1,5 @@
 import Router from '@edgio/core/router/Router'
 import PluginBase from '@edgio/core/plugins/PluginBase'
-import { isProductionBuild } from '@edgio/core/environment'
 
 /**
  * Adds all routes from your Fastboot app to the Edgio router
@@ -21,12 +20,9 @@ export default class FastbootRoutes extends PluginBase {
    * @param router
    */
   onRegister(router: Router) {
-    if (isProductionBuild()) {
-      router.match('/service-worker.js', ({ serviceWorker }) =>
-        serviceWorker('dist/service-worker.js')
-      )
-      router.static('dist')
-    }
+    router.match('/service-worker.js', ({ serviceWorker }) =>
+      serviceWorker('.edgio/sw_temp/service-worker.js')
+    )
     router.fallback(({ renderWithApp }) => {
       renderWithApp()
     })
