@@ -13,5 +13,5 @@ export default function getDistDir() {
  * @returns
  */
 export function getDistDirFromConfig(nextConfig: any) {
-  return nextConfig?.distDir || '.next'
+  return nextConfig.distDir || '.next'
 }

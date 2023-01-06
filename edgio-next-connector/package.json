@@ -1,6 +1,6 @@
 {
   "name": "@edgio/next",
-  "version": "6.0.5",
+  "version": "5.1.2",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -13,7 +13,7 @@
     "jscodeshift": "^0.13.1",
     "next-offline": "^5.0.3",
     "ora": "^4.0.0",
-    "qs": "^6.11.0",
+    "qs": "^6.9.4",
     "resolve-package-path": "^4.0.3",
     "semver": "^7.3.5",
     "slash": "^3.0.0",
@@ -21,7 +21,7 @@
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.5",
+    "@edgio/core": "^5.1.2",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
     "@types/jscodeshift": "^0.11.2",
@@ -38,15 +38,15 @@
     "workbox-webpack-plugin": "^5.0.0"
   },
   "peerDependencies": {
-    "next": "^9.3.5 || ^10.0.0 || ^11.0.0 || ^12.0.0 || ^13.0.0"
+    "next": "^9.3.5 || ^10.0.0 || ^11.0.0 || ^12.0.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/next/src/* dist; webpack;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
+    "release": "cd ./dist; npm publish --access public --tag latest-v5",
+    "release:next": "cd ./dist; npm publish --access public --tag next-v5",
     "test": "jest --forceExit"
   },
   "watch": {

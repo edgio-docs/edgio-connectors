@@ -9,12 +9,9 @@ import validateNextConfig from './validateNextConfig'
 import { nodeFileTrace } from '@vercel/nft'
 import { getServerBuildAvailability } from '../util/getServerBuildAvailability'
 import getNextConfig from '../getNextConfig'
-import NextConfigBuilder from './NextConfigBuilder'
 import config from '@edgio/core/config'
-import { lt } from 'semver'
 
 import { FAR_FUTURE_TTL } from '../router/constants'
-import getNextVersion from '../util/getNextVersion'
 
 interface BuilderOptions {
   /**
@@ -43,7 +40,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
   return async function build(options: BuildOptions) {
     const { skipFramework } = options
     const config = getNextConfig()
-    const defaultLocale = config?.i18n?.defaultLocale
+    const defaultLocale = config.i18n?.defaultLocale
 
     builder.clearPreviousBuildOutput()
 
@@ -64,14 +61,6 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       await addLegacyBuildAssets(config.target, pagesDir, distDir, buildOutputDir, builder)
     }
 
-    // builds the next.config.js file and add our config file handler
-    const nextConfigBuilder = new NextConfigBuilder(builder, {
-      useServerBuild,
-      generateSourceMap: process.env.EDGIO_SOURCE_MAPS !== 'false',
-      distDir,
-    })
-    await nextConfigBuilder.build()
-
     addSSGPages(
       join(distDirAbsolute, buildOutputDir, 'pages'),
       join(distDir, buildOutputDir, 'pages'),
@@ -86,9 +75,7 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
       .addJSAsset(join(distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
       .build()
 
-    const nextVersion = getNextVersion()
-    // Build optimizations for server build on Next 12, until Next13
-    if (useServerBuild && nextVersion && lt(nextVersion, '13.0.0')) {
+    if (useServerBuild) {
       await optimizeAndCompileServerBuild(builder)
     }
 
@@ -104,25 +91,11 @@ export default function createBuildEntryPoint({ srcDir, distDir, buildCommand }:
  * There is an issue with Next12 where their server source code is not bundled into single file.
  * This leads to very long cold starts on the platform ~5s+, with bundling everything into single
  * we are able to get under ~1s load time from the Lambda disk.
- *
- * We are not seeing these problems with Next 13
  * @param builder
  */
 async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
-  const nextServerFile = 'next-server.js'
-  const outputFile = 'next-server-optimized.js'
-
-  const nextPackageJson = require(join(process.cwd(), 'node_modules', 'next', 'package.json'))
-
   // Dependencies from the next server which we don't want to bundle
   const externalDependencies = [
-    ...Object.keys(nextPackageJson.dependencies ?? {}),
-    ...Object.keys(nextPackageJson.peerDependencies ?? {}),
-    // these files contain global variables which are set
-    // and then loaded by other files in next folder
-    '../shared/lib/runtime-config.js',
-    './router',
-    // Next 12
     'critters',
     'next/dist/compiled/@edge-runtime/primitives/*',
     // Anything which is used for SSR rendering can't be easily bundled
@@ -131,15 +104,12 @@ async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
     'react-dom',
     'render',
     './render',
-    // We have disabled optimizations for next 13 as the perf seems to be OK
-    // Next 13
-    // './initialize-require-hook',
-    // 'webpack',
-    // '*require-hook',
-    // '*bundle5',
   ]
 
-  const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --allow-overwrite --outfile=${outputFile} ${externalDependencies
+  const nextServerFile = 'next-server.js'
+  const outputFile = 'next-server-optimized.js'
+
+  const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --outfile=${outputFile} ${externalDependencies
     .map(l => `--external:${l}`)
     .join(' ')}`
   const nextSourceFiles = join(builder.edgioDir, 'lambda', 'node_modules', 'next', 'dist', 'server')
@@ -153,6 +123,22 @@ async function optimizeAndCompileServerBuild(builder: DeploymentBuilder) {
 async function addStandaloneBuildAssets(distDir: string, builder: DeploymentBuilder) {
   const distDirAbsolute = join(process.cwd(), distDir)
   const { jsDir } = builder
+
+  // add the next config
+  const loadConfig = nonWebpackRequire('next/dist/server/config').default
+  const serverConfig = await loadConfig('phase-production-server', process.cwd())
+  let serverConfigSrc = `module.exports=${JSON.stringify(serverConfig)}`
+
+  // All variables in domains config field are resolved during build time but
+  // the process.env.EDGIO_IMAGE_OPTIMIZER_HOST is available during runtime.
+  // If disableImageOptimizer is set to true, the next/image optimizer is used and
+  // we need to replace 'SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE' by process.env.EDGIO_IMAGE_OPTIMIZER_HOST when build finish to force next/image optimizer to work.
+  serverConfigSrc = serverConfigSrc.replace(
+    /["']SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE["']/,
+    'process.env.EDGIO_IMAGE_OPTIMIZER_HOST'
+  )
+
+  builder.writeFileSync(join(jsDir, 'next.config.js'), serverConfigSrc)
 
   // add the standalone app and dependencies
   builder.copySync(join(distDirAbsolute, 'standalone'), jsDir, {
@@ -175,6 +161,12 @@ async function addLegacyBuildAssets(
   builder
     // React components and api endpoints
     .addJSAsset(join(distDir, buildOutputDir))
+
+    // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
+    .writeFileSync(
+      join(builder.jsDir, 'next.config.js'),
+      `module.exports=${JSON.stringify({ distDir })}`
+    )
 
   if (target !== 'serverless') {
     // If the user has overridden the default target and is using serverless do not perform tracing for required node modules
