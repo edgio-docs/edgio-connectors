@@ -1,6 +1,7 @@
 const schema = {
   express: {
-    appPath: 'string',
+    type: 'object',
+    properties: { appPath: { type: 'string' } },
   },
 }
 

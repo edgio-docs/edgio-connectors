@@ -1,6 +1,7 @@
 const schema = {
   gatsby: {
-    pathPrefix: 'boolean',
+    type: 'object',
+    properties: { pathPrefix: { type: 'boolean' } },
   },
 }
 

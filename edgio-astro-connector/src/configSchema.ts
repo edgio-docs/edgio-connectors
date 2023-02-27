@@ -1,6 +1,7 @@
 const schema = {
   astro: {
-    appPath: 'string',
+    type: 'object',
+    properties: { appPath: { type: 'string' } },
   },
 }
 

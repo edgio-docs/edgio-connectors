@@ -1,0 +1,34 @@
+{
+  "name": "@edgio/vue-cva",
+  "version": "6.1.2",
+  "description": "Deploy Vue apps to Edgio",
+  "license": "Apache-2.0",
+  "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/vue-cva/src/* dist;",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "link": "npm run build; cd dist; npm unlink; npm link",
+    "release": "cd ./dist; npm publish --access public",
+    "release:next": "npm run release -- --tag next"
+  },
+  "keywords": [],
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  },
+  "devDependencies": {
+    "@edgio/core": "^6.1.2",
+    "@types/node": "^14.0.9"
+  }
+}

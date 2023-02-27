@@ -1,0 +1,32 @@
+{
+  "version": 3,
+  "pages404": true,
+  "basePath": "/docs",
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "/docs/",
+      "basePath": false,
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^/docs$"
+    }
+  ],
+  "rewrites": [],
+  "headers": [],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    }
+  ],
+  "dynamicRoutes": [],
+  "dataRoutes": [
+    {
+      "page": "/",
+      "dataRouteRegex": "^/_next/data/njGYjFJzLPSmN6Qf3jO32/index.json$"
+    }
+  ]
+}

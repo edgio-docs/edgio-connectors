@@ -1,15 +1,12 @@
 {
   "name": "@edgio/razzle",
-  "version": "6.0.6",
+  "version": "6.1.2",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
     "chalk": "^4.1.2",
     "slash": "^3.0.0",
     "yargs": "^15.1.0"
-  },
-  "peerDependencies": {
-    "razzle": "^4.0.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/razzle/src/* dist; webpack",
@@ -63,7 +60,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.6",
+    "@edgio/core": "^6.1.2",
     "@types/node": "^14.0.9"
   }
 }

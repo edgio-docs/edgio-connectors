@@ -343,12 +343,12 @@ export default class NextRoutes extends PluginBase {
   private addServerAssets(group: RouteGroup) {
     // Note: we don't include /.next/server/pages here because we explicitly copy those over during
     // the build process (see createBuildEntryPoint.ts)
-    group.match('/_next/server/:file', ({ serveStatic, cache }) => {
+    group.match(this.addBasePath('/_next/server/:file'), ({ serveStatic, cache }) => {
       cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
       serveStatic(`${this.distDir}/${this.renderMode}/:file`)
     })
 
-    group.match('/_next/server/chunks/:file', ({ serveStatic, cache }) => {
+    group.match(this.addBasePath('/_next/server/chunks/:file'), ({ serveStatic, cache }) => {
       cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
       serveStatic(`${this.distDir}/${this.renderMode}/chunks/:file`)
     })
@@ -357,7 +357,7 @@ export default class NextRoutes extends PluginBase {
     const assets = ['app-build-manifest.json', 'build-manifest.json']
     assets.forEach(asset => {
       if (!existsSync(`${this.distDir}/${asset}`)) return
-      group.match(`/_next/${asset}`, ({ serveStatic, cache }) => {
+      group.match(this.addBasePath(`/_next/${asset}`), ({ serveStatic, cache }) => {
         cache({ edge: { maxAgeSeconds: FAR_FUTURE_TTL } })
         serveStatic(`${this.distDir}/${asset}`)
       })
@@ -593,10 +593,16 @@ export default class NextRoutes extends PluginBase {
     )
 
     const addRoute = (label: string, route: string, handler: RouteHandler) => {
-      if (this.nextConfig.trailingSlash && route !== '/') {
+      // Add trailing slash at the end of route when is set trailingSlash to true,
+      // route is not root path and neither data path
+      if (
+        this.nextConfig.trailingSlash &&
+        route !== '/' &&
+        !/(.*)\/_next\/data\/(.*).json/.test(route)
+      ) {
         route += '/'
       }
-
+      route = this.addBasePath(route)
       console.debug(`[${label}]`, route)
       group.match(route, handler)
     }
@@ -911,7 +917,7 @@ export default class NextRoutes extends PluginBase {
 
     // webpack hot loader
     if (!isCloud()) {
-      group.match('/_next/webpack-hmr', ({ stream }) => stream('__js__'))
+      group.match(this.addBasePath('/_next/webpack-hmr'), ({ stream }) => stream('__js__'))
     }
 
     const staticHandler: RouteHandler = ({ proxy, serveStatic, cache }) => {
@@ -932,8 +938,8 @@ export default class NextRoutes extends PluginBase {
     //   in a persistent bucket to be available across builds
     // - We can't apply that rule to the whole /static folder as it contains
     //   non-unique filenames like 'service-worker.js'. This will
-    group.match('/_next/static/:path*', staticHandler)
-    group.match('/autostatic/:path*', staticHandler)
+    group.match(this.addBasePath('/_next/static/:path*'), staticHandler)
+    group.match(this.addBasePath('/autostatic/:path*'), staticHandler)
   }
 
   /**
@@ -944,7 +950,7 @@ export default class NextRoutes extends PluginBase {
     // Add route to exclude svg images from image optimization
     group.match(
       {
-        path: '/_next/image',
+        path: this.addBasePath('/_next/image'),
         method: /GET/i,
         query: { url: /\.svg/ },
       },
@@ -958,7 +964,7 @@ export default class NextRoutes extends PluginBase {
 
     // We replace '/_next/image' the '/__edgio_image_optimizer'
     // so Edgio Buffer Proxy can route to the right lambda in the cloud.
-    group.match('/_next/(image|future/image)', ({ proxy }) => {
+    group.match(this.addBasePath('/_next/(image|future/image)'), ({ proxy }) => {
       if (!isProductionBuild()) return
       proxy(BACKENDS.imageOptimizer, { path: EDGIO_IMAGE_OPTIMIZER_PATH })
     })
@@ -971,7 +977,7 @@ export default class NextRoutes extends PluginBase {
   addNextImageOptimizerRoutes(group: RouteGroup) {
     // We need to transform relative image paths to absolute to force next/image optimizer in server built to fully work.
     // This route is used when our image optimizer is disabled
-    group.match('/_next/(image|future/image)', ({ proxy }) => {
+    group.match(this.addBasePath('/_next/(image|future/image)'), ({ proxy }) => {
       if (!isProductionBuild()) return
       proxy(BACKENDS.js, {
         transformRequest: req => {
@@ -991,6 +997,17 @@ export default class NextRoutes extends PluginBase {
         },
       })
     })
+  }
+
+  /**
+   * Adds leading basePath property from next.config.js to path
+   * in case it's specified
+   * @param path
+   */
+  addBasePath(path: string): string {
+    if (!this.nextConfig.basePath) return path
+    if (path === '/' && !this.nextConfig.trailingSlash) return this.nextConfig.basePath
+    return `${this.nextConfig.basePath}${path}`.replace('//', '/')
   }
 }
 

@@ -1,11 +1,11 @@
 {
   "name": "@edgio/vue-3",
-  "version": "6.0.6",
-  "description": "Deploy vue-3 apps to Edgio",
+  "version": "6.1.2",
+  "description": "Deploy Vue 3 apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/vue-3/src/* dist;",
+    "build": "rm -rf ./src/vue-cva; mkdir ./src/vue-cva; cp -r ../vue-cva/src/* ./src/vue-cva; rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/vue-3/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
@@ -17,6 +17,7 @@
     "push-build": {
       "patterns": [
         "src",
+        "!src/vue-cva",
         "package.json",
         "default-app"
       ],
@@ -27,11 +28,8 @@
   "publishConfig": {
     "directory": "dist"
   },
-  "peerDependencies": {
-    "@edgio/core": "^6.0.0"
-  },
   "devDependencies": {
-    "@edgio/core": "^6.0.6",
+    "@edgio/core": "^6.1.2",
     "@types/node": "^14.0.9"
   }
 }

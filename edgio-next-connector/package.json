@@ -1,6 +1,6 @@
 {
   "name": "@edgio/next",
-  "version": "6.0.6",
+  "version": "6.1.2",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -21,7 +21,7 @@
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@edgio/core": "^6.0.6",
+    "@edgio/core": "^6.1.2",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
     "@types/jscodeshift": "^0.11.2",
@@ -36,9 +36,6 @@
     "webpack-merge": "^5.7.3",
     "workbox-build": "^5.1.2",
     "workbox-webpack-plugin": "^5.0.0"
-  },
-  "peerDependencies": {
-    "next": "^9.3.5 || ^10.0.0 || ^11.0.0 || ^12.0.0 || ^13.0.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/next/src/* dist; webpack;",

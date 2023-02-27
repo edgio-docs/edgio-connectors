@@ -1,5 +1,5 @@
 import resolvePackagePath from 'resolve-package-path'
-
+import { coerce, valid } from 'semver'
 /**
  * Returns the installed version of Next.js
  * @returns
@@ -13,5 +13,8 @@ export default function getNextVersion(): string | null {
     return null
   }
 
-  return eval('require')(packagePath).version
+  const version = eval('require')(packagePath).version
+
+  // Coerce cleans the string, valid transforms it to normal string "1.2.3"
+  return valid(coerce(version))
 }

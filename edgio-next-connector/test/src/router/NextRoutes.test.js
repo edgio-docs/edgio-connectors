@@ -437,6 +437,32 @@ describe('NextRoutes', () => {
         })
       })
 
+      describe('with basePath in local development', () => {
+        beforeAll(() => {
+          process.chdir(join(__dirname, '..', '..', 'apps', 'custom-basepath'))
+        })
+
+        afterAll(() => {
+          process.chdir(originalDir)
+        })
+
+        it('should add routes with basePath prefix', async () => {
+          const addedNextRoutes = router.routeGroups.routeGroups.find(
+            group => group.name === 'next_routes_group'
+          )['_routes']
+
+          expect(
+            addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/static'))
+          ).toBe(true)
+          expect(
+            addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/image'))
+          ).toBe(true)
+          expect(
+            addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/autostatic'))
+          ).toBe(true)
+        })
+      })
+
       describe('with loadConfig', () => {
         beforeAll(() => {
           config = undefined
@@ -725,6 +751,39 @@ describe('NextRoutes', () => {
           router.use(plugin)
           expect(fallbackMock).toHaveBeenCalled()
         })
+      })
+    })
+
+    describe('with basePath in the cloud', () => {
+      let env = process.env.NODE_ENV
+
+      beforeAll(() => {
+        process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
+        process.env.NODE_ENV = 'production'
+        process.chdir(join(__dirname, '..', '..', 'apps', 'custom-basepath'))
+      })
+
+      afterAll(() => {
+        delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
+        process.env.NODE_ENV = env
+        process.chdir(originalDir)
+      })
+
+      it('should add routes with basePath prefix', async () => {
+        const addedNextRoutes = router.routeGroups.routeGroups.find(
+          group => group.name === 'next_routes_group'
+        )['_routes']
+
+        expect(
+          addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/static'))
+        ).toBe(true)
+        expect(
+          addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/image'))
+        ).toBe(true)
+        expect(
+          addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/autostatic'))
+        ).toBe(true)
+        expect(addedNextRoutes.some(route => route?.criteria?.path === '/docs')).toBe(true)
       })
     })
 

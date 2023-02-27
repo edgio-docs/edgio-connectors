@@ -1,6 +1,6 @@
 {
   "name": "@edgio/redwood",
-  "version": "6.0.6",
+  "version": "6.1.2",
   "description": "Deploy RedwoodJS apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -27,13 +27,9 @@
   "publishConfig": {
     "directory": "dist"
   },
-  "peerDependencies": {
-    "@edgio/cli": "^5.0.0",
-    "@edgio/core": "^6.0.0"
-  },
   "devDependencies": {
-    "@edgio/cli": "^6.0.6",
-    "@edgio/core": "^6.0.6",
+    "@edgio/cli": "^6.1.2",
+    "@edgio/core": "^6.1.2",
     "@types/dotenv-defaults": "^2.0.1",
     "@types/fs-extra": "^9.0.13",
     "@types/node": "^14.0.9",
