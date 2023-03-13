@@ -41,20 +41,22 @@ export default class AstroRoutes extends PluginBase {
    */
   addFallback(mode: boolean = true, dist?: string) {
     if (mode) {
-      this.router?.fallback(res => res.renderWithApp())
+      this.router?.fallback(({ renderWithApp }) => {
+        renderWithApp()
+      })
     } else {
-      this.router?.fallback(res =>
-        res.serveStatic(`${dist}/404.html`, {
+      this.router?.fallback(({ serveStatic, send }) => {
+        serveStatic(`${dist}/404.html`, {
           onNotFound: async () => {
-            res.send(notFoundPageHTML, 404, 'Not Found')
+            send(notFoundPageHTML, 404, 'Not Found')
           },
         })
-      )
+      })
     }
   }
 
-  private async addRoutesToGroup() {
-    const { outDir, output } = await getAstroConfig()
+  private addRoutesToGroup() {
+    const { outDir, output } = getAstroConfig()
     const server = output === 'server'
 
     // If the output is static

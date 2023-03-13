@@ -57,6 +57,7 @@ export default class NextRoutes extends PluginBase {
   private previewModeId: string | undefined
   private nextConfig: any
   private enforceTrailingSlash: boolean = false
+  private queryDuplicatesToArrayOnly: boolean = false
   private nextPathFormatter: NextPathFormatter
 
   type = TYPE
@@ -78,6 +79,7 @@ export default class NextRoutes extends PluginBase {
     this.ssr = (res: ResponseWriter, page: string, _forceRevalidate?: boolean) => {
       return renderNextPage(page, res, params => params, {
         rewritePath: false,
+        queryDuplicatesToArrayOnly: this.queryDuplicatesToArrayOnly,
       })
     }
 
@@ -141,6 +143,22 @@ export default class NextRoutes extends PluginBase {
    */
   setEnforceTrailingSlash(value: boolean) {
     this.enforceTrailingSlash = value
+    return this
+  }
+
+  /**
+   * Set to true to parse the duplicate query and next parameters only as an array.
+   * When set to false, duplicate query parameters are also parsed as strings with an index in name.
+   * This option has no effect on Next apps with Next.js 12 and newer, which are built in server mode.
+   *
+   * @example true => {"query":{"slug":["value","value2"]}}
+   * @example false => {"query":{"slug":["value","value2"],"slug[0]":"value","slug[1]":"value2"}}
+   * @default false
+   * @param value
+   */
+  setQueryDuplicatesToArrayOnly(value: boolean) {
+    this.queryDuplicatesToArrayOnly = value
+    return this
   }
 
   /**

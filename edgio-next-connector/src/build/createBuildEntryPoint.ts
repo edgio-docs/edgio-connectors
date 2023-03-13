@@ -238,6 +238,12 @@ function addSSGPages(
 ) {
   builder.log(`Adding SSG pages from ${srcDir}`)
 
+  // Handle special case for index page
+  // The path is /index but in route manifest it's just /
+  if (prerenderManifest.routes['/']) {
+    prerenderManifest.routes['/index'] = prerenderManifest.routes['/']
+  }
+
   // Add SSG pages with normalized paths
   // e.g. /path/to/page/index.html and /path/to/page/index.json
   globby

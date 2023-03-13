@@ -165,6 +165,64 @@ describe('renderNextPage', () => {
         '/_next/data/123/catalog/1.json?productId=1&__build__=123'
       )
     })
+
+    it('should stringify duplicates without indexes in names', () => {
+      const proxy = jest.fn()
+      const setRequestHeader = jest.fn()
+      const updateUpstreamResponseHeader = jest.fn()
+
+      const request = {
+        path: '/_next/data/123/catalog/1.json',
+        url: '/_next/data/123/catalog/1.json',
+        query: {},
+        params: { slug: ['1', '2'], __build__: '123' },
+      }
+
+      renderNextPage(
+        'products/[[...slug]]',
+        {
+          proxy,
+          setRequestHeader,
+          updateUpstreamResponseHeader,
+          request,
+        },
+        params => params,
+        { rewritePath: false, queryDuplicatesToArrayOnly: true }
+      )
+
+      expect(proxy.mock.calls[0][1].path()).toBe(
+        '/_next/data/123/catalog/1.json?slug=1&slug=2&__build__=123'
+      )
+    })
+
+    it('should stringify duplicates with indexes in names', () => {
+      const proxy = jest.fn()
+      const setRequestHeader = jest.fn()
+      const updateUpstreamResponseHeader = jest.fn()
+
+      const request = {
+        path: '/_next/data/123/catalog/1.json',
+        url: '/_next/data/123/catalog/1.json',
+        query: {},
+        params: { slug: ['1', '2'], __build__: '123' },
+      }
+
+      renderNextPage(
+        'products/[[...slug]]',
+        {
+          proxy,
+          setRequestHeader,
+          updateUpstreamResponseHeader,
+          request,
+        },
+        params => params,
+        { rewritePath: false }
+      )
+
+      expect(proxy.mock.calls[0][1].path()).toBe(
+        '/_next/data/123/catalog/1.json?slug%5B0%5D=1&slug%5B1%5D=2&__build__=123'
+      )
+    })
   })
 
   describe('target: server', () => {

@@ -1,7 +1,7 @@
-import { createDevServer } from '@edgio/core/dev'
-import { join } from 'path'
-import { findDefaultAppPath } from './utils'
 import chalk from 'chalk'
+import { join } from 'path'
+import { createDevServer } from '@edgio/core/dev'
+import { findDefaultAppPath, getEdgioConfig } from './utils'
 import { isPortBound, getNearestUnboundPort } from './portUtils'
 
 export default function dev() {
@@ -10,7 +10,7 @@ export default function dev() {
     label: 'Express',
     // The command to start your app in dev mode
     run: async port => {
-      const config = require(join(process.cwd(), 'edgio.config.js'))
+      const config = getEdgioConfig()
 
       const appPath = config.express?.appPath || findDefaultAppPath()
 

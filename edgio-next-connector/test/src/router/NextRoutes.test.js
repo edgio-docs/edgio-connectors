@@ -409,7 +409,10 @@ describe('NextRoutes', () => {
               '404',
               expect.anything(),
               expect.any(Function),
-              { rewritePath: false }
+              {
+                rewritePath: false,
+                queryDuplicatesToArrayOnly: false,
+              }
             )
             done()
           })
@@ -430,6 +433,7 @@ describe('NextRoutes', () => {
               expect.any(Function),
               {
                 rewritePath: false,
+                queryDuplicatesToArrayOnly: false,
               }
             )
             done()
@@ -602,7 +606,10 @@ describe('NextRoutes', () => {
           '/static/[id]',
           expect.anything(),
           expect.any(Function),
-          { rewritePath: false }
+          {
+            rewritePath: false,
+            queryDuplicatesToArrayOnly: false,
+          }
         )
       })
 
@@ -622,7 +629,10 @@ describe('NextRoutes', () => {
           '/static/[id]',
           expect.anything(),
           expect.any(Function),
-          { rewritePath: false }
+          {
+            rewritePath: false,
+            queryDuplicatesToArrayOnly: false,
+          }
         )
       })
 
@@ -811,6 +821,7 @@ describe('NextRoutes', () => {
           expect.any(Function),
           {
             rewritePath: false,
+            queryDuplicatesToArrayOnly: false,
           }
         )
       })
@@ -949,7 +960,7 @@ describe('NextRoutes', () => {
           'initial-props/[id]',
           expect.anything(),
           expect.any(Function),
-          { rewritePath: false }
+          { rewritePath: false, queryDuplicatesToArrayOnly: false }
         )
 
         request.path = '/_next/data/development/initial-props/1.json'

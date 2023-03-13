@@ -17,7 +17,7 @@ export function renderNextPage(
   page: string,
   responseWriter: ResponseWriter,
   params?: Params | ((p: Params, request: Request) => Params),
-  options: RenderOptions = { rewritePath: true }
+  options?: RenderOptions
 ) {
   if (!isProductionBuild()) {
     const config = getNextConfig()
@@ -58,8 +58,14 @@ export default async function _renderNextPage(
   responseWriter: ResponseWriter,
   params?: Params | ((p: Params, request: Request) => Params),
   /* istanbul ignore next */
-  options: RenderOptions = { rewritePath: true }
+  options?: RenderOptions
 ) {
+  // Default options
+  options = {
+    rewritePath: true,
+    queryDuplicatesToArrayOnly: false,
+    ...options,
+  }
   const { request, proxy, updateUpstreamResponseHeader } = responseWriter
 
   await proxy(BACKENDS.js, {
@@ -81,14 +87,19 @@ export default async function _renderNextPage(
       // so that the developer can be sure that things like productId which they specify take precedence
       query = { ...query, ...params }
 
-      let search = qs.stringify(query)
+      let search = qs.stringify(query, {
+        // Instead of stringifying duplicates as color[0]=red&color[1]=blue
+        // we want to preserve duplicate query param names: color=red&color=blue
+        // so the params are always parsed as an array by next.
+        indices: !options?.queryDuplicatesToArrayOnly,
+      })
 
       if (search.length) {
         search = `?${search}`
       }
 
       const nextConfig = getNextConfig()
-      const path = options.rewritePath
+      const path = options?.rewritePath
         ? rewritePath(request, page, params, nextConfig)
         : request.path
 
@@ -126,6 +137,16 @@ export interface RenderOptions {
   /**
    * Set to false to skip path rewriting. Use this only when Edgio route matches the next.js route.
    * This slightly reduces the amount of work that needs to be done on every request.
+   * @default true
    */
-  rewritePath: boolean
+  rewritePath?: boolean
+
+  /**
+   * Set to true to parse the duplicate query and next parameters only as an array.
+   * When set to false, duplicate query parameters are also parsed as strings with an index in name.
+   * @example true => {"query":{"slug":["value","value2"]}}
+   * @example false => {"query":{"slug":["value","value2"],"slug[0]":"value","slug[1]":"value2"}}
+   * @default false
+   */
+  queryDuplicatesToArrayOnly?: boolean
 }
