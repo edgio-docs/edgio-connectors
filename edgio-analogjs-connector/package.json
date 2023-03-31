@@ -1,6 +1,6 @@
 {
   "name": "@edgio/analogjs",
-  "version": "6.1.3",
+  "version": "6.1.4",
   "description": "Deploy Analog apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -28,7 +28,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^6.1.3",
+    "@edgio/core": "^6.1.4",
     "@types/node": "^14.0.9"
   }
 }

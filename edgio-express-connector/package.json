@@ -1,6 +1,6 @@
 {
   "name": "@edgio/express",
-  "version": "6.1.3",
+  "version": "6.1.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {

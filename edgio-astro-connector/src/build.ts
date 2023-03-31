@@ -1,12 +1,17 @@
 /* istanbul ignore file */
 import { existsSync } from 'fs'
-import path, { join } from 'path'
+import path, { join, resolve } from 'path'
 import { nodeFileTrace } from '@vercel/nft'
 import esImport from '@edgio/core/utils/esImport'
 import getProjectType from '@edgio/core/utils/getProjectType'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
+
+const appDir = process.cwd()
+const SW_SOURCE = resolve(appDir, 'sw', 'service-worker.js')
+const SW_DEST_FOLDER = resolve(appDir, '.edgio', 'temp')
+const SW_DEST = resolve(SW_DEST_FOLDER, 'service-worker.js')
 
 export default async function build(options: BuildOptions) {
   const builder = new DeploymentBuilder()
@@ -15,13 +20,10 @@ export default async function build(options: BuildOptions) {
   // Load the astro config
   let config = { default: {} }
   try {
-    config = await esImport(join(process.cwd(), 'astro.config.mjs'))
+    config = await esImport(join(appDir, 'astro.config.mjs'))
   } catch (e) {
     config = { default: {} }
   }
-
-  // Write file as json to be read in the getAstroConfig
-  builder.writeFileSync(join(builder.jsDir, 'astro.config.json'), JSON.stringify(config.default))
 
   if (!options.skipFramework) {
     const command = 'npx astro build'
@@ -32,14 +34,27 @@ export default async function build(options: BuildOptions) {
     }
   }
 
+  if (existsSync(SW_SOURCE)) {
+    console.log('> Building service worker...')
+    builder.buildServiceWorker(SW_SOURCE, SW_DEST, false)
+    // @ts-ignore
+    // Set a flag inside the config to let the prod.ts know
+    config['default']['edgio_SW'] = true
+  } else {
+    console.warn('> sw/service-worker.js not found... skipping.')
+  }
+
+  // Write file as json to be read in the getAstroConfig
+  builder.writeFileSync(join(builder.jsDir, 'astro.config.json'), JSON.stringify(config.default))
+
   await builder.build()
 
   let edgioConfig = {}
 
   const configAbsPath = [
-    join(process.cwd(), 'edgio.config.js'),
-    join(process.cwd(), 'edgio.config.ts'),
-    join(process.cwd(), 'edgio.config.cjs'),
+    join(appDir, 'edgio.config.js'),
+    join(appDir, 'edgio.config.ts'),
+    join(appDir, 'edgio.config.cjs'),
   ].find(existsSync)
 
   if (configAbsPath) {
@@ -52,12 +67,12 @@ export default async function build(options: BuildOptions) {
   const appPath = edgioConfig?.astro?.appPath
 
   if (appPath) {
-    console.log('> Found appPath inside Edgio configuration')
+    // @ts-ignore
+    // Set a flag inside the config to let the prod.ts know
+    config['default']['appPath'] = path.relative(appDir, appPath)
 
-    builder.writeFileSync(
-      join(builder.jsDir, 'appPath.json'),
-      JSON.stringify({ appPath: path.relative(process.cwd(), appPath) })
-    )
+    // Write file as json to be read in the getAstroConfig
+    builder.writeFileSync(join(builder.jsDir, 'astro.config.json'), JSON.stringify(config.default))
 
     console.log('> Bundling dependencies for the appPath:', appPath)
 

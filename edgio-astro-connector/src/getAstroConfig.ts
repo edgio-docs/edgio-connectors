@@ -5,7 +5,7 @@ import { read } from '@edgio/core/utils/packageUtils'
  */
 export default function getAstroConfig() {
   // Set defaults for astro config
-  let astroConfig = { outDir: './dist', output: 'static' }
+  let astroConfig = { outDir: './dist', output: 'static', edgio_SW: false, appPath: null }
 
   try {
     // Load the astro config
@@ -19,6 +19,16 @@ export default function getAstroConfig() {
     // If output in the config exists, assign it to the astroConfig
     if (config?.output) {
       astroConfig.output = config.output
+    }
+
+    // If edgio_SW in the config exists, assign it to the astroConfig
+    if (config?.edgio_SW) {
+      astroConfig.edgio_SW = config.edgio_SW
+    }
+
+    // If appPath in the config exists, assign it to the astroConfig
+    if (config?.appPath) {
+      astroConfig.appPath = config.appPath
     }
   } catch (e) {
     // will get here if no astro config file is present

@@ -1,3 +1,4 @@
+import { existsSync } from 'fs'
 import { notFoundPageHTML } from './404'
 import getAstroConfig from './getAstroConfig'
 import Router from '@edgio/core/router/Router'
@@ -28,10 +29,14 @@ export default class AstroRoutes extends PluginBase {
    */
   onRegister(router: Router) {
     this.router = router
-
     if (isProductionBuild()) {
-      this.router.group(this.routeGroupName, () => this.addRoutesToGroup())
+      router.group(this.routeGroupName, () => this.addRoutesToGroup())
     } else {
+      if (existsSync('.edgio/temp/service-worker.js')) {
+        router.match('/service-worker.js', ({ serviceWorker }) => {
+          serviceWorker('.edgio/temp/service-worker.js')
+        })
+      }
       this.addFallback()
     }
   }
@@ -56,8 +61,16 @@ export default class AstroRoutes extends PluginBase {
   }
 
   private addRoutesToGroup() {
-    const { outDir, output } = getAstroConfig()
+    const { outDir, output, edgio_SW } = getAstroConfig()
     const server = output === 'server'
+
+    // If the service worker is present in the config as true
+    // bundle the service worker from the expected path
+    if (edgio_SW) {
+      this.router?.match('/service-worker.js', ({ serviceWorker }) => {
+        serviceWorker('.edgio/temp/service-worker.js')
+      })
+    }
 
     // If the output is static
     // Serve assets from the static directory
