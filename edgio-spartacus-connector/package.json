@@ -1,6 +1,6 @@
 {
   "name": "@edgio/spartacus",
-  "version": "6.1.4",
+  "version": "6.1.5",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,10 +10,10 @@
     "cls-hooked": "^4.2.2"
   },
   "devDependencies": {
-    "@edgio/angular": "^6.1.4",
-    "@edgio/cli": "^6.1.4",
-    "@edgio/core": "^6.1.4",
-    "@edgio/prefetch": "^6.1.4",
+    "@edgio/angular": "^6.1.5",
+    "@edgio/cli": "^6.1.5",
+    "@edgio/core": "^6.1.5",
+    "@edgio/prefetch": "^6.1.5",
     "@typescript-eslint/parser": "^4.5.0"
   },
   "scripts": {
@@ -21,8 +21,8 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "npm run build; cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
+    "release": "npm run build; cd ./dist; npm publish --access public --tag latest-v6",
+    "release:next": "npm run release -- --tag next-v6",
     "test": "jest"
   },
   "watch": {

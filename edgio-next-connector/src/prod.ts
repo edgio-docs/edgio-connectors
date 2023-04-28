@@ -102,10 +102,14 @@ export default async function prod(port: number) {
   if (!server) {
     const config = getNextConfig()
 
-    if (config.target === 'server') {
-      server = createStandAloneServer(port, config)
-    } else {
+    // target option has been depricated in next 13,
+    // but we still need to support it for legacy projects
+    // so we reverse checking the target option as we know
+    // that if it is not serverless, it must be server
+    if (config.target === 'serverless' || config.target === 'experimental-serverless-trace') {
       server = createServerlessServer()
+    } else {
+      server = createStandAloneServer(port, config)
     }
   }
 

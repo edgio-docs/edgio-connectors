@@ -1,18 +1,18 @@
 {
   "name": "@edgio/vue-storefront",
-  "version": "6.1.4",
+  "version": "6.1.5",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
-    "@edgio/apollo": "^6.1.4",
-    "@edgio/nuxt": "^6.1.4",
+    "@edgio/apollo": "^6.1.5",
+    "@edgio/nuxt": "^6.1.5",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^10.1.0",
     "jscodeshift": "^0.13.1",
     "ora": "^4.1.1"
   },
   "devDependencies": {
-    "@edgio/core": "^6.1.4",
+    "@edgio/core": "^6.1.5",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^9.0.13",
     "@types/jscodeshift": "^0.11.5",
@@ -23,8 +23,8 @@
     "build": "rm -rf ./dist; mkdir ./dist; cp -r src/* package.json README.md default-app ./dist; tsc; cp -r stage/vue-storefront/src/* dist; webpack",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "watch": "npm-watch",
-    "release": "cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next",
+    "release": "cd ./dist; npm publish --access public --tag latest-v6",
+    "release:next": "npm run release -- --tag next-v6",
     "test": "jest",
     "precommit": "lint-staged"
   },

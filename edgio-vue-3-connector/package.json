@@ -1,6 +1,6 @@
 {
   "name": "@edgio/vue-3",
-  "version": "6.1.4",
+  "version": "6.1.5",
   "description": "Deploy Vue 3 apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -9,8 +9,8 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public",
-    "release:next": "npm run release -- --tag next"
+    "release": "cd ./dist; npm publish --access public --tag latest-v6",
+    "release:next": "npm run release -- --tag next-v6"
   },
   "keywords": [],
   "watch": {
@@ -29,7 +29,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^6.1.4",
+    "@edgio/core": "^6.1.5",
     "@types/node": "^14.0.9"
   }
 }
