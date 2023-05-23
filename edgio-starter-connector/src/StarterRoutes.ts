@@ -1,10 +1,6 @@
-import PluginBase from '@edgio/core/plugins/PluginBase'
-import Router from '@edgio/core/router/Router'
-
-/**
- * A TTL for assets that never change.  10 years in seconds.
- */
-const FAR_FUTURE_TTL = 60 * 60 * 24 * 365 * 10
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
+import { FAR_FUTURE_TTL } from '@edgio/core/constants'
+import { edgioRoutes } from '@edgio/core'
 
 /**
  * An Edgio middleware that automatically adds the service worker and browser.js routes to your Edgio router.
@@ -18,28 +14,27 @@ const FAR_FUTURE_TTL = 60 * 60 * 24 * 365 * 10
  * export default new Router().use(starterRoutes)
  * ```
  */
-export default class StarterRoutes extends PluginBase {
+export default class StarterRoutes implements RouterPlugin {
   /**
    * Called when plugin is registered
    * @param router
    */
   onRegister(router: Router) {
-    router.group('starter_routes_group', group => {
-      group.match('/service-worker.js', ({ serviceWorker }) => {
-        serviceWorker('dist/service-worker.js')
-      })
+    router.match('/service-worker.js', ({ serviceWorker }) => {
+      serviceWorker('dist/service-worker.js')
+    })
 
-      group.match('/__edgio__/:version/browser.js', ({ cache, serveStatic }) => {
-        cache({
-          edge: {
-            maxAgeSeconds: FAR_FUTURE_TTL,
-          },
-          browser: {
-            maxAgeSeconds: FAR_FUTURE_TTL,
-          },
-        })
-        serveStatic('dist/browser.js')
+    router.match('/__edgio__/:version/browser.js', ({ cache, serveStatic }) => {
+      serveStatic('dist/browser.js')
+      cache({
+        edge: {
+          maxAgeSeconds: FAR_FUTURE_TTL,
+        },
+        browser: {
+          maxAgeSeconds: FAR_FUTURE_TTL,
+        },
       })
     })
+    router.use(edgioRoutes)
   }
 }

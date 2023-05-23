@@ -1,5 +1,5 @@
 import { join } from 'path'
-import esImport from '../../core/src/utils/esImport'
+import esImport from '@edgio/core/utils/esImport'
 
 export default async function prod(port: number) {
   // @ts-ignore

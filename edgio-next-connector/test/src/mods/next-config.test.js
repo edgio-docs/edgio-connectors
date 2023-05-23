@@ -1,5 +1,6 @@
 import { sync as spawnSync } from 'cross-spawn'
-import { copyFileSync, mkdirSync, readFileSync, removeSync, writeFileSync } from 'fs-extra'
+import { copyFileSync, ensureDirSync, readFileSync, removeSync, writeFileSync } from 'fs-extra'
+import { join } from 'path'
 
 const nextTransformSrc = 'src/mods/next-config.ts'
 const nextDirCopy = './next'
@@ -21,8 +22,11 @@ function runCodeMod(originalCode) {
 const TEST_FILE = './next.config.js'
 
 describe('next-config codemod', () => {
+  let originalCwd
   beforeAll(() => {
-    mkdirSync(nextDirCopy)
+    originalCwd = process.cwd(__dirname, '..', '..', '..')
+    process.chdir(join())
+    ensureDirSync(nextDirCopy)
     copyFileSync(nextTransformSrc, nextTransformCopy)
   })
 
@@ -32,6 +36,7 @@ describe('next-config codemod', () => {
 
   afterAll(() => {
     removeSync(nextDirCopy)
+    process.cwd(originalCwd)
   })
 
   it('should handle when module.exports is an object literal (module.exports = { prop: true })', () => {
@@ -43,25 +48,16 @@ describe('next-config codemod', () => {
     expect(newCode).toEqual(`
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      const { withEdgio, withServiceWorker } = require('@edgio/next/config')
+      const { withEdgio } = require('@edgio/next/config')
 
       const _preEdgioExport = {
         reactStrictMode: true
       };;
 
       module.exports = (phase, config) =>
-        withEdgio(
-          withServiceWorker({
-            // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
-            // the logs in the Edgio developer console.
-            edgioSourceMaps: true,
-
-            // Set the following to \`true\` to disable the Edgio dev tools.
-            disableEdgioDevTools: false,
-
-            ..._preEdgioExport
-          })
-        )
+        withEdgio({
+          ..._preEdgioExport
+        })
     `)
   })
 
@@ -76,7 +72,7 @@ describe('next-config codemod', () => {
     expect(newCode).toEqual(`
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      const { withEdgio, withServiceWorker } = require('@edgio/next/config')
+      const { withEdgio } = require('@edgio/next/config')
 
       const config = {
         reactStrictMode: true
@@ -85,18 +81,9 @@ describe('next-config codemod', () => {
       const _preEdgioExport = config;;
 
       module.exports = (phase, config) =>
-        withEdgio(
-          withServiceWorker({
-            // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
-            // the logs in the Edgio developer console.
-            edgioSourceMaps: true,
-
-            // Set the following to \`true\` to disable the Edgio dev tools.
-            disableEdgioDevTools: false,
-
-            ..._preEdgioExport
-          })
-        )
+        withEdgio({
+          ..._preEdgioExport
+        })
     `)
   })
 
@@ -117,7 +104,7 @@ describe('next-config codemod', () => {
     expect(newCode).toEqual(`
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      const { withEdgio, withServiceWorker } = require('@edgio/next/config')
+      const { withEdgio } = require('@edgio/next/config')
 
       const { PHASE_DEVELOPMENT_SERVER } = require('next/constants')
 
@@ -132,18 +119,9 @@ describe('next-config codemod', () => {
       };;
 
       module.exports = (phase, config) =>
-        withEdgio(
-          withServiceWorker({
-            // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
-            // the logs in the Edgio developer console.
-            edgioSourceMaps: true,
-
-            // Set the following to \`true\` to disable the Edgio dev tools.
-            disableEdgioDevTools: false,
-
-            ..._preEdgioExport(phase, config)
-          })
-        )
+        withEdgio({
+          ..._preEdgioExport(phase, config)
+        })
     `)
   })
 
@@ -164,7 +142,7 @@ describe('next-config codemod', () => {
     expect(newCode).toEqual(`
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      const { withEdgio, withServiceWorker } = require('@edgio/next/config')
+      const { withEdgio } = require('@edgio/next/config')
 
       const util = arg => arg + '123'
 
@@ -179,18 +157,9 @@ describe('next-config codemod', () => {
       }
 
       module.exports = (phase, config) =>
-        withEdgio(
-          withServiceWorker({
-            // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
-            // the logs in the Edgio developer console.
-            edgioSourceMaps: true,
-
-            // Set the following to \`true\` to disable the Edgio dev tools.
-            disableEdgioDevTools: false,
-
-            ..._preEdgioExport
-          })
-        )
+        withEdgio({
+          ..._preEdgioExport
+        })
     `)
   })
 
@@ -198,30 +167,18 @@ describe('next-config codemod', () => {
     const newCode = runCodeMod(`
     // This file was automatically added by edgio init.
     // You should commit this file to source control.
-    const { withEdgio, withServiceWorker } = require('@edgio/next/config')
+    const { withEdgio } = require('@edgio/next/config')
     
     module.exports = (phase, config) =>
-      withEdgio(
-        withServiceWorker({
-          // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
-          // the logs in the Edgio developer console.
-          edgioSourceMaps: true,
-        })
-      )
+      withEdgio({})
     `)
     expect(newCode).toEqual(`
     // This file was automatically added by edgio init.
     // You should commit this file to source control.
-    const { withEdgio, withServiceWorker } = require('@edgio/next/config')
+    const { withEdgio } = require('@edgio/next/config')
     
     module.exports = (phase, config) =>
-      withEdgio(
-        withServiceWorker({
-          // Output sourcemaps so that stack traces have original source filenames and line numbers when tailing
-          // the logs in the Edgio developer console.
-          edgioSourceMaps: true,
-        })
-      )
+      withEdgio({})
     `)
   })
 })

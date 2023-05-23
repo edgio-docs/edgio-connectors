@@ -24,7 +24,7 @@ export default async function install(spinner: any) {
     spinner.succeed()
   } catch (e) {
     spinner.fail()
-    console.error(chalk.red.bold(e.message))
+    console.error(chalk.red.bold(e instanceof Error ? e.message : e))
     process.exit(1)
   }
 }
@@ -34,11 +34,7 @@ const run = (command: string, args: string[]) => {
     const cmd = spawn(command, args)
 
     cmd.on('exit', code => {
-      if (code === 0) {
-        resolve()
-      } else {
-        reject(new Error('Process exited with code ' + code))
-      }
+      code === 0 ? resolve(true) : reject(new Error('Process exited with code ' + code))
     })
 
     cmd.on('error', e => reject(e))

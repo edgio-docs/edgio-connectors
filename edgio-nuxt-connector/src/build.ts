@@ -5,6 +5,8 @@ import { validateDependencies } from './utils/updateDependencies'
 import { BuildOptions, DeploymentBuilder } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import { browserAssetOpts, EDGIO_NUXT_CONFIG_PATH } from './router/NuxtRoutes'
+import { nodeFileTrace } from '@vercel/nft'
+import fs from 'fs'
 
 const { loadNuxtConfig } = require('@nuxt/config')
 const appDir = process.cwd()
@@ -34,87 +36,65 @@ export default async function build(options: BuildOptions) {
     // ensure the dependencies are defined
     await validateDependencies()
 
-    // run the nuxt.js build with --standalone so that dependencies are bundled and the user
-    // doesn't need to add them to package.json dependencies, thus keeping the lambda as
-    // small as possible.
-    let command = 'npx nuxt build --standalone'
+    // if static, we dont need to run the build / create a server - the CDN / edgio will serve the files
+    const command = isStatic ? 'npx nuxt generate' : 'npx nuxt build --standalone'
 
     try {
       await builder.exec(command)
     } catch (e) {
       throw new FrameworkBuildError('Nuxt.js', command, e)
     }
-
-    if (isStatic) {
-      command = 'npx nuxt generate'
-
-      try {
-        await builder.exec(command)
-      } catch (e) {
-        throw new FrameworkBuildError('Nuxt.js', command, e)
-      }
-    }
   }
 
   // edgio-nuxt.config.json
-  builder.writeFileSync(
-    join(builder.jsDir, EDGIO_NUXT_CONFIG_PATH),
-    JSON.stringify(await createEdgioNuxtConfig(config))
-  )
-
-  builder
-    // nuxt.js client assets
-    .addStaticAsset(join(appDir, nuxtDirName, 'dist', 'client'), undefined, browserAssetOpts)
-
-    // assets for generated pages
-    .addStaticAsset(
-      join(appDir, 'dist', '_nuxt'),
-      join(nuxtDirName, 'dist', 'client'),
-      browserAssetOpts
-    )
-
-    // Vue components
-    .addJSAsset(join(appDir, nuxtDirName, 'dist', 'server'), undefined, lambdaAssetCopyOptions)
-
-    // Vue components
-    .addJSAsset(join(appDir, nuxtDirName, 'routes.json'))
-
-    // Nuxt config
-    .addJSAsset(join(appDir, 'nuxt.config.js'))
-
-    // Nuxt config (TS)
-    .addJSAsset(join(appDir, 'nuxt.config.ts'))
+  const edgioConfigPath = join(appDir, EDGIO_NUXT_CONFIG_PATH)
+  builder.writeFileSync(edgioConfigPath, JSON.stringify(config))
+  builder.addJSAsset(edgioConfigPath)
 
   if (isStatic) {
     // static pages
     builder.addStaticAsset(join(appDir, 'dist'))
+  } else {
+    builder
+      // nuxt.js client assets
+      .addStaticAsset(join(appDir, nuxtDirName, 'dist', 'client'), undefined, browserAssetOpts)
+
+      // Vue components
+      .addJSAsset(join(appDir, nuxtDirName, 'dist', 'server'), undefined, lambdaAssetCopyOptions)
+
+      // Vue components
+      .addJSAsset(join(appDir, nuxtDirName, 'routes.json'))
+
+    // middleware needs to be copied, otherwise we wont have access to it on prod build
+    config.serverMiddleware &&
+      Object.values(config.serverMiddleware).forEach(value =>
+        // we strip tilde, as it means 'root of the application' in this context anyways, and we cant copy otherwise
+        builder.addJSAsset(join(appDir, value as string).replace('~/', ''))
+      )
+
+    const tsConfigPath = join(appDir, 'nuxt.config.ts')
+    // checking to avoid warnings in console
+    fs.existsSync(tsConfigPath)
+      ? builder.addJSAsset(tsConfigPath)
+      : builder.addJSAsset(join(appDir, 'nuxt.config.js'))
   }
 
   await builder.build()
+
+  if (!isStatic) {
+    // Add deps for lambda function to be able to programatically invoke server start
+    // not needed for static, as the server isnt needed for it
+    const files = ['./node_modules/@nuxt/core/dist/core.js']
+    const { fileList } = await nodeFileTrace(files)
+    Array.from(fileList)
+      .filter(file => file.indexOf('node_modules') === 0)
+      .forEach(file => builder.copySync(file, join(builder.buildDir, 'lambda', file)))
+  }
 
   if (getEdgioSourceMapsValue(config) === false) {
     console.log(`> Found edgioSourceMaps set to false`)
     console.log(`> Deleting .map files from lambda folder`)
     builder.deleteMapFiles(builder.jsDir)
-  }
-}
-
-async function createEdgioNuxtConfig({ buildDir, target, generate }: any) {
-  return {
-    target,
-    buildDir,
-    generate: generate && {
-      fallback: generate.fallback,
-      exclude: generate.exclude?.map((entry: string | RegExp) => {
-        const regex = <RegExp>entry
-
-        if (regex.source) {
-          return { type: 'RegExp', value: regex.source }
-        } else {
-          return { type: 'string', value: entry }
-        }
-      }),
-    },
   }
 }
 

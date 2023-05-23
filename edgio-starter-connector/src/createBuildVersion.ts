@@ -14,7 +14,7 @@ export default function createBuildVersion() {
     crypto
       .createHash('sha256')
       .update(fs.readFileSync(join(process.cwd(), 'dist', 'browser.js'), 'utf8'))
-      .digest('base64'),
+      .digest('hex'),
     'utf8'
   )
 }

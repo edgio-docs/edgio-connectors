@@ -13,6 +13,14 @@ export default function validateNextConfig(appDir: string) {
     nextConfig = nextConfig(null, {})
   }
 
+  if (process.env.WITH_SERVICE_WORKER_APPLIED) {
+    console.warn(
+      `[Edgio] ${chalk.yellow(
+        'Warning: The withServiceWorker function is no longer needed in next.config.js since Edgio version 7.x. Please remove it and see the migration guide to v7.'
+      )}`
+    )
+  }
+
   if (process.env.WITH_EDGIO_APPLIED !== 'true' /* see withEdgio */) {
     console.error(ERROR_MESSAGE)
     process.exit(1)
@@ -27,16 +35,11 @@ const ERROR_MESSAGE = `${chalk.red(
       
 For example:
   ${chalk.cyan(`
-  const { withEdgio, withServiceWorker } = require('@edgio/next/config')
-
-  module.exports = withEdgio(
-    withServiceWorker({
-      edgioSourceMaps: true,
-      // ...
-      // additional Next.js config options here
-      // ...
-    })
-  )`)}
+  const { withEdgio } = require('@edgio/next/config')
+  module.exports = withEdgio({
+    // additional Next.js config options here
+    // ...
+  })`)}
 
 Please update next.config.js file and try again. If that file does not exist, simply add the example above to the root directory of your app.
 `

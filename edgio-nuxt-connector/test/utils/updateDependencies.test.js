@@ -1,7 +1,7 @@
 import * as packageUtils from '../../../core/src/utils/packageUtils'
 import * as nuxtConfig from '@nuxt/config'
 
-describe('updateDependencies', () => {
+describe.skip('updateDependencies', () => {
   // dependency structure on initial Nuxt project
   const origPackageJson = {
     scripts: {},

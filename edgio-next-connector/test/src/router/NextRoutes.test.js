@@ -1,1062 +1,622 @@
-import path, { join } from 'path'
-import { EDGIO_ENV_VARIABLES, BACKENDS } from '@edgio/core/constants'
-import * as coreWatch from '@edgio/core/utils/watch'
-import { EDGIO_IMAGE_OPTIMIZER_PATH } from '../../../../cli/src/constants'
-
-const originalDir = process.cwd()
+import { join } from 'path'
+import { Router } from '@edgio/core/router'
+import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
+import {
+  SERVERLESS_ORIGIN_NAME,
+  STATIC_ORIGIN_NAME,
+  PERMANENT_STATIC_ORIGIN_NAME,
+  IMAGE_OPTIMIZER_ORIGIN_NAME,
+} from '@edgio/core/origins'
+import {
+  FAR_FUTURE_CACHE_CONFIG,
+  PUBLIC_CACHE_CONFIG,
+  SHORT_PUBLIC_CACHE_CONFIG,
+} from '../../../src/router/cacheConfig'
 
 describe('NextRoutes', () => {
-  let NextRoutes,
-    Router,
+  let originalCwd,
+    NextRoutes,
+    nextRoutes,
+    mockNextConfig,
+    mockEdgioConfig,
     router,
-    plugin,
-    renderNextPage,
-    renderWithApp,
-    request,
-    response,
-    responseHeaders = {},
-    cache,
-    serveStatic,
-    proxy,
-    redirect,
-    setRequestHeader,
-    stream,
-    updatePath,
-    config = {},
-    loadConfig = {},
-    watch,
-    watchCallback,
-    rewrite,
-    warn,
-    responseWriter
-
-  function init() {
-    watch = jest.fn()
-    cache = jest.fn()
-    serveStatic = jest.fn()
-    proxy = jest.fn()
-    redirect = jest.fn()
-    stream = jest.fn()
-    setRequestHeader = jest.fn()
-    updatePath = jest.fn()
-    rewrite = jest.fn()
-    renderWithApp = jest.fn()
-
-    jest.spyOn(console, 'log').mockImplementation()
-    jest.spyOn(console, 'debug').mockImplementation()
-    warn = jest.spyOn(console, 'warn').mockImplementation()
-
-    watch = jest.spyOn(coreWatch, 'default').mockImplementation(() => {
-      return {
-        on: (_filter, cb) => {
-          watchCallback = cb
-        },
-      }
-    })
-    jest.doMock('../../../src/util/getNextVersion', () => () => '10.0.0')
-
-    jest.doMock('../../../src/util/getDistDir', () => () => '.next')
-
-    jest.doMock(
-      path.join(process.cwd(), 'static-asset-manifest.json'),
-      () => ({
-        public: ['favicon.ico'],
-        pages: ['p/[id].js'],
-        '.next/serverless/pages': ['index.html'],
-      }),
-      { virtual: true }
-    )
-
-    jest.doMock('@edgio/core/router/ResponseWriter', () => {
-      return class MockResponseWriter {
-        constructor() {
-          this.cache = cache
-          this.serveStatic = serveStatic
-          this.onRouteError = jest.fn()
-          this.proxy = proxy
-          this.redirect = redirect
-          this.render = cb => cb(request, response, {})
-          this.stream = stream
-          this.setRequestHeader = setRequestHeader
-          this.request = { params: {} }
-          this.response = {}
-          this.updatePath = updatePath
-          this.rewrite = rewrite
-          this.renderWithApp = renderWithApp
-          responseWriter = this
-        }
-      }
-    })
-
-    global.EDGIO_NEXT_APP = {
-      get nextConfig() {
-        return config
-      },
-      loadConfig() {
-        return loadConfig
-      },
-    }
-
-    renderNextPage = jest.fn(() => 'renderNextPage!')
-    jest.doMock('@edgio/next/router/renderNextPage', () => renderNextPage)
-    Router = require('@edgio/core/router/Router').default
-
-    NextRoutes = require('@edgio/next/router/NextRoutes').default
-    router = new Router()
-    plugin = new NextRoutes()
-    router.use(plugin)
-    router.setBackend('__js__', { domainOrIp: 'js.backend' })
-    router.setBackend('origin', { domainOrIp: 'example.com' })
-
-    request = {
-      url: '/',
-      headers: {
-        host: 'domain.com',
-      },
-      on: (event, cb) => {
-        if (event === 'data') {
-          setImmediate(() => cb(''))
-        } else if (event === 'end') {
-          setImmediate(cb)
-        }
-      },
-    }
-
-    response = {
-      writeHead: jest.fn(),
-      end: jest.fn(),
-      getHeaders: () => ({}),
-      setHeader: jest.fn((header, value) => {
-        responseHeaders[header] = value
-      }),
-    }
-  }
-
-  describe('target: "serverless"', () => {
-    beforeEach(() => {
-      jest.isolateModules(() => {
-        init()
-      })
-    })
-
-    describe('#updateRoutes', () => {
-      it('should not throw an error', () => {
-        expect(() => plugin.updateRoutes()).not.toThrowError()
-      })
-    })
-
-    describe('in local development', () => {
-      describe('with nextConfig', () => {
-        beforeAll(() => {
-          config = {
-            async rewrites() {
-              return [
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'query', key: 'foo', value: 'bar' }, { type: 'invalid type' }],
-                  destination: '/p/1',
-                },
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'query', key: 'q' }],
-                  destination: '/p/1',
-                },
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'header', key: 'x-rewrite-me', value: 'true' }],
-                  destination: '/p/2',
-                },
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'header', key: 'x-rewrite-me-empty' }],
-                  destination: '/p/2',
-                },
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'cookie', key: 'x-rewrite-me', value: 'true' }],
-                  destination: '/p/3',
-                },
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'cookie', key: 'x-rewrite-me-empty' }],
-                  destination: '/p/2',
-                },
-                {
-                  source: '/rewrites',
-                  has: [{ type: 'host', value: 'localhost' }],
-                  destination: '/p/4',
-                },
-                {
-                  source: '/rewrites/origin',
-                  destination: 'https://example.com/path',
-                },
-                {
-                  source: '/rewrites/origin/root',
-                  destination: 'https://example.com',
-                },
-                {
-                  source: '/rewrites/upstream/root',
-                  destination: 'https://upstream.com',
-                },
-                {
-                  source: '/rewrites/:id',
-                  destination: '/p/:id',
-                },
-                // Same path as redirect added to test redirect being resolved with higher priority
-                {
-                  source: '/redirects/:id',
-                  destination: '/p/:id',
-                },
-              ]
-            },
-            async redirects() {
-              return [
-                {
-                  source: '/redirects/:id',
-                  destination: '/p/:id',
-                },
-              ]
-            },
-          }
-          process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-dev'))
-        })
-
-        afterAll(() => {
-          process.chdir(originalDir)
-          delete global.EDGIO_NEXT_APP
-        })
-
-        it('should add routes for all pages and api endpoints', async () => {
-          request.path = '/p/1'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-
-        it('should add routes for all static assets', async () => {
-          request.path = '/_next/static/development/pages/index.js'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-
-        it('should serve assets in the public dir', async () => {
-          request.path = '/favicon.ico'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
-        })
-
-        it('should call router image optimizer with pass through', async () => {
-          request.path = '/_next/image'
-          await router.run(request, response)
-          expect(proxy).not.toHaveBeenCalledWith(BACKENDS.imageOptimizer)
-        })
-
-        it('should add routes for all pages and api endpoints', async () => {
-          request.path = '/p/1'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-
-        it('should add routes for tsx pages', async () => {
-          request.path = '/typescript'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-
-        it('should add routes for getServerSideProps', async () => {
-          request.path = '/_next/data/development/p/1.json'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-
-        it('should add index routes for getServerSideProps properly', async () => {
-          request.path = '/_next/data/development/index.json'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-
-        it('should add a route for webpack hmr', async () => {
-          request.path = '/_next/webpack-hmr'
-          await router.run(request, response)
-          expect(stream).toHaveBeenCalled()
-        })
-
-        it('should watch pages for changes', () => {
-          const updateRoutes = jest.spyOn(NextRoutes.prototype, 'updateRoutes')
-          new Router().use(new NextRoutes())
-
-          expect(watch).toHaveBeenCalledWith(join(process.cwd(), 'pages'))
-
-          watchCallback()
-          expect(updateRoutes).toHaveBeenCalled()
-        })
-
-        it('should accept directory parameter', () => {
-          new Router().use(new NextRoutes('apps/my-next-app'))
-
-          expect(watch).toHaveBeenCalledWith(join(process.cwd(), 'apps/my-next-app/src/pages'))
-        })
-
-        describe('rewrites', () => {
-          it('should proxy full URLs', done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites/origin'
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith('origin', { path: '/path' })
-              done()
-            })
-          })
-          it('should proxy full URLs without a path', done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites/origin/root'
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith('origin', { path: '/' })
-              done()
-            })
-          })
-          it('should warn the user when no matching backend could be found', done => {
-            process.nextTick(() => {
-              expect(warn).toHaveBeenCalledWith(expect.stringMatching(/No matching backend/))
-              done()
-            })
-          })
-          it('should add routes for rewrites', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites/1'
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support query', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.query = { foo: 'bar' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support query without a value', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.query = { q: 'bar' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support headers', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.headers = { 'x-rewrite-me': 'true' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support headers without values', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.headers = { 'x-rewrite-me-empty': 'true' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support cookie', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.headers = { cookie: 'x-rewrite-me=true' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support cookie without a value', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.headers = { cookie: 'x-rewrite-me-empty=true' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-          it('should support host', async done => {
-            process.nextTick(async () => {
-              request.path = '/rewrites'
-              request.headers = { host: 'localhost' }
-              await router.run(request, response)
-              expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-              done()
-            })
-          })
-        })
-
-        it('should add routes for redirects (with priority over other routes)', async done => {
-          process.nextTick(async () => {
-            request.path = '/redirects/1'
-            await router.run(request, response)
-            expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 302 })
-            done()
-          })
-        })
-
-        it('should render the 404 page when no route is matched', async done => {
-          process.nextTick(async () => {
-            request.path = '/no-route-matched'
-            await router.run(request, response)
-            expect(renderNextPage).toHaveBeenCalledWith(
-              '404',
-              expect.anything(),
-              expect.any(Function),
-              {
-                rewritePath: false,
-                queryDuplicatesToArrayOnly: false,
-              }
-            )
-            done()
-          })
-        })
-
-        it('should render a 404 page directly', async done => {
-          const nextRoutes = new NextRoutes()
-          const router = new Router()
-            .get('/missing-page', res => nextRoutes.render404(res))
-            .use(nextRoutes)
-
-          process.nextTick(async () => {
-            request.path = '/missing-page'
-            await router.run(request, response)
-            expect(renderNextPage).toHaveBeenCalledWith(
-              '404',
-              expect.anything(),
-              expect.any(Function),
-              {
-                rewritePath: false,
-                queryDuplicatesToArrayOnly: false,
-              }
-            )
-            done()
-          })
-        })
-      })
-
-      describe('with basePath in local development', () => {
-        beforeAll(() => {
-          process.chdir(join(__dirname, '..', '..', 'apps', 'custom-basepath'))
-        })
-
-        afterAll(() => {
-          process.chdir(originalDir)
-        })
-
-        it('should add routes with basePath prefix', async () => {
-          const addedNextRoutes = router.routeGroups.routeGroups.find(
-            group => group.name === 'next_routes_group'
-          )['_routes']
-
-          expect(
-            addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/static'))
-          ).toBe(true)
-          expect(
-            addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/image'))
-          ).toBe(true)
-          expect(
-            addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/autostatic'))
-          ).toBe(true)
-        })
-      })
-
-      describe('with loadConfig', () => {
-        beforeAll(() => {
-          config = undefined
-          loadConfig = {
-            async rewrites() {
-              return [
-                {
-                  source: '/rewrites/:id',
-                  destination: '/p/:id',
-                },
-              ]
-            },
-            async redirects() {
-              return [
-                {
-                  source: '/redirects/:id',
-                  destination: '/p/:id',
-                },
-              ]
-            },
-          }
-          process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-dev'))
-        })
-
-        afterAll(() => {
-          process.chdir(originalDir)
-          delete global.EDGIO_NEXT_APP
-        })
-
-        it('should add routes for all pages and api endpoints', async () => {
-          request.path = '/p/1'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-        })
-      })
-    })
-
-    describe('in the cloud (localized)', () => {
-      const env = process.env.NODE_ENV
-
-      beforeAll(() => {
-        process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-        process.env.NODE_ENV = 'production'
-        process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-cloud-localized'))
-      })
-
-      afterAll(() => {
-        delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-        process.chdir(originalDir)
-        process.env.NODE_ENV = env
-      })
-
-      it('should add routes for all public assets', async () => {
-        request.path = '/favicon.ico'
-        await router.run(request, response)
-        expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
-        expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
-      })
-
-      it('should add routes for all static assets', async () => {
-        request.path = '/_next/static/development/pages/index.js'
-        await router.run(request, response)
-        expect(cache).toHaveBeenCalledWith({
-          browser: { maxAgeSeconds: 315360000 },
-          edge: { maxAgeSeconds: 315360000 },
-        })
-        expect(serveStatic).toHaveBeenCalledWith('.next/static/:path*', {
-          permanent: true,
-          exclude: ['.next/static/service-worker.js'],
-        })
-      })
-
-      it('should add routes getServerSideProps', async () => {
-        request.path = '/_next/data/cbdacbdbcdbacbd/p/1.json'
-        await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalled()
-      })
-
-      it('should add routes for all static pages with getStaticProps only', async () => {
-        request.path = '/ssg/ssg'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/ssg/ssg/index.html',
-          {
-            disableAutoPublish: true,
-            onNotFound: expect.any(Function),
-          }
-        )
-      })
-
-      it('should add data routes for all static pages with getStaticProps only', async () => {
-        request.path = '/_next/data/build-id/ssg/ssg.json'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/ssg/ssg/index.json',
-          {
-            disableAutoPublish: true,
-            onNotFound: expect.any(Function),
-          }
-        )
-        await serveStatic.mock.calls[0][1].onNotFound()
-      })
-
-      it('should call router image optimizer with edgio-buffer-proxy prefix', async () => {
-        request.path = '/_next/image'
-        await router.run(request, response)
-        expect(proxy).toHaveBeenCalledWith(BACKENDS.imageOptimizer, {
-          path: EDGIO_IMAGE_OPTIMIZER_PATH,
-        })
-      })
-
-      it('should add localized routes for all static pages with getStaticProps only', async () => {
-        request.path = '/fr/ssg/ssg'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/ssg/ssg/index.html',
-          {
-            onNotFound: expect.any(Function),
-            disableAutoPublish: true,
-          }
-        )
-      })
-
-      it('should add routes for all static pages with getStaticPaths', async () => {
-        request.path = '/static/1'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/static/:id/index.html',
-          {
-            loadingPage: '.next/serverless/pages/:locale/static/[id]/index.html',
-            onNotFound: expect.any(Function),
-            disableAutoPublish: true,
-          }
-        )
-        serveStatic.mock.calls[0][1].onNotFound()
-        expect(renderNextPage).toHaveBeenCalledWith(
-          '/static/[id]',
-          expect.anything(),
-          expect.any(Function),
-          {
-            rewritePath: false,
-            queryDuplicatesToArrayOnly: false,
-          }
-        )
-      })
-
-      it('should add localized routes for all static pages with getStaticPaths', async () => {
-        request.path = '/fr/static/1'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/static/:id/index.html',
-          {
-            onNotFound: expect.any(Function),
-            disableAutoPublish: true,
-            loadingPage: '.next/serverless/pages/:locale/static/[id]/index.html',
-          }
-        )
-        serveStatic.mock.calls[0][1].onNotFound()
-        expect(renderNextPage).toHaveBeenCalledWith(
-          '/static/[id]',
-          expect.anything(),
-          expect.any(Function),
-          {
-            rewritePath: false,
-            queryDuplicatesToArrayOnly: false,
-          }
-        )
-      })
-
-      it('should add routes for all static pages without getStaticProps', async () => {
-        request.path = '/no-props/no-props'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/no-props/no-props/index.html',
-          {
-            disableAutoPublish: true,
-            onNotFound: expect.any(Function),
-          }
-        )
-      })
-
-      it('should add localized routes for all static pages without getStaticProps', async () => {
-        request.path = '/fr/no-props/no-props'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/no-props/no-props/index.html',
-          {
-            onNotFound: expect.any(Function),
-            disableAutoPublish: true,
-          }
-        )
-      })
-
-      // it('should add localized routes the homepage without getStaticProps', async () => {
-      //   request.path = '/index'
-      //   await router.run(request, response)
-      //   expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/:locale/index.html', {
-      //     onNotFound: expect.any(Function),
-      //   })
-      // })
-
-      it('should add routes for non-localized static pages', async () => {
-        request.path = '/not-localized'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/:locale/not-localized/index.html',
-          {
-            onNotFound: expect.any(Function),
-            disableAutoPublish: true,
-          }
-        )
-      })
-
-      it('should add routes for all api pages', async () => {
-        request.path = '/api/session'
-        await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalled()
-      })
-
-      it('should not watch pages in production', () => {
-        jest.resetAllMocks()
-        new NextRoutes()
-        expect(watch).not.toHaveBeenCalled()
-      })
-
-      describe('redirects', () => {
-        it('should add redirects to the router', async () => {
-          request.path = '/temp-redirects/1'
-          await router.run(request, response)
-          expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 307 })
-        })
-
-        it('should add permanent redirects to the router as 301s', async () => {
-          request.path = '/perm-redirects/1'
-          await router.run(request, response)
-          expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 308 })
-        })
-
-        it('should not use next built-in redirect to remove trailing slashes (/:path+)', async () => {
-          request.path = '/products/'
-          await router.run(request, response)
-          expect(redirect).not.toHaveBeenCalled()
-        })
-      })
-
-      describe('rewrites', () => {
-        it('should show a warning when the destination for a rewrite cannot be found', async () => {
-          new Router().use(new NextRoutes())
-          request.path = '/no-matching-rewrite'
-          await router.run(request, response)
-          expect(warn).toHaveBeenCalledWith(
-            'No matching route found for rewrite /no-matching-rewrite => /not-defined'
-          )
-        })
-      })
-
-      describe('prerendering', () => {
-        it('should prerender everything in prerender-manifest.json', () => {
-          expect(router.preloadRequests.options).toEqual([
-            [
-              { path: '/en-US' },
-              { path: '/_next/data/123/en-US.json' },
-              { path: '/fr' },
-              { path: '/_next/data/123/fr.json' },
-              { path: '/nl-NL' },
-              { path: '/_next/data/123/nl-NL.json' },
-              { path: '/en-US/static/1' },
-              { path: '/_next/data/123/en-US/static/1.json' },
-              { path: '/en-US/static/2' },
-              { path: '/_next/data/123/en-US/static/2.json' },
-              { path: '/en-US/ssg/ssg' },
-              { path: '/_next/data/123/en-US/ssg/ssg.json' },
-              { path: '/fr/ssg/ssg' },
-              { path: '/_next/data/123/fr/ssg/ssg.json' },
-              { path: '/nl-NL/ssg/ssg' },
-              { path: '/_next/data/123/nl-NL/ssg/ssg.json' },
-            ],
-          ])
-        })
-      })
-
-      describe('onRegister', () => {
-        beforeEach(() => {
-          jest.resetAllMocks()
-        })
-
-        it('fallback method should be called', () => {
-          const router = new Router()
-          const plugin = new NextRoutes()
-          const fallbackMock = jest.spyOn(router, 'fallback')
-          fallbackMock.mockImplementation()
-          router.use(plugin)
-          expect(fallbackMock).toHaveBeenCalled()
-        })
-      })
-    })
-
-    describe('with basePath in the cloud', () => {
-      let env = process.env.NODE_ENV
-
-      beforeAll(() => {
-        process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-        process.env.NODE_ENV = 'production'
-        process.chdir(join(__dirname, '..', '..', 'apps', 'custom-basepath'))
-      })
-
-      afterAll(() => {
-        delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-        process.env.NODE_ENV = env
-        process.chdir(originalDir)
-      })
-
-      it('should add routes with basePath prefix', async () => {
-        const addedNextRoutes = router.routeGroups.routeGroups.find(
-          group => group.name === 'next_routes_group'
-        )['_routes']
-
-        expect(
-          addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/static'))
-        ).toBe(true)
-        expect(
-          addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/_next/image'))
-        ).toBe(true)
-        expect(
-          addedNextRoutes.some(route => route?.criteria?.path.startsWith('/docs/autostatic'))
-        ).toBe(true)
-        expect(addedNextRoutes.some(route => route?.criteria?.path === '/docs')).toBe(true)
-      })
-    })
-
-    describe('with a dynamic 404 page', () => {
-      let env = process.env.NODE_ENV
-
-      beforeAll(() => {
-        process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-        process.env.NODE_ENV = 'production'
-        process.chdir(join(__dirname, '..', '..', 'apps', 'dynamic-404'))
-      })
-
-      afterAll(() => {
-        delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-        process.chdir(originalDir)
-        process.env.NODE_ENV = env
-      })
-
-      it('should SSR the 404 page', async () => {
-        request.path = '/no-page-here'
-        await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalledWith(
-          '404',
-          expect.anything(),
-          expect.any(Function),
-          {
-            rewritePath: false,
-            queryDuplicatesToArrayOnly: false,
-          }
-        )
-      })
-    })
-
-    describe('in the cloud (not localized)', () => {
-      const env = process.env.NODE_ENV
-
-      beforeAll(() => {
-        process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-        process.env.NODE_ENV = 'production'
-        process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-cloud'))
-      })
-
-      afterAll(() => {
-        delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-        process.chdir(originalDir)
-        process.env.NODE_ENV = env
-      })
-
-      it('should add routes for all public assets', async () => {
-        request.path = '/favicon.ico'
-        await router.run(request, response)
-        expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
-        expect(serveStatic).toHaveBeenCalledWith('public/favicon.ico')
-      })
-
-      it('should add routes for files in .next/server', async () => {
-        request.path = '/_next/server/middleware-manifest.json'
-        await router.run(request, response)
-        expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
-        expect(serveStatic).toHaveBeenCalledWith('.next/serverless/:file')
-      })
-
-      it('should serve server assets', async () => {
-        request.path = '/_next/server/middleware-manifest.json'
-        await router.run(request, response)
-        expect(cache).toHaveBeenCalledWith({ edge: { maxAgeSeconds: 315360000 } })
-        expect(serveStatic).toHaveBeenCalledWith('.next/serverless/:file')
-      })
-
-      it('should add routes for all static assets', async () => {
-        request.path = '/_next/static/development/pages/index.js'
-        await router.run(request, response)
-        expect(cache).toHaveBeenCalledWith({
-          browser: { maxAgeSeconds: 315360000 },
-          edge: { maxAgeSeconds: 315360000 },
-        })
-        expect(serveStatic).toHaveBeenCalledWith('.next/static/:path*', {
-          permanent: true,
-          exclude: ['.next/static/service-worker.js'],
-        })
-      })
-
-      it('should add routes getServerSideProps', async () => {
-        request.path = '/_next/data/cbdacbdbcdbacbd/p/1.json'
-        await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalled()
-      })
-
-      it('should add routes for all static pages with getStaticProps only', async () => {
-        request.path = '/ssg/ssg'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/ssg/ssg/index.html', {
-          onNotFound: expect.any(Function),
-          disableAutoPublish: true,
-        })
-      })
-
-      it('should add routes for all static pages with getStaticPaths', async () => {
-        request.path = '/static-fallback/1'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/static-fallback/:id/index.html',
-          {
-            loadingPage: '.next/serverless/pages/static-fallback/[id]/index.html',
-            onNotFound: expect.any(Function),
-            disableAutoPublish: true,
-          }
-        )
-      })
-
-      it('should serve a 404 for unrendered static pages without a fallback', async () => {
-        request.path = '/static/999'
-        await router.run(request, response)
-
-        expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/static/:id/index.html', {
-          loadingPage: undefined,
-          onNotFound: expect.any(Function),
-          disableAutoPublish: true,
-        })
-
-        const { onNotFound } = serveStatic.mock.calls[0][1]
-        await onNotFound(responseWriter)
-
-        expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/404/index.html', {
-          statusCode: 404,
-          statusMessage: 'Not Found',
-        })
-      })
-
-      it('should render a 404 page directly', async () => {
-        const nextRoutes = new NextRoutes()
-        const router = new Router()
-        router.get('/missing-page', res => nextRoutes.render404(res))
-        request.path = '/missing-page'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith('.next/serverless/pages/404/index.html', {
-          statusCode: 404,
-          statusMessage: 'Not Found',
-        })
-      })
-
-      it('should add routes for all static pages without getStaticProps', async () => {
-        request.path = '/no-props/no-props'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/no-props/no-props/index.html',
-          {
-            disableAutoPublish: true,
-            onNotFound: expect.any(Function),
-          }
-        )
-      })
-
-      it('should add routes for all api pages', async () => {
-        request.path = '/api/session'
-        await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalled()
-      })
-
-      it('should not add a data route for pages with getInitialProps', async () => {
-        request.path = '/initial-props/1'
-        await router.run(request, response)
-        expect(renderNextPage).toHaveBeenCalledWith(
-          'initial-props/[id]',
-          expect.anything(),
-          expect.any(Function),
-          { rewritePath: false, queryDuplicatesToArrayOnly: false }
-        )
-
-        request.path = '/_next/data/development/initial-props/1.json'
-        await router.run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith(
-          '.next/serverless/pages/404/index.html',
-          expect.anything()
-        )
-      })
-
-      describe('redirects', () => {
-        it('should add redirects to the router', async () => {
-          request.path = '/temp-redirects/1'
-          await router.run(request, response)
-          expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 307 })
-        })
-
-        it('should add permanent redirects to the router as 301s', async () => {
-          request.path = '/perm-redirects/1'
-          await router.run(request, response)
-          expect(redirect).toHaveBeenCalledWith('/p/:id', { statusCode: 308 })
-        })
-
-        it('should not use next built-in redirect to remove trailing slashes (/:path+)', async () => {
-          request.path = '/products/'
-          await router.run(request, response)
-          expect(redirect).not.toHaveBeenCalled()
-        })
-      })
-    })
-
-    describe('in local production mode', () => {
-      const env = process.env.NODE_ENV
-
-      beforeEach(() => {
-        process.env.EDGIO_LOCAL = 'true'
-        process.env.NODE_ENV = 'production'
-      })
-
-      afterEach(() => {
-        process.env.NODE_ENV = env
-        delete process.env.EDGIO_LOCAL
-      })
-
-      it('should proxy /_next/image to the image optimizer backend', async () => {
-        try {
-          process.env.EDGIO_LOCAL = 'true'
-          process.env.NODE_ENV = 'production'
-        } finally {
-          request.path = '/_next/image'
-          await router.run(request, response)
-          expect(proxy).toHaveBeenCalledWith(BACKENDS.imageOptimizer, {
-            path: EDGIO_IMAGE_OPTIMIZER_PATH,
-          })
-        }
-      })
-    })
-  })
-
-  describe('target: "server"', () => {
-    beforeEach(() => {
-      jest.isolateModules(() => {
-        process.env.NEXT_FORCE_SERVER_BUILD = 'true'
-        init()
-      })
-    })
-
-    afterEach(() => {
-      delete process.env.NEXT_FORCE_SERVER_BUILD
-    })
-
-    it('call proxy', async () => {
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js, expect.anything())
-    })
-  })
-})
-
-describe('when attempting to capture named parameters in rewrites', () => {
-  let env = process.env.NODE_ENV
+    rules,
+    originalNextConfig,
+    originalEdgioConfig
 
   beforeAll(() => {
-    process.chdir(join(__dirname, '..', '..', 'apps', 'NextRoutes-cloud-bad-has'))
-    process.env.NODE_ENV = 'production'
+    global.EDGIO_NEXT_APP = {
+      get nextConfig() {
+        return mockNextConfig
+      },
+      loadConfig() {
+        return mockNextConfig
+      },
+    }
+    jest.resetAllMocks()
+
+    originalCwd = process.cwd()
+    process.chdir(join(__dirname, '..', '..', 'apps', 'default'))
+
+    originalNextConfig = require(join(process.cwd(), 'next.config.js'))
+    originalEdgioConfig = require(join(process.cwd(), 'edgio.config.js'))
+    mockEdgioConfig = originalEdgioConfig
+    mockNextConfig = originalNextConfig
+
+    jest.isolateModules(() => {
+      jest.spyOn(console, 'log').mockImplementation(() => {})
+      jest.mock('../../../src/getNextConfig', () => jest.fn(() => mockNextConfig))
+      jest.mock('@edgio/core/config', () => ({
+        getConfig: jest.fn(() => mockEdgioConfig),
+      }))
+    })
+    NextRoutes = require('../../../src/router/NextRoutes').default
   })
 
   afterAll(() => {
-    process.chdir(originalDir)
-    process.env.NODE_ENV = env
+    jest.resetAllMocks()
+    process.chdir(originalCwd)
+    delete global.EDGIO_NEXT_APP
   })
 
-  it('should throw a helpful error message', () => {
-    expect(() => {
-      const Router = require('@edgio/core/router').Router
-      const NextRoutes = require('../../../src/router/NextRoutes').default
-      new Router().use(new NextRoutes())
-    }).toThrowError(/Edgio does not yet support capturing named parameters/)
+  describe('development mode', () => {
+    beforeAll(() => {
+      nextRoutes = new NextRoutes()
+      router = new Router()
+      router.use(nextRoutes)
+      rules = router.rules
+    })
+
+    it('should proxy everything to serverless backend by default (addDefaultSSRRoute)', () => {
+      const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/(.*)')
+      const { origin } = rule?.if[1]
+      expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+    })
+
+    it('should add rule for service-worker (addServiceWorker)', () => {
+      const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/service-worker.js')
+      const { origin } = rule?.if[1]
+      expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+    })
+
+    it('should add rule for devtools (edgioRoutes)', () => {
+      const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1].includes('/__edgio__/devtools/'))
+      expect(rule).toBeDefined()
+    })
+  })
+
+  describe('production mode', () => {
+    const init = () => {
+      process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
+      process.env.NODE_ENV = 'production'
+
+      nextRoutes = new NextRoutes()
+      router = new Router()
+      router.use(nextRoutes)
+      rules = router.rules
+    }
+
+    describe('without localization', () => {
+      beforeAll(init)
+
+      it('should proxy everything to serverless backend by default (addDefaultSSRRoute)', () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/(.*)')
+        const { origin } = rule?.if[1]
+        expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+      })
+
+      describe('should add rules for pages (addPages)', () => {
+        it('should not add rules for API pages (handled by addDefaultSSRRoute)', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/api/hello')
+          expect(rule).not.toBeDefined()
+        })
+
+        it('should not add rules for data route of API pages', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/_next/data/:buildId/api/hello.json'
+          )
+          expect(rule).not.toBeDefined()
+        })
+
+        it('should not add rules for SSR pages (handled by addDefaultSSRRoute)', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/ssr/:id')
+          expect(rule).not.toBeDefined()
+        })
+
+        it('should not add rules for data route of SSR pages (handled by addDefaultSSRRoute)', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/_next/data/:buildId/dynamic/ssr/:id.json'
+          )
+          expect(rule).not.toBeDefined()
+        })
+
+        it('should add rules which are returning not found page for ISG/ISR pages with fallback:false', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/fallback_false/:id'
+          )
+          const { origin, response } = rule?.if[1]
+
+          expect(response.set_status_code).toBe(404)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+        })
+
+        it('should not add rules for ISG/ISR pages with fallback:blocking (handled by addDefaultSSRRoute)', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/fallback_blocking/:id'
+          )
+          expect(rule).not.toBeDefined()
+        })
+
+        it('should not add rules for ISG/ISR pages with fallback:true (handled by addDefaultSSRRoute)', () => {
+          // remove this test once we add support for fallback:true via XBP
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/fallback_true/:id'
+          )
+          expect(rule).not.toBeDefined()
+        })
+      })
+
+      describe('should add rule for prerendered pages (addPrerenderedPages)', () => {
+        it('should add rule for prendered routes of SSG/ISG/ISR pages', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/static'))
+          const rulePaths = rule?.if?.[0]?.['in']?.[1]
+          const { caching, origin, response } = rule?.if[1]
+
+          // Pre-rendered routes together with trailing slash variants
+          expect(rulePaths).toContain('/dynamic/fallback_true/1')
+          expect(rulePaths).toContain('/dynamic/fallback_true/1/')
+          expect(rulePaths).toContain('/dynamic/fallback_true/2')
+          expect(rulePaths).toContain('/dynamic/fallback_true/2/')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/1')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/1/')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/2')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/2/')
+          expect(rulePaths).toContain('/dynamic/fallback_false/1')
+          expect(rulePaths).toContain('/dynamic/fallback_false/1/')
+          expect(rulePaths).toContain('/dynamic/fallback_false/2')
+          expect(rulePaths).toContain('/dynamic/fallback_false/2/')
+          expect(rulePaths).toContain('/ssg')
+          expect(rulePaths).toContain('/ssg/')
+          expect(rulePaths).toContain('/static')
+          expect(rulePaths).toContain('/static/')
+          expect(rulePaths).toContain('/')
+          expect(rulePaths).not.toContain('//')
+          expect(rulePaths).toContain('/app-folder-page')
+          expect(rulePaths).toContain('/app-folder-page/')
+
+          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).not.toBeDefined()
+          expect(caching.bypass_client_cache).toBe(true)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+          expect(response.set_status_code).toBe(200)
+        })
+
+        it('should add rule for prendered data routes of SSG/ISG/ISR pages', () => {
+          const rule = rules.find(rule =>
+            rule?.if?.[0]?.['in']?.[1]?.includes('/_next/data/buildId/static.json')
+          )
+          const rulePaths = rule?.if?.[0]?.['in']?.[1]
+          const { caching, origin, response } = rule?.if[1]
+
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_true/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_true/2.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_blocking/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_blocking/2.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_false/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_false/2.json')
+          expect(rulePaths).toContain('/_next/data/buildId/static.json')
+          expect(rulePaths).toContain('/_next/data/buildId/index.json')
+
+          // No need to add JSON file with trailing slash
+          expect(rulePaths).not.toContain('/_next/data/buildId/static.json/')
+          expect(rulePaths).not.toContain('/_next/data/buildId/index.json/')
+
+          expect(caching.max_age).toBe(FAR_FUTURE_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
+          expect(caching.bypass_client_cache).not.toBeDefined()
+          expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
+          expect(response.set_status_code).toBe(200)
+        })
+
+        it('should add separate rule for prendered SSG pages with dynamic route', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/ssg/:id')
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).not.toBeDefined()
+          expect(caching.bypass_client_cache).toBe(true)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+        })
+      })
+
+      describe('should add rules for public assets (addPublicAssets)', () => {
+        it('should add rule for assets from public/ folder', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/public.txt'))
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.browser.maxAgeSeconds)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+        })
+      })
+
+      describe('should add rules for server assets (addAssets)', () => {
+        it('should add rule for: "/_next/static/:path*"', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/_next/static/:path*')
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(FAR_FUTURE_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
+          expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
+        })
+
+        it('should add rule for: "/autostatic/:path*"', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/autostatic/:path*')
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(FAR_FUTURE_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
+          expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
+        })
+      })
+
+      it('should add rule for edgio image optimizer (addEdgioImageOptimizerRoutes)', () => {
+        const rule = rules.find(
+          rule => rule?.if?.[0]?.['==']?.[1] === '/_next/(image|future/image)'
+        )
+        const { caching, origin } = rule?.if[1]
+
+        expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+        expect(caching.bypass_client_cache).toBe(true)
+        expect(origin.set_origin).toBe(IMAGE_OPTIMIZER_ORIGIN_NAME)
+      })
+
+      it('should add rules for rewrites (addRewrites)', () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/rewrites/:id')
+        const urlRewrite = rule?.if[1]?.url?.url_rewrite[0]
+        expect(urlRewrite.source).toContain('/rewrites/:id')
+        expect(urlRewrite.destination).toContain('/p/:id')
+      })
+
+      it('should add rules for redirects (addRedirects)', () => {
+        const rule = rules.find(
+          rule =>
+            rule?.if?.[0]?.['=~']?.[1] ===
+            '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
+        )
+        const urlRedirect = rule?.if[1]?.url?.url_redirect
+        const urlRewrite = rule?.if[1]?.url?.url_rewrite[0]
+
+        // redirect
+        expect(urlRedirect.code).toBeDefined()
+        expect(urlRedirect.source).toContain(
+          '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
+        )
+        expect(urlRedirect.destination).toContain('/$1')
+        expect(urlRedirect.syntax).toBe('regexp')
+
+        // empty rewrite to remove any previous rewrites that may have been added
+        expect(urlRewrite.source).toContain('/:path*')
+        expect(urlRewrite.destination).toContain('/:path*')
+        expect(urlRewrite.syntax).toBe('path-to-regexp')
+      })
+
+      it('should add rule for service-worker', () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/service-worker.js')
+        const { origin } = rule?.if[1]
+        expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+      })
+
+      it('should add rule for devtools (edgioRoutes)', () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1].includes('/__edgio__/devtools/'))
+        expect(rule).toBeDefined()
+      })
+
+      it('should add rules in correct order', () => {
+        const defaultSSRIndex = rules.findIndex(rule => rule?.if?.[0]?.['==']?.[1] === '/(.*)')
+        const dynamicRouteIndex = rules.findIndex(
+          rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/ssg/:id'
+        )
+        const prerenderedRouteIndex = rules.findIndex(rule =>
+          rule?.if?.[0]?.['in']?.[1]?.includes('/static')
+        )
+        const publicAssetIndex = rules.findIndex(
+          rule => rule?.if?.[0]?.['==']?.[1] === '/public.txt'
+        )
+        const rewriteIndex = rules.findIndex(rule => rule?.if?.[0]?.['==']?.[1] === '/rewrites/:id')
+        const redirectIndex = rules.findIndex(
+          rule =>
+            rule?.if?.[0]?.['=~']?.[1] ===
+            '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
+        )
+
+        expect(
+          defaultSSRIndex <
+            dynamicRouteIndex <
+            prerenderedRouteIndex <
+            publicAssetIndex <
+            rewriteIndex <
+            redirectIndex
+        ).toBe(true)
+      })
+    })
+
+    describe('with localization', () => {
+      beforeAll(() => {
+        process.chdir(join(__dirname, '..', '..', 'apps', 'with-localization'))
+        mockNextConfig = require(join(process.cwd(), 'next.config.js'))
+        init()
+      })
+      afterAll(() => {
+        process.chdir(join(__dirname, '..', '..', 'apps', 'default'))
+        mockNextConfig = originalNextConfig
+        init()
+      })
+
+      describe('should add rules for pages (addPages)', () => {
+        it('should add rules which are returning not found page for ISG/ISR pages with fallback:false', () => {
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['==']?.[1] === '/:locale(en-US|fr|nl-NL)?/dynamic/fallback_false/:id'
+          )
+          const { origin, response } = rule?.if[1]
+
+          expect(response.set_status_code).toBe(404)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+        })
+
+        it('should not add rules for ISG/ISR pages with fallback:blocking (handled by addDefaultSSRRoute)', () => {
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['==']?.[1] ===
+              '/:locale(en-US|fr|nl-NL)?/dynamic/fallback_blocking/:id'
+          )
+          expect(rule).not.toBeDefined()
+        })
+
+        it('should not add rules for ISG/ISR pages with fallback:true (handled by addDefaultSSRRoute)', () => {
+          // remove this test once we add support for fallback:true via XBP
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['==']?.[1] === '/:locale(en-US|fr|nl-NL)?/dynamic/fallback_true/:id'
+          )
+          expect(rule).not.toBeDefined()
+        })
+      })
+
+      describe('should add rule for prerendered pages (addPrerenderedPages)', () => {
+        it('should add rule for prendered routes of SSG/ISG/ISR pages', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/static'))
+          const rulePaths = rule?.if?.[0]?.['in']?.[1]
+          const { caching, origin, response } = rule?.if[1]
+
+          // Pre-rendered routes together with trailing slash variants
+          // Without default locale
+          expect(rulePaths).toContain('/dynamic/fallback_true/1')
+          expect(rulePaths).toContain('/dynamic/fallback_true/1/')
+          expect(rulePaths).toContain('/dynamic/fallback_true/2')
+          expect(rulePaths).toContain('/dynamic/fallback_true/2/')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/1')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/1/')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/2')
+          expect(rulePaths).toContain('/dynamic/fallback_blocking/2/')
+          expect(rulePaths).toContain('/dynamic/fallback_false/1')
+          expect(rulePaths).toContain('/dynamic/fallback_false/1/')
+          expect(rulePaths).toContain('/dynamic/fallback_false/2')
+          expect(rulePaths).toContain('/dynamic/fallback_false/2/')
+          expect(rulePaths).toContain('/ssg')
+          expect(rulePaths).toContain('/ssg/')
+          expect(rulePaths).toContain('/static')
+          expect(rulePaths).toContain('/static/')
+          expect(rulePaths).toContain('/')
+
+          // With default locale
+          expect(rulePaths).toContain('/en-US/dynamic/fallback_true/1')
+          expect(rulePaths).toContain('/en-US/dynamic/fallback_true/1/')
+          expect(rulePaths).toContain('/en-US/dynamic/fallback_blocking/1')
+          expect(rulePaths).toContain('/en-US/dynamic/fallback_blocking/1/')
+          expect(rulePaths).toContain('/en-US/dynamic/fallback_false/1')
+          expect(rulePaths).toContain('/en-US/dynamic/fallback_false/1/')
+
+          // With all other locales
+          expect(rulePaths).toContain('/ssg')
+          expect(rulePaths).toContain('/ssg/')
+          expect(rulePaths).toContain('/en-US/ssg')
+          expect(rulePaths).toContain('/en-US/ssg/')
+          expect(rulePaths).toContain('/fr/ssg')
+          expect(rulePaths).toContain('/fr/ssg/')
+          expect(rulePaths).toContain('/nl-NL/ssg')
+          expect(rulePaths).toContain('/nl-NL/ssg/')
+
+          expect(rulePaths).toContain('/')
+          expect(rulePaths).not.toContain('//')
+
+          expect(rulePaths).toContain('/en-US')
+          expect(rulePaths).toContain('/en-US/')
+          expect(rulePaths).toContain('/fr')
+          expect(rulePaths).toContain('/fr/')
+
+          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).not.toBeDefined()
+          expect(caching.bypass_client_cache).toBe(true)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+          expect(response.set_status_code).toBe(200)
+        })
+
+        it('should add rule for prendered data routes of SSG/ISG/ISR pages', () => {
+          const rule = rules.find(rule =>
+            rule?.if?.[0]?.['in']?.[1]?.includes('/_next/data/buildId/static.json')
+          )
+          const rulePaths = rule?.if?.[0]?.['in']?.[1]
+          const { caching, origin, response } = rule?.if[1]
+
+          // Without default locale
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_true/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_blocking/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_false/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/static.json')
+          expect(rulePaths).toContain('/_next/data/buildId/index.json')
+
+          // With default locale
+          expect(rulePaths).toContain('/_next/data/buildId/en-US/dynamic/fallback_true/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/en-US/dynamic/fallback_blocking/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/en-US/dynamic/fallback_false/1.json')
+          expect(rulePaths).toContain('/_next/data/buildId/en-US/static.json')
+          expect(rulePaths).toContain('/_next/data/buildId/en-US.json')
+
+          // With all other locales
+          expect(rulePaths).toContain('/_next/data/buildId/en-US/ssg.json')
+          expect(rulePaths).toContain('/_next/data/buildId/fr/ssg.json')
+          expect(rulePaths).toContain('/_next/data/buildId/nl-NL/ssg.json')
+
+          expect(caching.max_age).toBe(FAR_FUTURE_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
+          expect(caching.bypass_client_cache).not.toBeDefined()
+          expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
+          expect(response.set_status_code).toBe(200)
+        })
+
+        it('should add separate rule for prendered SSG pages with dynamic route', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/en-US/dynamic/ssg/:id')
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).not.toBeDefined()
+          expect(caching.bypass_client_cache).toBe(true)
+          expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+        })
+      })
+    })
+
+    describe('special cases', () => {
+      const reset = () => {
+        mockNextConfig = JSON.parse(JSON.stringify(originalNextConfig))
+        mockEdgioConfig = JSON.parse(JSON.stringify(originalEdgioConfig))
+        init()
+      }
+
+      describe('with basePath property in next.config.js', () => {
+        beforeAll(() => {
+          mockNextConfig = { ...mockNextConfig, basePath: '/docs' }
+          init()
+        })
+        afterAll(reset)
+
+        it('should add base path in front of page route', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/docs/dynamic/ssg/:id')
+          expect(rule).toBeDefined()
+        })
+      })
+
+      describe('proxyToServerlessByDefault is false', () => {
+        beforeAll(() => {
+          mockEdgioConfig = {
+            ...mockEdgioConfig,
+            next: { ...mockEdgioConfig.next, proxyToServerlessByDefault: false },
+          }
+          init()
+        })
+        afterAll(reset)
+
+        it('should not add default SSR rule when "proxyToServerlessByDefault" is false', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/(.*)')
+          expect(rule?.if[1]?.origin?.set_origin).not.toBe(SERVERLESS_ORIGIN_NAME)
+        })
+
+        it('should add each route as a separate rule (/dynamic/fallback_blocking/:id)', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/fallback_blocking/:id'
+          )
+          expect(rule?.if[1]?.origin?.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+
+        it('should add each route as a separate rule (/_next/data/:buildId/dynamic/fallback_blocking/:id.json)', () => {
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['==']?.[1] ===
+              '/_next/data/:buildId/dynamic/fallback_blocking/:id.json'
+          )
+          expect(rule?.if[1]?.origin?.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+
+        it('should add each route as a separate rule (/dynamic/fallback_blocking/:id)', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/fallback_blocking/:id'
+          )
+          expect(rule?.if[1]?.origin?.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+
+        it('should add each route as a separate rule (/_next/data/:buildId/dynamic/fallback_true/:id.json)', () => {
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['==']?.[1] === '/_next/data/:buildId/dynamic/fallback_true/:id.json'
+          )
+          expect(rule?.if[1]?.origin?.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+
+        it('should add each route as a separate rule (/api/hello)', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/api/hello')
+          expect(rule?.if[1]?.origin?.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+      })
+
+      describe('enforceTrailingSlash is false', () => {
+        beforeAll(() => {
+          mockEdgioConfig = {
+            ...mockEdgioConfig,
+            next: { ...mockEdgioConfig.next, enforceTrailingSlash: false },
+          }
+          init()
+        })
+        afterAll(reset)
+
+        it('should not add rule with internal redirect when "enforceTrailingSlash" is false', () => {
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['=~']?.[1] ===
+              '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
+          )
+          expect(rule).not.toBeDefined()
+        })
+      })
+
+      describe('disableServiceWorker is true', () => {
+        beforeAll(() => {
+          mockEdgioConfig = {
+            ...mockEdgioConfig,
+            next: { ...mockEdgioConfig.next, disableServiceWorker: true },
+          }
+          init()
+        })
+        afterAll(reset)
+
+        it('should not add rule for service-worker when "disableServiceWorker" is true', () => {
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/service-worker.js')
+          expect(rule).not.toBeDefined()
+        })
+      })
+
+      describe('disableImageOptimizer is true', () => {
+        beforeAll(() => {
+          mockEdgioConfig = {
+            ...mockEdgioConfig,
+            next: { ...mockEdgioConfig.next, disableImageOptimizer: true },
+          }
+          init()
+        })
+        afterAll(reset)
+
+        it('should add rule for next image optimizer (addEdgioImageOptimizerRoutes) when "disableImageOptimizer" is true', () => {
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/_next/(image|future/image)'
+          )
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.bypass_client_cache).toBe(true)
+          expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+      })
+    })
   })
 })

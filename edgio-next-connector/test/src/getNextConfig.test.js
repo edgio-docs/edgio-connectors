@@ -13,7 +13,7 @@ describe('getNextConfig', () => {
       process.chdir(cwd)
     })
     it('should return the config', () => {
-      expect(getNextConfig()).toEqual({ foo: 'bar' })
+      expect(getNextConfig()).toEqual({ distDir: '.next' })
     })
   })
   describe('without config', () => {

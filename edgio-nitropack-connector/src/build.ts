@@ -3,11 +3,11 @@ import { join } from 'path'
 import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 
+const appDir = process.cwd()
+
 export default async function build(options: BuildOptions) {
   const builder = new DeploymentBuilder()
   builder.clearPreviousBuildOutput()
-
-  const appDir = process.cwd()
 
   if (!options.skipFramework) {
     const command = 'npx nitropack build'

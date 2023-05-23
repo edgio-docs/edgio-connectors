@@ -1,8 +1,7 @@
-import Router from '@edgio/core/router/Router'
 import { getSanityConfig } from './getSanityConfig'
-import RouteGroup from '@edgio/core/router/RouteGroup'
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import { isProductionBuild } from '@edgio/core/environment'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
+import { edgioRoutes } from '@edgio/core'
 
 /**
  * Adds all routes from your Sanity Studio app to Edgio router
@@ -17,9 +16,9 @@ import { isProductionBuild } from '@edgio/core/environment'
  * ```
  */
 
-export default class SanityRoutes extends PluginBase {
-  private readonly sanityRouteGroupName = 'sanity_routes_group'
-  private router?: Router
+export default class SanityRoutes implements RouterPlugin {
+  protected router?: Router
+
   /**
    * Called when plugin is registered. Adds a route for static assets
    * and a fallback to render responses using SSR for all other paths.
@@ -27,38 +26,33 @@ export default class SanityRoutes extends PluginBase {
    */
   onRegister(router: Router) {
     this.router = router
-    this.router.group(this.sanityRouteGroupName, group => this.addRoutesToGroup(group))
-  }
-
-  private addRoutesToGroup(group: RouteGroup) {
-    // Leveraging Edgio Router in both build and dev mode as `sanity start` fails to adjust according to the basePath inside sanity.json
-    const sanityConfig = getSanityConfig()
     if (isProductionBuild()) {
-      // If basePath inside sanity.json exists, serve the build on the basePath
-      if (sanityConfig?.project?.basePath) {
-        const basePath = sanityConfig.project.basePath
-        // Explicitly serve index.html on the desk route to avoid /desk#skd from returning 404
-        group.match(`${basePath}/desk`, ({ serveStatic }) => {
-          serveStatic('dist/index.html')
-        })
-        // Serve all the assets under basePath route
-        // Fallback to the index.html for the non-matching routes
-        group.match(`${basePath}/:path*`, ({ serveStatic }) => {
-          serveStatic('dist/:path*', {
-            onNotFound: async () => await serveStatic('dist/index.html'),
-          })
-        })
-      } else {
-        // If no basePath is found, serve the dist directory as static and fallback to index.html
-        group.static('dist', {})
-        this.router?.fallback(({ appShell }) => {
-          appShell('dist/index.html')
-        })
-      }
+      const sanityConfig = getSanityConfig()
+      const basePath = sanityConfig?.project?.basePath || ''
+
+      // Serve SPA as 404 not found page for all routes by default,
+      this.router?.match(`${basePath}/:path*`, ({ serveStatic, setResponseCode }) => {
+        serveStatic('dist/index.html')
+        setResponseCode(404)
+      })
+
+      // Serve all generated pages and the assets under basePath route
+      this.router.static('dist', {
+        paths: file => [`${basePath}/${file}`.replace(/\/\//g, '/')],
+        rewritePathSource: `${basePath}/:path*`,
+        handler: ({ setResponseCode }) => setResponseCode(200),
+      })
+
+      // Explicitly serve index.html on the desk route to avoid /desk#skd from returning 404
+      this.router?.match(`${basePath}/desk`, ({ serveStatic, setResponseCode }) => {
+        serveStatic('dist/index.html')
+        setResponseCode(200)
+      })
     } else {
-      this.router?.fallback(({ renderWithApp }) => {
+      router.match('/:path*', ({ renderWithApp }) => {
         renderWithApp()
       })
     }
+    this.router.use(edgioRoutes)
   }
 }

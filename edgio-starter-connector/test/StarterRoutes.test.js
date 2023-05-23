@@ -1,78 +1,30 @@
-describe('StarterRoutes', () => {
-  let StarterRoutes,
-    Router,
-    router,
-    request,
-    response,
-    responseHeaders = {},
-    cache,
-    serveStatic,
-    proxy,
-    serviceWorker
+import { STATIC_ORIGIN_NAME } from '@edgio/core/origins'
+import StarterRoutes from '../src/StarterRoutes'
+import { Router } from '@edgio/core/router'
 
-  beforeEach(() => {
+describe('StarterRoutes', () => {
+  let starterRoutes, router, rules
+
+  beforeAll(() => {
     jest.isolateModules(() => {
       jest.resetModules()
-      jest.spyOn(console, 'log').mockImplementation()
-      cache = jest.fn()
-      serveStatic = jest.fn()
-      proxy = jest.fn()
-      serviceWorker = jest.fn()
-
-      jest.doMock('@edgio/core/router/ResponseWriter', () => {
-        return class MockResponseWriter {
-          constructor() {
-            this.cache = cache
-            this.serveStatic = serveStatic
-            this.onRouteError = jest.fn()
-            this.proxy = proxy
-            this.serviceWorker = serviceWorker
-          }
-        }
-      })
-
-      Router = require('@edgio/core/router/Router').default
-      router = new Router()
-
-      request = {
-        url: '/',
-        method: 'get',
-        headers: {
-          host: 'domain.com',
-        },
-        on: (event, cb) => {
-          if (event === 'data') {
-            setImmediate(() => cb(request.body))
-          } else if (event === 'end') {
-            setImmediate(cb)
-          }
-        },
-      }
-
-      response = {
-        writeHead: jest.fn(),
-        end: jest.fn(),
-        setHeader: jest.fn((header, value) => {
-          responseHeaders[header] = value
-        }),
-        getHeaders: jest.fn(() => []),
-      }
-
-      StarterRoutes = require('../src/StarterRoutes').default
+      starterRoutes = new StarterRoutes()
+      router = new Router().use(starterRoutes)
+      rules = router.rules
     })
   })
 
-  it('should add a route for the service worker', async () => {
-    router.use(new StarterRoutes())
-    request.path = '/service-worker.js'
-    await router.run(request, response)
-    expect(serviceWorker).toHaveBeenCalledWith('dist/service-worker.js')
+  it('should add rule for service-worker', () => {
+    const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/service-worker.js')
+    const { origin } = rule?.if[1]
+    expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
   })
 
-  it('should add a route for main.js', async () => {
-    router.use(new StarterRoutes())
-    request.path = '/__edgio__/abc123/browser.js'
-    await router.run(request, response)
-    expect(serveStatic).toHaveBeenCalledWith('dist/browser.js')
+  it('should add rule for browser.js', async () => {
+    const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/__edgio__/:version/browser.js')
+    const { origin, caching } = rule?.if[1]
+    expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+    expect(caching.max_age).toBe('1y')
+    expect(caching.client_max_age).toBe('1y')
   })
 })

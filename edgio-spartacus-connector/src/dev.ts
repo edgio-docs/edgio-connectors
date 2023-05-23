@@ -1,15 +1,13 @@
 /* istanbul ignore file */
 import createDevServer from '@edgio/core/dev/createDevServer'
-
-const getEdgioConfig = require('@edgio/cli/utils/getEdgioConfig')
-const Logger = require('@edgio/cli/utils/Logger')
+import { getConfig } from '@edgio/core/config'
 
 function validateCommerceBackend(): void {
-  const edgioConfig = getEdgioConfig()
-  const backend = edgioConfig?.backends?.commerce?.domainOrIp
-  if (backend === '<your-api-server>') {
-    const logger = new Logger()
-    logger.error('*** ERROR *** You must update edgio.config.js with your SAP Commerce endpoint.')
+  const edgioConfig = getConfig()
+  const commerceOrigin = edgioConfig?.origins?.find(origin => origin.name === 'commerce')
+
+  if (!commerceOrigin || commerceOrigin?.override_host_header === '<your-api-server>') {
+    console.error('*** ERROR *** You must update edgio.config.js with your SAP Commerce endpoint.')
     process.exit(1)
   }
 }

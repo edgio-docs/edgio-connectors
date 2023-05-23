@@ -1,0 +1,22 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/api/[other]": "pages/api/[other].js",
+  "/api/dynamic/[id]": "pages/api/dynamic/[id].js",
+  "/api/hello": "pages/api/hello.js",
+  "/api/optional/[[...id]]": "pages/api/optional/[[...id]].js",
+  "/dynamic/ssg/[id]": "pages/dynamic/ssg/[id].html",
+  "/ssg": "pages/ssg.html",
+  "/dynamic/404": "pages/dynamic/404.html",
+  "/dynamic/ssr/[id]": "pages/dynamic/ssr/[id].js",
+  "/optional/[[...id]]": "pages/optional/[[...id]].js",
+  "/static": "pages/static.js",
+  "/": "pages/index.js",
+  "/dynamic/fallback_false/[id]": "pages/dynamic/fallback_false/[id].js",
+  "/dynamic/fallback_blocking/[id]": "pages/dynamic/fallback_blocking/[id].js",
+  "/dynamic/fallback_true/[id]": "pages/dynamic/fallback_true/[id].js",
+  "/dynamic/fallback_true_revalidate/[id]": "pages/dynamic/fallback_true_revalidate/[id].js",
+  "/dynamic/revalidate": "pages/dynamic/revalidate.js",
+  "/404": "pages/404.html"
+}

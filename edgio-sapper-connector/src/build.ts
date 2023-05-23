@@ -1,8 +1,6 @@
 /* istanbul ignore file */
 import { join } from 'path'
 import { BuildOptions, DeploymentBuilder } from '@edgio/core/deploy'
-import SapperRoutes from './router/SapperRoutes'
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import { writeFileSync, mkdirSync } from 'fs'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 
@@ -26,18 +24,6 @@ export default async function build(options: BuildOptions) {
     } catch (e) {
       throw new FrameworkBuildError('Sapper', command, e)
     }
-  }
-
-  const router = await builder.getRouter()
-  const plugin = <unknown>router.getPlugins().find((plugin: PluginBase) => SapperRoutes.is(plugin))
-  const sapperRoutes = <SapperRoutes>plugin
-
-  if (sapperRoutes) {
-    writeFileSync(
-      join(builder.jsDir, 'pages-manifest.json'),
-      JSON.stringify(sapperRoutes.pagesManifest),
-      'utf8'
-    )
   }
 
   builder

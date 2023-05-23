@@ -1,6 +1,6 @@
 {
   "name": "@edgio/nuxt-nitro",
-  "version": "6.1.7",
+  "version": "7.0.15",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,9 +10,9 @@
     "workbox-build": "^6.5.3"
   },
   "devDependencies": {
-    "@edgio/core": "^6.1.7",
-    "@edgio/devtools": "^6.1.7",
-    "@edgio/prefetch": "^6.1.7",
+    "@edgio/core": "^7.0.15",
+    "@edgio/devtools": "^7.0.15",
+    "@edgio/prefetch": "^7.0.15",
     "@types/fs-extra": "^8.1.1",
     "@types/lodash": "^4.14.162",
     "@types/workbox-build": "^5.0.1",
@@ -23,8 +23,7 @@
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt-nitro/src/* dist; webpack; node ./replaceDynamicImports.js",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
-    "release": "cd ./dist; npm publish --access public --tag latest-v6",
-    "release:next": "npm run release -- --tag next-v6",
+    "release": "cd ./dist; npm publish --access public",
     "test": "jest --runInBand --watchAll=false"
   },
   "watch": {

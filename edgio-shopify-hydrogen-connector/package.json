@@ -1,6 +1,6 @@
 {
   "name": "@edgio/shopify-hydrogen",
-  "version": "6.1.7",
+  "version": "7.0.15",
   "description": "Deploy Shopify Hydrogen apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -9,8 +9,7 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public --tag latest-v6",
-    "release:next": "npm run release -- --tag next-v6"
+    "release": "cd ./dist; npm publish --access public"
   },
   "keywords": [],
   "watch": {
@@ -28,8 +27,8 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/cli": "^6.1.7",
-    "@edgio/core": "^6.1.7"
+    "@edgio/cli": "^7.0.15",
+    "@edgio/core": "^7.0.15"
   },
   "dependencies": {
     "@vercel/nft": "^0.13.1",

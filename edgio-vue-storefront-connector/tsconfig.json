@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "target": "es6",
+    "target": "es2019",
     "module": "commonjs",
     "declaration": true,
     "outDir": "./stage",
     "strict": true,
     "esModuleInterop": true,
     "downlevelIteration": true,
+    "skipLibCheck": true,
     "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
     "baseUrl": "..",
-    "skipLibCheck": true,
     "paths": {
       "@edgio/core": ["core/src"],
       "@edgio/core/*": ["core/src/*"],

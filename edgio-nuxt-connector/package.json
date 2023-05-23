@@ -1,9 +1,10 @@
 {
   "name": "@edgio/nuxt",
-  "version": "6.1.7",
+  "version": "7.0.15",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
+    "@vercel/nft": "^0.22.1",
     "chalk": "^4.1.2",
     "content-type": "^1.0.4",
     "cross-spawn": "^7.0.3",
@@ -14,8 +15,8 @@
     "workbox-webpack-plugin": "^5.1.2"
   },
   "devDependencies": {
-    "@edgio/core": "^6.1.7",
-    "@edgio/prefetch": "^6.1.7",
+    "@edgio/core": "^7.0.15",
+    "@edgio/prefetch": "^7.0.15",
     "@nuxt/types": "^2.15.8",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
@@ -28,8 +29,7 @@
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt/src/* dist; webpack",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
-    "release": "cd ./dist; npm publish --access public --tag latest-v6",
-    "release:next": "npm run release -- --tag next-v6",
+    "release": "cd ./dist; npm publish --access public",
     "test": "jest --runInBand --watchAll=false"
   },
   "watch": {

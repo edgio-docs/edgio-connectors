@@ -1,10 +1,13 @@
 /* istanbul ignore file */
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { BuildOptions, DeploymentBuilder } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import bundle from './bundle'
 
 const appDir = process.cwd()
+const SW_SOURCE = resolve(appDir, 'sw', 'service-worker.js')
+const SW_DEST = resolve(appDir, '.edgio', 's3', 'service-worker.js')
+
 const buildDir = join(appDir, 'build')
 const builder = new DeploymentBuilder(appDir)
 
@@ -26,6 +29,11 @@ export default async function build(options: BuildOptions) {
       throw new FrameworkBuildError('Razzle', command)
     }
   }
+
+  await builder.buildServiceWorker({
+    swSrc: SW_SOURCE,
+    swDest: SW_DEST,
+  })
 
   await builder.build()
 }

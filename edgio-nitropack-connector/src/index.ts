@@ -1,4 +1,4 @@
-import NitropackRoutes from './nitropackRoutes'
+import NitropackRoutes from './NitropackRoutes'
 
 /**
  * Adds all routes from your Nitropack app to Edgio router

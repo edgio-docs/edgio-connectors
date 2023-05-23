@@ -1,25 +1,21 @@
 // This file was automatically added by xdn deploy.
 // You should commit this file to source control.
-const { Router } = require('@edgio/core/router')
-const { svelteKitRoutes } = require('@edgio/sveltekit/router')
+import { Router } from '@edgio/core/router'
+import { svelteKitRoutes } from '@edgio/sveltekit'
 
-const cacheHandler = ({ removeUpstreamResponseHeader, cache }) => {
-  removeUpstreamResponseHeader('cache-control')
-  cache({
-    edge: {
-      maxAgeSeconds: 60 * 60 * 24,
-      staleWhileRevalidateSeconds: 60 * 60 * 24,
-    },
-    browser: {
-      maxAgeSeconds: 0,
-      serviceWorkerSeconds: 60 * 60 * 24,
-    },
-  })
+const CACHE_FEATURE = {
+  caching: {
+    max_age: '24h',
+    bypass_client_cache: true,
+    service_worker_max_age: '24h',
+  },
+  headers: {
+    remove_origin_response_headers: ['cache-control'],
+  },
 }
 
-module.exports = new Router()
-
-  // add routes for specific assets to configure caching
-  .match('/:path*/:file.json', cacheHandler)
-  // automatically adds routes for all files under /pages
-  .use(svelteKitRoutes)
+export default new Router()
+    // automatically adds routes for all files
+    .use(svelteKitRoutes)
+    // add routes for specific assets to configure caching
+    .match('/:path*/:file.json', CACHE_FEATURE)

@@ -1,9 +1,7 @@
-import { existsSync } from 'fs'
-import { notFoundPageHTML } from './404'
+import { edgioRoutes } from '@edgio/core'
 import getAstroConfig from './getAstroConfig'
-import Router from '@edgio/core/router/Router'
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import { isProductionBuild } from '@edgio/core/environment'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
 
 /**
  * Adds all routes from your Astro app to Edgio router
@@ -18,27 +16,35 @@ import { isProductionBuild } from '@edgio/core/environment'
  * ```
  */
 
-export default class AstroRoutes extends PluginBase {
+export default class AstroRoutes implements RouterPlugin {
   private router?: Router
-  private readonly routeGroupName = 'astro_routes'
 
   /**
    * Called when plugin is registered. Adds a route for static assets
    * and a fallback to render responses using SSR for all other paths.
    * @param router
    */
-  onRegister(router: Router) {
+  async onRegister(router: Router) {
     this.router = router
+    this.addFallback()
     if (isProductionBuild()) {
-      router.group(this.routeGroupName, () => this.addRoutesToGroup())
-    } else {
-      if (existsSync('.edgio/temp/service-worker.js')) {
-        router.match('/service-worker.js', ({ serviceWorker }) => {
-          serviceWorker('.edgio/temp/service-worker.js')
-        })
-      }
-      this.addFallback()
+      this.addStaticAssets()
     }
+    router.use(edgioRoutes)
+  }
+
+  /**
+   * Adds rule for static assets
+   */
+  async addStaticAssets() {
+    const { outDir, output } = await getAstroConfig()
+    const server = output === 'server'
+
+    // If the output is static
+    // Serve assets from the static directory
+    // If the output is server (Astro SSR)
+    // Create serve static routes for the all the assets under dist/client folder
+    this.router?.static(server ? `${outDir}/client` : outDir)
   }
 
   /**
@@ -46,39 +52,13 @@ export default class AstroRoutes extends PluginBase {
    */
   addFallback(mode: boolean = true, dist?: string) {
     if (mode) {
-      this.router?.fallback(({ renderWithApp }) => {
+      this.router?.match('/:path*', ({ renderWithApp }) => {
         renderWithApp()
       })
-    } else {
-      this.router?.fallback(({ serveStatic, send }) => {
-        serveStatic(`${dist}/404.html`, {
-          onNotFound: async () => {
-            send(notFoundPageHTML, 404, 'Not Found')
-          },
-        })
-      })
+      return
     }
-  }
-
-  private addRoutesToGroup() {
-    const { outDir, output, edgio_SW } = getAstroConfig()
-    const server = output === 'server'
-
-    // If the service worker is present in the config as true
-    // bundle the service worker from the expected path
-    if (edgio_SW) {
-      this.router?.match('/service-worker.js', ({ serviceWorker }) => {
-        serviceWorker('.edgio/temp/service-worker.js')
-      })
-    }
-
-    // If the output is static
-    // Serve assets from the static directory
-    // If the output is server (Astro SSR)
-    // Create serve static routes for the all the assets under dist/client folder
-    this.router?.static(server ? `${outDir}/client` : outDir)
-
-    // All other paths that are not part of the outDir directory
-    this.addFallback(server, outDir)
+    this.router?.match('/:path*', ({ serveStatic, send }) => {
+      serveStatic(`${dist}/404.html`)
+    })
   }
 }

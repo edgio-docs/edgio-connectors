@@ -1,59 +1,49 @@
 // This file was automatically added by edgio deploy.
 // You should commit this file to source control.
+const { Router } = require('@edgio/core')
+const { angularRoutes } = require('@edgio/angular')
 
-import { Router } from '@edgio/core/router'
-import { angularRoutes } from '@edgio/angular'
-
-const PAGE_TTL = 60 * 60 * 24
-const FAR_FUTURE_TTL = 60 * 60 * 24 * 365 * 10
-
-const CACHE_API = {
-  browser: {
-    maxAgeSeconds: PAGE_TTL,
-    serviceWorkerSeconds: PAGE_TTL,
-  },
-  edge: {
-    maxAgeSeconds: PAGE_TTL,
-    staleWhileRevalidateSeconds: PAGE_TTL,
-    forcePrivateCaching: true,
+const CACHE_API_FEATURE = {
+  caching: {
+    max_age: '24h',
+    stale_while_revalidate: '24h',
+    client_max_age: '24h',
+    service_worker_max_age: '24h',
   },
 }
 
-const CACHE_ASSETS = {
-  browser: {
-    maxAgeSeconds: PAGE_TTL,
-  },
-  edge: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-    staleWhileRevalidateSeconds: PAGE_TTL,
-    forcePrivateCaching: true,
+const CACHE_ASSETS_FEATURE = {
+  caching: {
+    max_age: '1y',
+    stale_while_revalidate: '24h',
+    client_max_age: '24h',
   },
 }
 
-const CACHE_SSR_PAGE = {
-  prefetchUpstreamRequests: true,
-  edge: {
-    maxAgeSeconds: PAGE_TTL * 365,
-    staleWhileRevalidateSeconds: PAGE_TTL * 365,
-    forcePrivateCaching: true,
+const CACHE_SSR_PAGE_FEATURE = {
+  caching: {
+    max_age: '1y',
+    stale_while_revalidate: '1y',
   },
 }
 
 export default new Router()
-
-  .match('/rest/v2/:path*', ({ cache, proxy }) => {
-    cache(CACHE_API)
-    proxy('commerce')
-  })
-  .match('/medias/:path*', ({ cache, proxy }) => {
-    cache(CACHE_ASSETS)
-    proxy('commerce')
-  })
-  .post('/authorizationserver/oauth/:path*', ({ proxy }) => {
-    proxy('commerce')
-  })
-  // Example route that forces prefetching of requests listed in an x-0-upstream-requests header
-  .get('/products/:path*', ({ cache }) => {
-    cache(CACHE_SSR_PAGE)
-  })
   .use(angularRoutes)
+  .match('/rest/v2/:path*', {
+    ...CACHE_API_FEATURE,
+    origin: {
+      set_origin: 'commerce',
+    },
+  })
+  .match('/medias/:path*', {
+    ...CACHE_ASSETS_FEATURE,
+    origin: {
+      set_origin: 'commerce',
+    },
+  })
+  .post('/authorizationserver/oauth/:path*', {
+    origin: {
+      set_origin: 'commerce',
+    },
+  })
+  .get('/products/:path*', CACHE_SSR_PAGE_FEATURE)

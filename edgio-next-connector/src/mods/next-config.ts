@@ -26,16 +26,10 @@ module.exports = function transformNextConfig(fileInfo: FileInfo, api: API) {
   const edgioNextConfigRoot = j(
     readFileSync(join(__dirname, '..', 'default-app', 'all', 'next.config.js')).toString()
   )
-  const l0DefaultExport = edgioNextConfigRoot.find(
+  const edgDefaultExport = edgioNextConfigRoot.find(
     j.AssignmentExpression,
     node => node.left?.object?.name === 'module' && node.left?.property?.name === 'exports'
   )
-
-  const withServiceWorkerExpr = edgioNextConfigRoot.find(
-    j.CallExpression,
-    expr => expr.callee.name === 'withServiceWorker'
-  )
-  const withServiceWorkerArg = withServiceWorkerExpr.find(j.ObjectExpression)
 
   const existingExportVar = j.identifier(OLD_EXPORT_VAR_NAME)
   defaultExport.replaceWith(
@@ -44,15 +38,21 @@ module.exports = function transformNextConfig(fileInfo: FileInfo, api: API) {
     ])
   )
   const existingResultExpr = isFunction
-    ? j.callExpression(existingExportVar, l0DefaultExport.get().value.right.params)
+    ? j.callExpression(existingExportVar, edgDefaultExport.get().value.right.params)
     : existingExportVar
   const existingResult = j.spreadElement(existingResultExpr)
-  withServiceWorkerArg.get().value.properties.push(existingResult)
+
+  const withEdgioExpr = edgioNextConfigRoot.find(
+    j.CallExpression,
+    expr => expr.callee.name === 'withEdgio'
+  )
+  const withEdgioArg = withEdgioExpr.find(j.ObjectExpression)
+  withEdgioArg.get().value.properties.push(existingResult)
 
   const newExportDefault = j.assignmentExpression(
     '=',
     j.memberExpression(j.identifier('module'), j.identifier('exports')),
-    l0DefaultExport.get().value.right
+    edgDefaultExport.get().value.right
   )
 
   // add the imports from the top of the L0 config file:
@@ -61,7 +61,7 @@ module.exports = function transformNextConfig(fileInfo: FileInfo, api: API) {
     .get('program')
     .get('body')
     .value.forEach((node: any) => {
-      if (node.expression !== l0DefaultExport.get().value) {
+      if (node.expression !== edgDefaultExport.get().value) {
         rootBody.unshift(node)
       }
     })

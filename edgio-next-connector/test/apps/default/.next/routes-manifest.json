@@ -1,0 +1,216 @@
+{
+  "version": 3,
+  "pages404": true,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    },
+    {
+      "source": "/temp-redirects/:id",
+      "destination": "/p/:id",
+      "statusCode": 307
+    },
+    {
+      "source": "/perm-redirects/:id",
+      "destination": "/p/:id",
+      "statusCode": 308
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/rewrites/:id",
+      "destination": "/p/:id"
+    },
+    {
+      "source": "/no-matching-rewrite",
+      "destination": "/not-defined"
+    }
+  ],
+  "headers": [],
+  "dynamicRoutes": [
+    {
+      "page": "/api/dynamic/[id]",
+      "regex": "^/api/dynamic/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/api/dynamic/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/optional/[[...id]]",
+      "regex": "^/api/optional(?:/(.+?))?(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/api/optional(?:/(?<id>.+?))?(?:/)?$"
+    },
+    {
+      "page": "/api/[other]",
+      "regex": "^/api/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "other": "other"
+      },
+      "namedRegex": "^/api/(?<other>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dynamic/ssg/[id]",
+      "regex": "^/dynamic/ssg/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/ssg/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dynamic/ssr/[id]",
+      "regex": "^/dynamic/ssr/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/ssr/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/optional/[[...id]]",
+      "regex": "^/optional(?:/(.+?))?(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/optional(?:/(?<id>.+?))?(?:/)?$"
+    },
+    {
+      "page": "/dynamic/fallback_blocking/[id]",
+      "regex": "^/dynamic/fallback_blocking/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/fallback_blocking/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dynamic/fallback_false/[id]",
+      "regex": "^/dynamic/fallback_false/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/fallback_false/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dynamic/fallback_true/[id]",
+      "regex": "^/dynamic/fallback_true/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/fallback_true/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dynamic/fallback_true_revalidate/[id]",
+      "regex": "^/dynamic/fallback_true_revalidate/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/fallback_true_revalidate/(?<id>[^/]+?)(?:/)?$"
+    }
+  ],
+  "dataRoutes": [
+    {
+      "page": "/",
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/index.json$"
+    },
+    {
+      "page": "/dynamic/ssr/[id]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/ssr/([^/]+?)\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/ssr/(?<id>[^/]+?)\\.json$"
+    },
+    {
+      "page": "/optional/[[...id]]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/optional(?:/(.+?))?\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/optional(?:/(?<id>.+?))?\\.json$"
+    },
+    {
+      "page": "/static",
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/static.json$"
+    },
+    {
+      "page": "/dynamic/fallback_blocking/[id]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_blocking/([^/]+?)\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_blocking/(?<id>[^/]+?)\\.json$"
+    },
+    {
+      "page": "/dynamic/fallback_false/[id]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_false/([^/]+?)\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_false/(?<id>[^/]+?)\\.json$"
+    },
+    {
+      "page": "/dynamic/fallback_true/[id]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_true/([^/]+?)\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_true/(?<id>[^/]+?)\\.json$"
+    },
+    {
+      "page": "/dynamic/fallback_true_revalidate/[id]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_true_revalidate/([^/]+?)\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_true_revalidate/(?<id>[^/]+?)\\.json$"
+    },
+    {
+      "page": "/dynamic/revalidate",
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/revalidate.json$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/ssg",
+      "regex": "^/ssg(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/ssg(?:/)?$"
+    },
+    {
+      "page": "/static",
+      "regex": "^/static(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/static(?:/)?$"
+    },
+    {
+      "page": "/static/404",
+      "regex": "^/static/404(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/static/404(?:/)?$"
+    },
+    {
+      "page": "/static/revalidate",
+      "regex": "^/static/revalidate(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/static/revalidate(?:/)?$"
+    },
+    {
+      "page": "/app-folder-page",
+      "regex": "^/app\\-folder\\-page(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/app\\-folder\\-page(?:/)?$"
+    }
+  ]
+}

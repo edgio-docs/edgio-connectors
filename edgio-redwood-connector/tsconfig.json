@@ -7,9 +7,9 @@
     "strict": true,
     "esModuleInterop": true,
     "downlevelIteration": true,
+    "skipLibCheck": true,
     "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
     "baseUrl": "..",
-    "skipLibCheck": true,
     "paths": {
       "@edgio/core": ["core/src"],
       "@edgio/core/*": ["core/src/*"]

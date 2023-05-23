@@ -1,496 +1,354 @@
-import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
-import { BACKENDS } from '@edgio/core/constants'
+import { Router } from '@edgio/core/router'
+import NuxtRoutes from '../../src/router/NuxtRoutes'
+import MockRequest from '../../../core/test/mocks/MockRequest'
+import MockResponse from '../../../core/test/mocks/MockResponse'
+import PropertyContext from '../../../core/src/runtime/PropertyContext'
+import nock from 'nock'
+import {
+  createPermanentStaticOrigin,
+  createServerlessOrigin,
+  createStaticOrigin,
+} from '../../../core/src/origins'
+import RequestContext from '../../../core/src/runtime/RequestContext'
+import Cache from '../../../core/src/runtime/Cache'
+import { HTTP_HEADERS } from '../../../core/src/constants'
 import { join } from 'path'
-import { mockRequest, mockResponse } from './mocks'
-import * as assets from '../../src/router/assets'
-import addPreloadHeaders from '@edgio/core/router/addPreloadHeaders'
-import * as coreWatch from '@edgio/core/utils/watch'
+
+function request(url, options) {
+  return new MockRequest(url, options)
+}
+
+function response() {
+  return new MockResponse()
+}
 
 describe('NuxtRoutes', () => {
-  let NuxtRoutes,
-    Router,
-    router,
-    request,
-    response,
-    responseHeaders = {},
-    cache,
-    serveStatic,
-    proxy,
-    renderWithApp,
-    stream,
-    setRequestHeader,
-    watchCallback,
-    routes,
-    nuxtConfig,
-    NODE_ENV = process.env.NODE_ENV,
-    responseWriter,
-    originalDir = process.cwd()
-
-  beforeAll(() => {
-    process.chdir(join(__dirname, '..', 'test-app'))
-  })
-
-  afterAll(() => {
-    process.chdir(originalDir)
-  })
+  let router,
+    serverlessNock,
+    // staticNock,
+    staticPermaNock,
+    propertyContext,
+    env = process.env.NODE_ENV,
+    cwd = process.cwd()
 
   beforeEach(() => {
-    jest.isolateModules(() => {
-      routes = []
-      nuxtConfig = {}
-      cache = jest.fn()
-      serveStatic = jest.fn()
-      proxy = jest.fn()
-      stream = jest.fn()
-      setRequestHeader = jest.fn()
-      renderWithApp = jest.fn()
+    process.chdir(join(__dirname, '..', 'apps', 'server'))
 
-      jest.spyOn(coreWatch, 'default').mockImplementation(() => {
-        return {
-          on: (_filter, callback) => {
-            watchCallback = callback
-          },
-        }
-      })
+    router = new Router().use(new NuxtRoutes())
 
-      jest.spyOn(assets, 'readAsset').mockImplementation(path => {
-        if (path.endsWith('routes.json')) {
-          return routes ? JSON.stringify(routes) : ''
-        } else if (path.endsWith('edgio-nuxt.config.json')) {
-          return JSON.stringify(nuxtConfig)
-        } else {
-          throw new Error(`path ${path} not mocked`)
-        }
-      })
+    serverlessNock = nock('http://127.0.0.1:3001')
+    // TODO: how to think about this? how does it relate to remote?
+    // staticNock = nock('http://127.0.0.1:3002')
+    staticPermaNock = nock('http://127.0.0.1:3002')
 
-      jest.doMock('@edgio/core/router/ResponseWriter', () => {
-        return class MockResponseWriter {
-          constructor() {
-            responseWriter = this
-            this.cache = cache
-            this.serveStatic = serveStatic
-            this.onRouteError = jest.fn()
-            this.proxy = proxy
-            this.render = cb => cb(request, response, {})
-            this.stream = stream
-            this.setRequestHeader = setRequestHeader
-            this.renderWithApp = renderWithApp
-          }
-        }
-      })
-
-      Router = require('@edgio/core/router/Router').default
-      router = new Router()
-      router.setBackend('__js__', { domainOrIp: 'js.backend' })
-      request = mockRequest()
-      response = mockResponse(responseHeaders)
-      NuxtRoutes = require('../../src/router/NuxtRoutes').default
+    propertyContext = new PropertyContext({
+      hostnames: [
+        {
+          hostname: 'www.example.com',
+          default_origin_name: 'web',
+        },
+      ],
+      origins: [
+        {
+          name: 'web',
+          balancer: 'round_robin',
+          hosts: [{ location: 'origin1.www.example.com' }],
+        },
+        createStaticOrigin(),
+        createPermanentStaticOrigin(),
+        createServerlessOrigin(),
+      ],
     })
   })
 
   afterEach(() => {
-    watchCallback = undefined
-    routes = []
+    process.env.NODE_ENV = env
+    process.chdir(cwd)
   })
 
-  describe('#constructor', () => {
-    it.only('should watch the routes file in development', () => {
-      routes = [{ path: '/p/:id?' }]
-      router.use(new NuxtRoutes())
-      const group = router.routeGroups.findByName('nuxt_routes_group')
-      expect(group.routes.length).toBe(5)
-      watchCallback('change')
-      expect(group.routes.map(route => route.criteria.path)).toContain('/p/:id')
-    })
-
-    it('should accept an empty routes file', () => {
-      router.use(new NuxtRoutes())
-      routes = null
-      const group = router.routeGroups.findByName('nuxt_routes_group')
-      watchCallback('change')
-      expect(group.routes.length).toBe(4)
-    })
-
-    it('should not watch the routes file in development', () => {
-      const env = process.env.NODE_ENV
-      process.env.NODE_ENV = 'production'
-
-      try {
-        router.use(new NuxtRoutes())
-        expect(watchCallback).not.toBeDefined()
-      } finally {
-        process.env.NODE_ENV = env
-      }
-    })
-  })
-
-  describe('in production', () => {
-    const env = process.env.NODE_ENV
-
-    beforeEach(() => {
-      process.env.NODE_ENV = 'production'
-    })
-
-    afterEach(() => {
-      process.env.NODE_ENV = env
-    })
-
-    it('should fallback to dynamic 404', async () => {
-      request.path = '/not-found'
-      await new Router().use(new NuxtRoutes()).run(request, response)
-      expect(renderWithApp).toHaveBeenCalled()
-    })
-
-    it('should serve static assets before dynamic pages', async () => {
-      routes = [{ path: '/*' }]
-      router.use(new NuxtRoutes())
-      request.path = '/_nuxt/pages/index.js'
-      await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.nuxt/dist/client/:path*', {
-        exclude: ['service-worker.js', 'LICENSES'],
-        permanent: true,
-      })
-    })
-
-    it('should far future cache in production mode', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/_nuxt/pages/index.js'
-      await router.run(request, response)
-      expect(cache.mock.calls[0][0].browser).toEqual({ maxAgeSeconds: 315360000 })
-    })
-
-    it('should add routes for all static assets', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/_nuxt/pages/index.js'
-      await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('.nuxt/dist/client/:path*', {
-        exclude: ['service-worker.js', 'LICENSES'],
-        permanent: true,
-      })
-    })
-
-    it('should add routes for all public assets', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/favicon.ico'
-      await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('static/favicon.ico')
-    })
-  })
-
-  describe('in local development', () => {
-    it('should add routes for all static assets', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/_nuxt/pages/index.js'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js)
-      expect(cache.mock.calls[0][0].browser).toBe(false)
-    })
-
-    it('should add routes for all public assets', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/favicon.ico'
-      await router.run(request, response)
-      expect(serveStatic).toHaveBeenCalledWith('static/favicon.ico')
-    })
-
-    it('should stream /__webpack_hmr/*path', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/__webpack_hmr/643563456.js'
-      await router.run(request, response)
-      expect(stream).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should stream /_nuxt/:hash.hot-update.json', async () => {
-      router.use(new NuxtRoutes())
-      request.path = '/_nuxt/643563456.hot-update.json'
-      await router.run(request, response)
-      expect(stream).toHaveBeenCalledWith(BACKENDS.js)
-    })
-
-    it('should add routes for all pages', async () => {
-      routes = [{ path: '/p/:id?' }]
-      router.use(new NuxtRoutes())
-      request.path = '/p/1'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: expect.any(Function) })
-    })
-
-    it('should add catch-all routes', async () => {
-      routes = [{ path: '/p/*' }]
-      router.use(new NuxtRoutes())
-      request.path = '/p/1'
-      await router.run(request, response)
-      expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: expect.any(Function) })
-    })
-
-    it('should add a fallback to Nuxt', async () => {
-      routes = [{ path: '/p/*' }]
-      router.use(new NuxtRoutes())
-      request.path = '/not-found-page'
-      await router.run(request, response)
-      expect(renderWithApp).toHaveBeenCalledWith()
-    })
-  })
-
-  describe('in the cloud', () => {
-    beforeAll(() => {
-      process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-    })
-
-    afterAll(() => {
-      delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-    })
-  })
-
-  describe('#loadNuxtRoutes', () => {
-    it('should return undefined when the routes file is empty', () => {
-      routes = null
-      expect(new NuxtRoutes().loadNuxtRoutes()).toBeUndefined()
-    })
-  })
-
-  describe('#is', () => {
-    it('should return true when passed an instance of NuxtRoutes', () => {
-      expect(NuxtRoutes.is(new NuxtRoutes())).toBe(true)
-    })
-    it('should return false when passed anything else', () => {
-      expect(NuxtRoutes.is({})).toBe(false)
-    })
-    it('should return false when passed null', () => {
-      expect(NuxtRoutes.is(null)).toBe(false)
-    })
-  })
-
-  describe('static apps', () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = 'production'
-    })
-
-    afterEach(() => {
-      process.env.NODE_ENV = NODE_ENV
-    })
-
-    describe('fallback: true', () => {
+  describe('static', () => {
+    describe('in production', () => {
       beforeEach(() => {
-        routes = [
-          {
-            name: 'static',
-            path: '/static',
-          },
-          {
-            name: 'checkout',
-            path: '/checkout',
-          },
-          {
-            name: 'dynamic-dynamic',
-            path: '/dynamic/:dynamic?',
-          },
-          {
-            name: 'static-dynamic-static_dynamic',
-            path: '/static-dynamic/:static_dynamic?',
-          },
-        ]
-
-        nuxtConfig = {
-          target: 'static',
-          generate: {
-            fallback: true,
-            exclude: [
-              { type: 'RegExp', value: '/dynamic/.*' },
-              { type: 'string', value: '/checkout' },
-            ],
-          },
-        }
+        process.env.NODE_ENV = 'production'
       })
 
-      it('should serve 404.html', async () => {
-        request.path = '/static'
-        await new Router().use(new NuxtRoutes()).run(request, response)
-
-        // verify that the route is handled with serveStatic
-        expect(serveStatic).toHaveBeenCalledWith('dist/static/index.html', {
-          loadingPage: undefined,
-          onNotFound: expect.any(Function),
+      describe('route parsing', () => {
+        beforeEach(() => {
+          process.chdir(join(__dirname, '..', 'apps', 'static', 'route-parsing'))
+          router = new Router().use(new NuxtRoutes())
         })
 
-        // verify that it falls back to SSR
-        const { onNotFound } = serveStatic.mock.calls[0][1]
-        await onNotFound(responseWriter)
-        expect(serveStatic).toHaveBeenCalledWith('dist/404.html', {
-          statusCode: 404,
-          statusMessage: 'Not Found',
+        it('should return index page (root)', async () => {
+          staticPermaNock.get('/dist/').reply(200, 'index')
+
+          const res = response()
+
+          const { rules, functions } = router
+
+          await new RequestContext({
+            request: request('https://www.example.com/', {}),
+            response: res,
+            propertyContext,
+            rules,
+            cache: new Cache(),
+            functions,
+          }).execute()
+
+          expect(res.body.toString()).toBe('index')
+        })
+
+        it('should return products (nested)', async () => {
+          staticPermaNock.get('/dist/products').reply(200, 'product')
+
+          const res = response()
+
+          const { rules, functions } = router
+
+          await new RequestContext({
+            request: request('https://www.example.com/products', {}),
+            response: res,
+            propertyContext,
+            rules,
+            cache: new Cache(),
+            functions,
+          }).execute()
+
+          expect(res.body.toString()).toBe('product')
         })
       })
 
-      it('should serve 404.html when no route matches the request', async () => {
-        request.path = '/no-match'
-        await new Router().use(new NuxtRoutes()).run(request, response)
-        expect(serveStatic).toHaveBeenCalledWith('dist/404.html', {
-          statusCode: 404,
-          statusMessage: 'Not Found',
+      describe('fallbacks', () => {
+        describe('fallback: true', () => {
+          beforeEach(() => {
+            process.chdir(join(__dirname, '..', 'apps', 'static', 'fallbacks', 'true'))
+            router = new Router().use(new NuxtRoutes())
+          })
+
+          it('should fallback to 404.html as SPA', async () => {
+            staticPermaNock.get('/dist/404.html').reply(200, 'fallback')
+
+            const res = response()
+
+            const { rules, functions } = router
+
+            await new RequestContext({
+              request: request('https://www.example.com/doesnt-exist', {}),
+              response: res,
+              propertyContext,
+              rules,
+              cache: new Cache(),
+              functions,
+            }).execute()
+
+            expect(res.body.toString()).toBe('fallback')
+          })
+        })
+
+        describe('fallback: undefined', () => {
+          beforeEach(() => {
+            process.chdir(join(__dirname, '..', 'apps', 'static', 'fallbacks', 'undefined'))
+            router = new Router().use(new NuxtRoutes())
+          })
+
+          it('should fallback to 200.html as SPA', async () => {
+            staticPermaNock.get('/dist/200.html').reply(200, 'fallback')
+
+            const res = response()
+
+            const { rules, functions } = router
+
+            await new RequestContext({
+              request: request('https://www.example.com/doesnt-exist', {}),
+              response: res,
+              propertyContext,
+              rules,
+              cache: new Cache(),
+              functions,
+            }).execute()
+
+            expect(res.body.toString()).toBe('fallback')
+          })
+        })
+
+        describe('fallback: false', () => {
+          beforeEach(() => {
+            process.chdir(join(__dirname, '..', 'apps', 'static', 'fallbacks', 'false'))
+            router = new Router().use(new NuxtRoutes())
+          })
+
+          it('should return 504 status code', async () => {
+            const res = response()
+
+            const { rules, functions } = router
+
+            await new RequestContext({
+              request: request('https://www.example.com/doesnt-exist', {}),
+              response: res,
+              propertyContext,
+              rules,
+              cache: new Cache(),
+              functions,
+            }).execute()
+
+            expect(res.statusCode).toBe(504)
+          })
+        })
+
+        describe('fallback: custom path', () => {
+          beforeEach(() => {
+            process.chdir(join(__dirname, '..', 'apps', 'static', 'fallbacks', 'path'))
+            router = new Router().use(new NuxtRoutes())
+          })
+
+          it('should return custom page as SPA', async () => {
+            staticPermaNock.get('/dist/custom-404.html').reply(200, 'fallback')
+
+            const res = response()
+
+            const { rules, functions } = router
+
+            await new RequestContext({
+              request: request('https://www.example.com/doesnt-exist', {}),
+              response: res,
+              propertyContext,
+              rules,
+              cache: new Cache(),
+              functions,
+            }).execute()
+
+            expect(res.body.toString()).toBe('fallback')
+          })
         })
       })
     })
+  })
 
-    describe('fallback: false', () => {
+  describe('server', () => {
+    describe('in production', () => {
       beforeEach(() => {
-        routes = [
-          {
-            name: 'static',
-            path: '/static',
-          },
-          {
-            name: 'checkout',
-            path: '/checkout',
-          },
-          {
-            name: 'dynamic-dynamic',
-            path: '/dynamic/:dynamic?',
-          },
-          {
-            name: 'static-dynamic-static_dynamic',
-            path: '/static-dynamic/:static_dynamic?',
-          },
-        ]
-
-        nuxtConfig = {
-          target: 'static',
-          generate: {
-            fallback: false,
-            exclude: [
-              { type: 'RegExp', value: '/dynamic/.*' },
-              { type: 'string', value: '/checkout' },
-            ],
-          },
-        }
+        process.env.NODE_ENV = 'production'
+        router = new Router().use(new NuxtRoutes())
       })
 
-      it('should serve 404.js', async () => {
-        request.path = '/static'
-        await new Router().use(new NuxtRoutes()).run(request, response)
+      it('should fallback to dynamic 404', async () => {
+        serverlessNock.get('/not-found').reply(404, '404')
 
-        // verify that the route is handled with serveStatic
-        expect(serveStatic).toHaveBeenCalledWith('dist/static/index.html', {
-          loadingPage: undefined,
-          onNotFound: undefined,
-        })
+        const res = response()
+
+        const { rules, functions } = router
+
+        await new RequestContext({
+          request: request('https://www.example.com/not-found', {}),
+          response: res,
+          propertyContext,
+          rules,
+          cache: new Cache(),
+          functions,
+        }).execute()
+
+        expect(res.body.toString()).toBe('404')
+      })
+
+      it('should serve static assets before dynamic pages', async () => {
+        staticPermaNock.get('/.nuxt/dist/client/index.js').reply(200, 'static')
+
+        const res = response()
+
+        const { rules, functions } = router
+
+        await new RequestContext({
+          request: request('https://www.example.com/_nuxt/index.js', {}),
+          response: res,
+          propertyContext,
+          rules,
+          cache: new Cache(),
+          functions,
+        }).execute()
+
+        expect(res.body.toString()).toBe('static')
+      })
+
+      it('should far future cache in production mode', async () => {
+        staticPermaNock.get('/.nuxt/dist/client/index.js').reply(200, 'static')
+
+        const res = response()
+
+        const { rules, functions } = router
+
+        await new RequestContext({
+          request: request('https://www.example.com/_nuxt/index.js', {}),
+          response: res,
+          propertyContext,
+          rules,
+          cache: new Cache(),
+          functions,
+        }).execute()
+
+        expect(res.headers[HTTP_HEADERS.cacheControl]).toBe('max-age=315360000')
+      })
+
+      it('should add routes for all static assets', async () => {
+        staticPermaNock.get('/static/favicon.ico').reply(200, 'icon')
+
+        const res = response()
+
+        const { rules, functions } = router
+
+        await new RequestContext({
+          request: request('https://www.example.com/favicon.ico', {}),
+          response: res,
+          propertyContext,
+          rules,
+          cache: new Cache(),
+          functions,
+        }).execute()
+
+        expect(res.body.toString()).toBe('icon')
       })
     })
 
-    describe('fallback w/custom page', () => {
+    describe('in local development', () => {
       beforeEach(() => {
-        routes = [
-          {
-            name: 'static',
-            path: '/static',
-          },
-          {
-            name: 'checkout',
-            path: '/checkout',
-          },
-          {
-            name: 'dynamic-dynamic',
-            path: '/dynamic/:dynamic?',
-          },
-          {
-            name: 'static-dynamic-static_dynamic',
-            path: '/static-dynamic/:static_dynamic?',
-          },
-        ]
-
-        nuxtConfig = {
-          target: 'static',
-          generate: {
-            fallback: 'fallback.html',
-            exclude: [
-              { type: 'RegExp', value: '/dynamic/.*' },
-              { type: 'string', value: '/checkout' },
-            ],
-          },
-        }
+        process.env.NODE_ENV = 'development'
+        router = new Router().use(new NuxtRoutes())
       })
 
-      it('should serve 404.js', async () => {
-        request.path = '/static'
-        await new Router().use(new NuxtRoutes()).run(request, response)
+      it('should hit serverless for nuxt assets', async () => {
+        serverlessNock.get('/_nuxt/index.js').reply(200, 'static')
 
-        // verify that the route is handled with serveStatic
-        expect(serveStatic).toHaveBeenCalledWith('dist/static/index.html', {
-          loadingPage: 'dist/fallback.html',
-          onNotFound: expect.any(Function),
-        })
+        const res = response()
 
-        // verify that it falls back to SSR
-        const { onNotFound } = serveStatic.mock.calls[0][1]
-        await onNotFound(responseWriter)
-        expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: addPreloadHeaders })
-      })
-    })
+        const { rules, functions } = router
 
-    describe('no fallback', () => {
-      beforeEach(() => {
-        routes = [
-          {
-            name: 'static',
-            path: '/static',
-          },
-          {
-            name: 'checkout',
-            path: '/checkout',
-          },
-          {
-            name: 'dynamic-dynamic',
-            path: '/dynamic/:dynamic?',
-          },
-          {
-            name: 'static-dynamic-static_dynamic',
-            path: '/static-dynamic/:static_dynamic?',
-          },
-        ]
+        await new RequestContext({
+          request: request('https://www.example.com/_nuxt/index.js', {}),
+          response: res,
+          propertyContext,
+          rules,
+          cache: new Cache(),
+          functions,
+        }).execute()
 
-        nuxtConfig = {
-          target: 'static',
-          generate: {
-            exclude: [
-              { type: 'RegExp', value: '/dynamic/.*' },
-              { type: 'string', value: '/checkout' },
-            ],
-          },
-        }
+        expect(res.body.toString()).toBe('static')
       })
 
-      it('should serve static pages and fallback to SSR', async () => {
-        request.path = '/static'
-        await new Router().use(new NuxtRoutes()).run(request, response)
+      it('should add routes for all public assets', async () => {
+        staticPermaNock.get('/static/favicon.ico').reply(200, 'icon')
 
-        // verify that the route is handled with serveStatic
-        expect(serveStatic).toHaveBeenCalledWith('dist/static/index.html', {
-          loadingPage: 'dist/200.html',
-          onNotFound: expect.any(Function),
-        })
+        const res = response()
 
-        // verify that it falls back to SSR
-        const { onNotFound } = serveStatic.mock.calls[0][1]
-        await onNotFound(responseWriter)
-        expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: addPreloadHeaders })
-      })
+        const { rules, functions } = router
 
-      it('should run SSR for excluded RegExp paths', async () => {
-        request.path = '/dynamic/1'
-        await new Router().use(new NuxtRoutes()).run(request, response)
+        await new RequestContext({
+          request: request('https://www.example.com/favicon.ico', {}),
+          response: res,
+          propertyContext,
+          rules,
+          cache: new Cache(),
+          functions,
+        }).execute()
 
-        // verify that the route is handled with serveStatic
-        expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: addPreloadHeaders })
-        expect(serveStatic).not.toHaveBeenCalled()
-      })
-
-      it('should run SSR for excluded string paths', async () => {
-        request.path = '/checkout'
-        await new Router().use(new NuxtRoutes()).run(request, response)
-
-        // verify that the route is handled with serveStatic
-        expect(proxy).toHaveBeenCalledWith(BACKENDS.js, { transformResponse: addPreloadHeaders })
-        expect(serveStatic).not.toHaveBeenCalled()
+        expect(res.body.toString()).toBe('icon')
       })
     })
   })

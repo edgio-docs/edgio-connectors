@@ -1,5 +1,5 @@
-import Router from '@edgio/core/router/Router'
-import PluginBase from '@edgio/core/plugins/PluginBase'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
+import { edgioRoutes } from '@edgio/core'
 
 /**
  * Adds all routes from your Shopify Hydrogen app to Edgio router
@@ -14,15 +14,16 @@ import PluginBase from '@edgio/core/plugins/PluginBase'
  * ```
  */
 
-export default class ShopifyHydrogenRoutesRoutes extends PluginBase {
-  private router?: Router
+export default class ShopifyHydrogenRoutesRoutes implements RouterPlugin {
+  protected router?: Router
 
   /**
-   * Called when plugin is registered. Adds a route for static assets.
+   * Called when plugin is registered.
    * @param router
    */
   onRegister(router: Router) {
     this.router = router
-    this.router.fallback(({ renderWithApp }) => renderWithApp())
+    this.router?.match('/:path*', ({ renderWithApp }) => renderWithApp())
+    this.router.use(edgioRoutes)
   }
 }

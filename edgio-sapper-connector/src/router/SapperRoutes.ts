@@ -1,70 +1,23 @@
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import path from 'path'
-import sapperPathToRouteSyntax from './sapperPathToRouteSyntax'
-import { isCloud, isProductionBuild } from '@edgio/core/environment'
-import { BACKENDS } from '@edgio/core/constants'
-import Router from '@edgio/core/router/Router'
-import RouteGroup from '@edgio/core/router/RouteGroup'
-import ResponseWriter from '@edgio/core/router/ResponseWriter'
-import watch from '@edgio/core/utils/watch'
-
-/**
- * A TTL for assets that never change.  10 years in seconds.
- */
-const FAR_FUTURE_TTL = 60 * 60 * 24 * 365 * 10
-
-const FAR_FUTURE_CACHE_CONFIG = {
-  browser: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-  edge: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-}
-
-const PUBLIC_CACHE_CONFIG = {
-  edge: {
-    maxAgeSeconds: FAR_FUTURE_TTL,
-  },
-}
-
-const TYPE = 'SapperRoutes'
+import { isProductionBuild } from '@edgio/core/environment'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
+import { PUBLIC_CACHE_CONFIG, FAR_FUTURE_CACHE_CONFIG } from './cacheConfig'
+import { edgioRoutes } from '@edgio/core'
 
 /**
  * An Edgio middleware that automatically adds all standard Sapper routes to Edgio router.
  * These include pages in src/routes and static assets in the static directory.
  */
-export default class SapperRoutes extends PluginBase {
-  private sapperRouteGroupName = 'sapper_routes_group'
-  private sapperRootDir: string
-  private pagesDir: string
-  private pagesDirRelative: string
-  private router?: Router
-  pagesManifest: string[] = []
+export default class SapperRoutes implements RouterPlugin {
+  protected sapperRootDir: string
+  protected pagesDir: string
+  protected pagesDirRelative: string
+  protected router?: Router
 
-  type = TYPE
-
-  /**
-   * @param {Function} renderFn Next page render function
-   */
   constructor() {
-    super()
     this.sapperRootDir = process.cwd()
     this.pagesDirRelative = path.join('src', 'routes')
     this.pagesDir = path.join(this.sapperRootDir, this.pagesDirRelative)
-
-    if (!isProductionBuild()) {
-      watch(this.pagesDir).on('all', () => this.updateRoutes())
-    }
-  }
-
-  /**
-   * Returns true if the specified plugin is an instance of SapperRoutes
-   * @param plugin
-   */
-  static is(plugin: any) {
-    // Note that for some reason plugin instanceof SapperRoutes doesn't work reliably, so we compare the type string instead.
-    return plugin.type === TYPE
   }
 
   /**
@@ -73,81 +26,62 @@ export default class SapperRoutes extends PluginBase {
    */
   onRegister(router: Router) {
     this.router = router
-    /* create route group and add all sapper routes into it */
-    this.router.group(this.sapperRouteGroupName, group => this.addSapperRoutesToGroup(group))
+    this.addDefaultSSRRoute()
+    if (isProductionBuild()) {
+      this.addClientRoutes()
+      this.addStaticAssets()
+      this.addServiceWorker()
+    } else {
+      this.addWebpackRoute()
+    }
+    this.router.use(edgioRoutes)
   }
 
   /**
-   * Update routes
+   * Add default SSR rule
    */
-  updateRoutes() {
-    /* istanbul ignore next */
-    const routeGroup = <RouteGroup>this.router?.routeGroups?.findByName(this.sapperRouteGroupName)
-    /* istanbul ignore next */
-    routeGroup?.clear()
-    this.addSapperRoutesToGroup(routeGroup)
+  protected addDefaultSSRRoute() {
+    this.router?.match('/:path*', ({ renderWithApp }) => renderWithApp())
   }
 
   /**
-   * Adds all files in src/routes to Edgio router group
-   * @param {RouteGroup} group
+   * Add rule for static assets from static folder
    */
-  addSapperRoutesToGroup(group: RouteGroup) {
-    this.addStaticRoutes(group)
-    this.addDynamicRoutes(group)
-  }
-
-  /**
-   * Adds routes for react components and API handlers
-   * @param {*} group
-   */
-  addDynamicRoutes(group: RouteGroup) {
-    group.dir(this.pagesDirRelative, {
-      glob: '**/*.{ts,js,svelte}',
-      ignore: '**/_*',
-      paths: (file: string) => [sapperPathToRouteSyntax(file)],
-      sort: (files: string[]) => {
-        // Sort predefined routes before dynamic routes
-        const dynamic = /\[\w+\]/
-        const dynamicIndex = (s: string) => (s.match(dynamic) ? 0 : -1)
-        files.sort((a, b) => dynamicIndex(a) - dynamicIndex(b))
-        return files
-      },
-      handler: (file: string) => (res: ResponseWriter) => {
-        res.proxy(BACKENDS.js)
-      },
+  protected addStaticAssets() {
+    this.router?.static('static', {
+      handler: ({ cache }) => cache(PUBLIC_CACHE_CONFIG),
     })
   }
 
   /**
-   * Adds routes for static assets, including /public and /.next/static
+   * Add rule for service-worker.js
    */
-  addStaticRoutes(group: RouteGroup) {
-    group.match('/service-worker.js', ({ serviceWorker }) => {
+  protected addServiceWorker() {
+    this.router?.match('/service-worker.js', ({ serviceWorker }) => {
       serviceWorker(
         `__sapper__/${process.env.NODE_ENV === 'production' ? 'build' : 'dev'}/service-worker.js`
       )
     })
+  }
 
-    /* istanbul ignore next */
-    group.static('static', { handler: () => res => res.cache(PUBLIC_CACHE_CONFIG) })
+  /**
+   * Add rule for webpack hot loader.
+   * This is only used in development mode.
+   */
+  protected addWebpackRoute() {
+    // TODO: Uncomment this when stream method is implemented
+    // this.router?.match('/__sapper__', ({ stream }) => {
+    //   stream(SERVERLESS_ORIGIN_NAME)
+    // })
+  }
 
-    // webpack hot loader
-    if (!isCloud()) {
-      group.match('/__sapper__', ({ stream }) => stream('__js__'))
-    }
-
-    // browser js
-    group.match('/client/:path*', async ({ proxy, serveStatic, cache }) => {
-      if (process.env.NODE_ENV === 'production') {
-        cache(FAR_FUTURE_CACHE_CONFIG)
-      }
-
-      if (isCloud()) {
-        serveStatic('__sapper__/build/client/:path*')
-      } else {
-        proxy(BACKENDS.js)
-      }
+  /**
+   * Add rule for /client/:path* pages
+   */
+  protected addClientRoutes() {
+    this.router?.match('/client/:path*', ({ serveStatic, cache }) => {
+      serveStatic('__sapper__/build/client/:path*')
+      cache(FAR_FUTURE_CACHE_CONFIG)
     })
   }
 }

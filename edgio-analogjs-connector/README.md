@@ -1,3 +1,3 @@
-# Edgio Analog Connector
+# Edgio AnalogJS Connector
 
-Deploy Analog apps on Edgio. See [the docs](https://docs.edg.io/guides/nitro) for more info.
+Deploy AnalogJS apps on Edgio. See [the docs](https://docs.edg.io/guides/analogjs) for more info.

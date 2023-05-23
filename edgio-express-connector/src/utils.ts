@@ -1,6 +1,5 @@
-import { join } from 'path'
 import { existsSync } from 'fs'
-import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
+import { join } from 'path'
 
 /**
  * Attempts to find the express app entrypoint by looking for common files.
@@ -17,23 +16,4 @@ export function findDefaultAppPath() {
     join(process.cwd(), 'app.js'),
     join(process.cwd(), 'index.js'),
   ].find(existsSync)
-}
-
-export function getEdgioConfig() {
-  let edgioConfig = {}
-
-  const configAbsPath = [
-    join(process.cwd(), 'edgio.config.js'),
-    join(process.cwd(), 'edgio.config.ts'),
-    join(process.cwd(), 'edgio.config.cjs'),
-  ].find(existsSync)
-
-  if (configAbsPath) {
-    try {
-      edgioConfig = nonWebpackRequire(configAbsPath)
-      // eslint-disable-next-line no-empty
-    } catch (e) {}
-  }
-
-  return edgioConfig
 }

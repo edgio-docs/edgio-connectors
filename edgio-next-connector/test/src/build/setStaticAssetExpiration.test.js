@@ -1,4 +1,5 @@
 import setSsgStaticAssetExpiration from '../../../src/build/setSsgStaticAssetExpiration'
+import { FAR_FUTURE_TTL } from '../../../src/constants'
 
 describe('setSsgStaticAssetExpiration', () => {
   let builder, setStaticAssetExpiration
@@ -26,22 +27,22 @@ describe('setSsgStaticAssetExpiration', () => {
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/index.html',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/index.json',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/p/1.html',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/p/1.json',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
   })
 
@@ -74,42 +75,42 @@ describe('setSsgStaticAssetExpiration', () => {
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/index.html',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/index.json',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/en.html',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/en.json',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/p/1.html',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/p/1.json',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/en/p/1.html',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration).toHaveBeenCalledWith(
       'dist/serverless/pages/en/p/1.json',
       10,
-      315360000
+      FAR_FUTURE_TTL
     )
     expect(setStaticAssetExpiration.mock.calls.length).toBe(10)
   })

@@ -1,6 +1,6 @@
 {
   "name": "@edgio/spartacus",
-  "version": "6.1.7",
+  "version": "7.0.15",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,10 +10,10 @@
     "cls-hooked": "^4.2.2"
   },
   "devDependencies": {
-    "@edgio/angular": "^6.1.7",
-    "@edgio/cli": "^6.1.7",
-    "@edgio/core": "^6.1.7",
-    "@edgio/prefetch": "^6.1.7",
+    "@edgio/angular": "^7.0.15",
+    "@edgio/cli": "^7.0.15",
+    "@edgio/core": "^7.0.15",
+    "@edgio/prefetch": "^7.0.15",
     "@typescript-eslint/parser": "^4.5.0"
   },
   "scripts": {
@@ -21,8 +21,7 @@
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "npm run build; cd ./dist; npm publish --access public --tag latest-v6",
-    "release:next": "npm run release -- --tag next-v6",
+    "release": "cd ./dist; npm publish --access public",
     "test": "jest"
   },
   "watch": {
@@ -37,6 +36,7 @@
   "jest": {
     "clearMocks": true,
     "collectCoverage": true,
+    "testEnvironment": "jsdom",
     "transform": {
       "^.+\\.ts$": "ts-jest",
       "^.+\\.(js|jsx)$": "babel-jest"

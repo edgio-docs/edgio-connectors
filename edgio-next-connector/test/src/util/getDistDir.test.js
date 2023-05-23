@@ -15,8 +15,8 @@ describe('getDistDir', () => {
     afterAll(() => {
       process.chdir(cwd)
     })
-    it('should return the distDir value', () => {
-      expect(getDistDir()).toBe('build')
+    it('should return the distDir value from custom-dist dir', () => {
+      expect(getDistDir()).toBe('.output')
     })
   })
 
@@ -27,7 +27,7 @@ describe('getDistDir', () => {
     afterAll(() => {
       process.chdir(cwd)
     })
-    it('should return the distDir value', () => {
+    it('should return the distDir value from default dir', () => {
       expect(getDistDir()).toBe('.next')
     })
   })
@@ -39,7 +39,7 @@ describe('getDistDir', () => {
     afterAll(() => {
       process.chdir(cwd)
     })
-    it('should return the distDir value', () => {
+    it('should return the distDir value from no-config dir', () => {
       expect(getDistDir()).toBe('.next')
     })
   })
@@ -51,7 +51,7 @@ describe('getDistDir', () => {
     afterAll(() => {
       process.chdir(cwd)
     })
-    it('should return the distDir value', () => {
+    it('should return the distDir value from function dir', () => {
       expect(getDistDir()).toBe('.next')
     })
   })

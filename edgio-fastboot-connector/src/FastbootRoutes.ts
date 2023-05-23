@@ -1,5 +1,5 @@
-import Router from '@edgio/core/router/Router'
-import PluginBase from '@edgio/core/plugins/PluginBase'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
+import { edgioRoutes } from '@edgio/core'
 
 /**
  * Adds all routes from your Fastboot app to the Edgio router
@@ -13,18 +13,20 @@ import PluginBase from '@edgio/core/plugins/PluginBase'
  * export default new Router().use(fastbootRoutes)
  * ```
  */
-export default class FastbootRoutes extends PluginBase {
+export default class FastbootRoutes implements RouterPlugin {
   /**
    * Called when plugin is registered. Adds a route for static assets
    * and a fallback to render responses using SSR for all other paths.
    * @param router
    */
   onRegister(router: Router) {
-    router.match('/service-worker.js', ({ serviceWorker }) =>
-      serviceWorker('.edgio/sw_temp/service-worker.js')
-    )
-    router.fallback(({ renderWithApp }) => {
+    router.match('/(.*)', ({ renderWithApp }) => {
       renderWithApp()
     })
+    router.match('/service-worker.js', ({ serviceWorker }) => {
+      // We don't provide a path here because the build and dev process puts it in the correct path (s3/service-worker.js)
+      serviceWorker()
+    })
+    router.use(edgioRoutes)
   }
 }

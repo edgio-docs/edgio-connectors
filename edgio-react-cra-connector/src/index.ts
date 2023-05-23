@@ -1,4 +1,4 @@
-import ReactCRARoutes from './reactCRARoutes'
+import ReactCRARoutes from './ReactCRARoutes'
 
 /**
  * Adds all routes from your React CRA app to Edgio router

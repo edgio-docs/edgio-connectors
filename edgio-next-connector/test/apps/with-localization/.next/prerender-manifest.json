@@ -1,0 +1,127 @@
+{
+  "version": 4,
+  "routes": {
+    "/app-folder-page": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/app-folder-page",
+      "dataRoute": "/app-folder-page.rsc"
+    },
+    "/en-US/dynamic/revalidate": {
+      "initialRevalidateSeconds": 10,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/revalidate.json"
+    },
+    "/fr/dynamic/revalidate": {
+      "initialRevalidateSeconds": 10,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/revalidate.json"
+    },
+    "/nl-NL/dynamic/revalidate": {
+      "initialRevalidateSeconds": 10,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/revalidate.json"
+    },
+    "/en-US": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/index.json"
+    },
+    "/fr": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/index.json"
+    },
+    "/nl-NL": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/index.json"
+    },
+    "/en-US/static": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/static.json"
+    },
+    "/fr/static": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/static.json"
+    },
+    "/nl-NL/static": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": null,
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/static.json"
+    },
+    "/en-US/dynamic/fallback_true/1": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dynamic/fallback_true/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_true/1.json"
+    },
+    "/en-US/dynamic/fallback_true/2": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dynamic/fallback_true/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_true/2.json"
+    },
+    "/en-US/dynamic/fallback_true_revalidate/1": {
+      "initialRevalidateSeconds": 360,
+      "srcRoute": "/dynamic/fallback_true_revalidate/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_true_revalidate/1.json"
+    },
+    "/en-US/dynamic/fallback_true_revalidate/2": {
+      "initialRevalidateSeconds": 360,
+      "srcRoute": "/dynamic/fallback_true_revalidate/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_true_revalidate/2.json"
+    },
+    "/en-US/dynamic/fallback_blocking/1": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dynamic/fallback_blocking/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_blocking/1.json"
+    },
+    "/en-US/dynamic/fallback_blocking/2": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dynamic/fallback_blocking/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_blocking/2.json"
+    },
+    "/en-US/dynamic/fallback_false/1": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dynamic/fallback_false/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_false/1.json"
+    },
+    "/en-US/dynamic/fallback_false/2": {
+      "initialRevalidateSeconds": false,
+      "srcRoute": "/dynamic/fallback_false/[id]",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/en-US/dynamic/fallback_false/2.json"
+    }
+  },
+  "dynamicRoutes": {
+    "/dynamic/fallback_true/[id]": {
+      "routeRegex": "^/dynamic/fallback_true/([^/]+?)(?:/)?$",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_true/[id].json",
+      "fallback": "/dynamic/fallback_true/[id].html",
+      "dataRouteRegex": "^/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_true/([^/]+?)\\.json$"
+    },
+    "/dynamic/fallback_true_revalidate/[id]": {
+      "routeRegex": "^/dynamic/fallback_true_revalidate/([^/]+?)(?:/)?$",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_true_revalidate/[id].json",
+      "fallback": "/dynamic/fallback_true_revalidate/[id].html",
+      "dataRouteRegex": "^/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_true_revalidate/([^/]+?)\\.json$"
+    },
+    "/dynamic/fallback_blocking/[id]": {
+      "routeRegex": "^/dynamic/fallback_blocking/([^/]+?)(?:/)?$",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_blocking/[id].json",
+      "fallback": null,
+      "dataRouteRegex": "^/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_blocking/([^/]+?)\\.json$"
+    },
+    "/dynamic/fallback_false/[id]": {
+      "routeRegex": "^/dynamic/fallback_false/([^/]+?)(?:/)?$",
+      "dataRoute": "/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_false/[id].json",
+      "fallback": false,
+      "dataRouteRegex": "^/_next/data/vdOFSSpjn9kLIudIylyzg/dynamic/fallback_false/([^/]+?)\\.json$"
+    }
+  },
+  "notFoundRoutes": [],
+  "preview": {
+    "previewModeId": "15da6cc8a984bb9e0bcd4d9739e6b8f4",
+    "previewModeSigningKey": "113fd06b021dd1a367783c80223a89c4dc36e979b787afbc856ad31e584eec2b",
+    "previewModeEncryptionKey": "e824aa4767975ca410f8afccf9aa5c549e4f8c2767cab740e6ce6e67c64f70aa"
+  }
+}

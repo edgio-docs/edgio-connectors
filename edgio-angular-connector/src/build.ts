@@ -29,10 +29,6 @@ export default async function build({ skipFramework }: BuildOptions) {
     }
   }
 
-  builder
-    // angular.json
-    .addJSAsset(join(appDir, 'angular.json'), 'angular.json')
-
   const assetsPath = getOutputPath('build')
   const serverPath = getOutputPath('server')
 
@@ -48,6 +44,8 @@ export default async function build({ skipFramework }: BuildOptions) {
     )
 
     builder
+      // angular.json
+      .addJSAsset(join(appDir, 'angular.json'), 'angular.json')
       // Index html required by Universal engine
       .addJSAsset(join(appDir, assetsPath, 'index.html'), join('/', assetsPath, 'index.html'))
   }

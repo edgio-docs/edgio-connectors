@@ -1,6 +1,6 @@
-import addPreloadHeaders from '@edgio/core/router/addPreloadHeaders'
 import { BACKENDS } from '@edgio/core/constants'
-import { ResponseWriter } from '@edgio/core/router'
+import { RouteHelper } from '@edgio/core/router'
+import addPreloadHeaders from '@edgio/core/router/addPreloadHeaders'
 
 /**
  * Creates a function that proxies a request to next.js.
@@ -18,7 +18,7 @@ import { ResponseWriter } from '@edgio/core/router'
  * @param res The response writer passed into your route handler
  * @return Promise A promise that resolves when the response has been received from Next.js
  */
-export default function renderNuxtPage(res: ResponseWriter) {
+export default function renderNuxtPage(res: RouteHelper) {
   return res.proxy(BACKENDS.js, {
     transformResponse: addPreloadHeaders,
   })

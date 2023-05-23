@@ -1,10 +1,9 @@
-import fs from '../src/fs'
 import { existsSync, readFileSync } from 'fs'
 
 const BUILD_ID = 'build-id'
 
 describe('injectBrowserScript', () => {
-  let injectBrowserScript
+  let injectBrowserScript, fs
 
   beforeEach(() => {
     jest.resetAllMocks()
@@ -12,7 +11,9 @@ describe('injectBrowserScript', () => {
 
   describe('production', () => {
     beforeEach(() => {
+      jest.resetAllMocks()
       jest.isolateModules(() => {
+        fs = require('../src/fs').default
         jest.spyOn(fs, 'existsSync').mockImplementation(path => {
           if (path.endsWith('/BUILD_ID')) {
             return true
@@ -36,6 +37,7 @@ describe('injectBrowserScript', () => {
     it('should add browser.js to the head', () => {
       const response = {
         body: `<!doctype html><html><head></head></html>`,
+        getHeader: _ => 'text/html',
       }
       injectBrowserScript(response)
       expect(response.body).toMatch(
@@ -52,6 +54,7 @@ describe('injectBrowserScript', () => {
     it('should add browser.js to the head', () => {
       const response = {
         body: `<!doctype html><html><head></head></html>`,
+        getHeader: _ => 'text/html',
       }
       injectBrowserScript(response)
       expect(response.body).toMatch(

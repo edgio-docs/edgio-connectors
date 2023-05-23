@@ -1,15 +1,18 @@
-import { read } from '@edgio/core/utils/packageUtils'
+import { join } from 'path'
+import { readAsset } from './assets'
 
 /**
  * Gets the build output directory for Astro
  */
 export default function getAstroConfig() {
   // Set defaults for astro config
-  let astroConfig = { outDir: './dist', output: 'static', edgio_SW: false, appPath: null }
+  let astroConfig = { outDir: './dist', output: 'static' }
+
+  // Load the astro config
+  const astroConfigFile = join(process.cwd(), 'astro.config.json')
 
   try {
-    // Load the astro config
-    let config = read('astro.config.json')
+    let config = JSON.parse(readAsset(astroConfigFile))
 
     // If output in the outDir exists, assign it to the astroConfig
     if (config?.outDir) {
@@ -19,16 +22,6 @@ export default function getAstroConfig() {
     // If output in the config exists, assign it to the astroConfig
     if (config?.output) {
       astroConfig.output = config.output
-    }
-
-    // If edgio_SW in the config exists, assign it to the astroConfig
-    if (config?.edgio_SW) {
-      astroConfig.edgio_SW = config.edgio_SW
-    }
-
-    // If appPath in the config exists, assign it to the astroConfig
-    if (config?.appPath) {
-      astroConfig.appPath = config.appPath
     }
   } catch (e) {
     // will get here if no astro config file is present

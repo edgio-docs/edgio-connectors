@@ -1,0 +1,6 @@
+{
+    "target": "static",
+    "generate": {
+        "fallback": true
+    }
+}

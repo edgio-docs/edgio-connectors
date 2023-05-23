@@ -48,9 +48,12 @@ export default async function init() {
   try {
     await codemod(nextTransform, 'next.config.js')
     spinner.succeed(message + ' done.')
-  } catch (e) {
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      spinner.fail(message)
+      return console.error(e.message)
+    }
     spinner.fail(message)
-    console.error(e.message)
   }
 
   builder.addDefaultEdgioScripts()

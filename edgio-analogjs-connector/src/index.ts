@@ -1,15 +1,15 @@
 import AnalogJSRoutes from './AnalogJSRoutes'
 
 /**
- * Adds all routes from your Nitropack app to Edgio router
+ * Adds all routes from your AnalogJS app to Edgio router
  *
  * Example:
  *
  * ```js
  * import { Router } from '@edgio/core/router'
- * import { analogJSRoutes } from '@edgio/analogjs'
+ * import { analogjsRoutes } from '@edgio/analogjs'
  *
- * export default new Router().use(analogJSRoutes)
+ * export default new Router().use(analogjsRoutes)
  * ```
  */
-export const analogJSRoutes = new AnalogJSRoutes()
+export const analogjsRoutes = new AnalogJSRoutes()

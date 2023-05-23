@@ -1,210 +1,108 @@
-import { join } from 'path'
+import { Router } from '@edgio/core/router'
+import { SERVERLESS_ORIGIN_NAME, STATIC_ORIGIN_NAME } from '@edgio/core/origins'
 import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
+import { join } from 'path'
+import { FAR_FUTURE_TTL } from '@edgio/core/constants'
 
 describe('router/AngularRoutes.ts', () => {
-  let originalDir = process.cwd()
-  let AngularRoutes,
-    Router,
-    router,
-    plugin,
-    request,
-    response,
-    responseHeaders = {},
-    renderWithApp,
-    appShell,
-    serveStatic
+  let originalDir, AngularRoutes, angularRoutes, router, rules, mockOutputPath
 
-  const mockGetOutputPath = mockReturnValue =>
-    jest.mock('../../src/utils/getBuildPath', () => ({
-      getBuildPath: jest.fn(_ => 'public'),
-      getOutputPath: jest.fn(_ => mockReturnValue),
-    }))
+  beforeAll(() => {
+    originalDir = process.cwd()
 
-  const mocksInit = () =>
+    jest.resetAllMocks()
     jest.isolateModules(() => {
-      appShell = jest.fn()
-      renderWithApp = jest.fn()
-      serveStatic = jest.fn()
-
-      process.chdir(join(__dirname, '..', 'apps', 'default'))
-
-      jest.spyOn(console, 'log').mockImplementation()
-      jest.spyOn(console, 'debug').mockImplementation()
-
-      jest.doMock('@edgio/core/router/ResponseWriter', () => {
-        return class MockResponseWriter {
-          constructor() {
-            this.onRouteError = jest.fn()
-            this.serveStatic = serveStatic
-            this.renderWithApp = renderWithApp
-            this.appShell = appShell
-          }
-        }
-      })
-
-      Router = require('@edgio/core/router/Router').default
+      jest.mock('../../src/utils/getBuildPath', () => ({
+        getBuildPath: jest.fn(_ => 'public'),
+        getOutputPath: jest.fn(_ => mockOutputPath),
+      }))
       AngularRoutes = require('../../src/router/AngularRoutes').default
-      plugin = new AngularRoutes()
-      router = new Router().use(plugin)
-
-      request = {
-        url: '/',
-        headers: {
-          host: 'domain.com',
-        },
-        on: (event, cb) => {
-          if (event === 'data') setImmediate(() => cb(request.body))
-          if (event !== 'data' && event === 'end') setImmediate(cb)
-        },
-      }
-      response = {
-        writeHead: jest.fn(),
-        end: jest.fn(),
-        getHeaders: () => ({}),
-        setHeader: jest.fn((header, value) => {
-          responseHeaders[header] = value
-        }),
-      }
     })
+  })
 
   afterAll(() => {
     process.chdir(originalDir)
     jest.resetAllMocks()
   })
 
-  describe('production mode', () => {
-    let env = process.env.NODE_ENV
+  const init = () => {
+    process.chdir(join(__dirname, '..', 'apps', 'default'))
+    angularRoutes = new AngularRoutes()
+    router = new Router().use(angularRoutes)
+    rules = router.rules
+  }
 
-    beforeAll(() => {
+  describe('production mode', () => {
+    beforeEach(() => {
+      process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
       process.env.NODE_ENV = 'production'
+      init()
     })
 
     afterAll(() => {
-      process.env.NODE_ENV = env
+      delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
+      delete process.env.NODE_ENV
     })
 
-    describe('local', () => {
-      describe('is SSR', () => {
-        beforeEach(() => {
-          mockGetOutputPath('dist/server')
-          mocksInit()
-        })
-        it('should call router.static()', async () => {
-          const routerStaticFunc = jest.spyOn(router, 'static').mockImplementation()
-          router.use(plugin)
-          expect(routerStaticFunc).toHaveBeenCalled()
-        })
-        it('should serve index.html via serveStatic function', async () => {
-          request.path = '/'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should serve style.css via serveStatic function', async () => {
-          request.path = '/style.css'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should serve static_asset.txt via serveStatic function', async () => {
-          request.path = '/static_asset.txt'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should proxy to JS backend via renderWithApp', async () => {
-          request.path = '/some-random-url'
-          await router.run(request, response)
-          expect(renderWithApp).toHaveBeenCalled()
-        })
-      })
-
-      describe('is not SSR', () => {
-        beforeEach(() => {
-          mockGetOutputPath(undefined)
-          mocksInit()
-        })
-        it('should serve index.html via serveStatic function', async () => {
-          request.path = '/'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should serve style.css via serveStatic function', async () => {
-          request.path = '/style.css'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should serve static_asset.txt via serveStatic function', async () => {
-          request.path = '/static_asset.txt'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should appShell any random route', async () => {
-          request.path = '/some-random-url'
-          await router.run(request, response)
-          expect(appShell).toHaveBeenCalled()
-        })
-      })
-    })
-
-    describe('in the cloud', () => {
+    describe('server', () => {
       beforeAll(() => {
-        process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
+        mockOutputPath = 'dist/server'
       })
 
-      afterAll(() => {
-        delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
+      it('should render all pages with renderWithApp by default', async () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path*')
+        const { origin } = rule?.if[1]
+        expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
       })
 
-      describe('is SSR', () => {
-        beforeEach(() => {
-          mockGetOutputPath('dist/server')
-          mocksInit()
-        })
-        it('should call router.static()', async () => {
-          const routerStaticFunc = jest.spyOn(router, 'static').mockImplementation()
-          router.use(plugin)
-          expect(routerStaticFunc).toHaveBeenCalled()
-        })
-        it('should serve index.html via serveStatic function', async () => {
-          request.path = '/'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should serve style.css via serveStatic function', async () => {
-          request.path = '/style.css'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should serve static_asset.txt via serveStatic function', async () => {
-          request.path = '/static_asset.txt'
-          await router.run(request, response)
-          expect(serveStatic).toHaveBeenCalled()
-        })
-        it('should proxy to JS backend via renderWithApp', async () => {
-          request.path = '/some-random-url'
-          await router.run(request, response)
-          expect(renderWithApp).toHaveBeenCalled()
-        })
+      it('should add rule for assets in build folder', () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/style.css'))
+        const rulePaths = rule?.if?.[0]?.['in']?.[1]
+
+        const { caching, origin } = rule?.if[1]
+
+        expect(rulePaths).toContain('/')
+        expect(rulePaths).toContain('/style.css')
+        expect(rulePaths).toContain('/static_asset.txt')
+
+        expect(caching.max_age).toBe(FAR_FUTURE_TTL)
+        expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+      })
+    })
+
+    describe('static', () => {
+      beforeAll(() => {
+        mockOutputPath = undefined
       })
 
-      describe('is not SSR', () => {
-        beforeEach(() => {
-          mockGetOutputPath(undefined)
-          mocksInit()
-        })
-        it('should serveStatic any random route', async () => {
-          request.path = '/some-random-url'
-          await router.run(request, response)
-          expect(appShell).toHaveBeenCalled()
-        })
+      it('should render all pages with static SPA page by default', async () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path*')
+        const { origin } = rule?.if[1]
+        expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
+      })
+
+      it('should add rule for assets in build folder', () => {
+        const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/style.css'))
+        const rulePaths = rule?.if?.[0]?.['in']?.[1]
+
+        const { caching, origin } = rule?.if[1]
+
+        expect(rulePaths).toContain('/')
+        expect(rulePaths).toContain('/style.css')
+        expect(rulePaths).toContain('/static_asset.txt')
+
+        expect(caching.max_age).toBe(FAR_FUTURE_TTL)
+        expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
       })
     })
   })
 
   describe('development mode', () => {
-    beforeEach(() => mocksInit())
-    it('should proxy to JS backend via renderWithApp', async () => {
-      request.path = '/'
-      await router.run(request, response)
-      expect(renderWithApp).toHaveBeenCalled()
+    beforeEach(init)
+    it('should render all pages with renderWithApp', async () => {
+      const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path*')
+      const { origin } = rule?.if[1]
+      expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
     })
   })
 })

@@ -34,7 +34,7 @@ export default async function build(options: BuildOptions) {
 
     // Get the node_modules required for running the server on serverless
     const { fileList } = await nodeFileTrace([serverFilePath])
-    fileList.forEach(file => builder.copySync(file, join(builder.jsDir, file)))
+    fileList.forEach((file: string) => builder.copySync(file, join(builder.jsDir, file)))
 
     console.log('> Done...')
   } else {

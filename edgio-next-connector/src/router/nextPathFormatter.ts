@@ -1,5 +1,6 @@
 import slash from 'slash'
 import { getPageExtensionsFromConfig } from '../util/getPageExtensions'
+import { removeLocale, startsWithLocale } from '../util/localeUtils'
 
 export default class NextPathFormatter {
   private nextConfig: any
@@ -30,7 +31,7 @@ export default class NextPathFormatter {
         break
       }
     }
-    return slash(`/${pagePath.replace(/(^|)\/?index$/, '')}`)
+    return slash(`/${pagePath.replace(/(^|)\/?index$/, '')}`).replace(/\/+/g, '/')
   }
 
   /**
@@ -39,12 +40,8 @@ export default class NextPathFormatter {
    * /[param1]/[param2] => /:param1/:param2
    * /[...path] => /:path*
    * @param pagePath The next page path, for example /products/[id]
-   * @param isDataRoute true if we are creating a route for a call to getStaticProps or getServerSideProps
    */
-  public toRouteSyntax = (
-    pagePath: string,
-    { suffix, locale }: { suffix?: string; locale?: string } = {}
-  ) => {
+  public toRouteSyntax = (pagePath: string) => {
     let route = slash(
       pagePath
         .replace(/^\//, '') // replace the leading slash if present so we can accept both products/[id].js and /products/[id]
@@ -52,30 +49,56 @@ export default class NextPathFormatter {
         .replace(/\[\.\.\.([^\]]+)\]/g, ':$1+') // replace [...path] with :path+
         .replace(/\[([^\]]+)\]/g, ':$1') // replace [id] with :id
     )
-
-    if (locale) {
-      route = `${locale}/${route}`
-    }
-
-    if (suffix) {
-      if (route === '') {
-        // the json data route for the homepage is a special case => index.json
-        route = 'index'
-      }
-
-      return `/${route}.${suffix}`
-    } else {
-      return this.toCleanPath(route)
-    }
+    return this.toCleanPath(route)
   }
 
-  public localize(locales: string[], route: string) {
+  public localize(locales: string[], route: string): string {
     if (locales.length) {
       return `/:locale(${locales.join('|')})?${route}`
         .replace(/\/$/, '') // remove trailing slash if one exists
         .replace(/\)\?\/(index)?\.(json|html)$/, '|index).json') // accept index.json instead of {locale}.json for the default locale
-    } else {
-      return route
+    }
+    return route
+  }
+
+  /**
+   * Generates dataRoute from page name
+   * @returns
+   */
+  getDataRoute(pageName: string, buildId: string = ':buildId') {
+    return `/_next/data/${buildId}${pageName === '/' ? '/index' : pageName}.json`
+  }
+
+  /**
+   * Generates route and dataRoute in regex-to-path format from page name
+   * and returns object with localized variations of them.
+   * @returns
+   */
+  getRouteVariations(
+    pageName: string,
+    { buildId, locales }: { buildId?: string; locales?: string[] } = {}
+  ) {
+    locales = locales || []
+    buildId = buildId || ':buildId'
+
+    const route = this.toRouteSyntax(pageName)
+
+    // Some pages in pages and app paths manifest file are already with locale prefix,
+    // so we need to check it before we can localize it
+    const localizedRoute = !startsWithLocale(route, locales) ? this.localize(locales, route) : route
+    // Remove locale if they are provided and the route starts with one of them
+    const routeWithoutLocale = removeLocale(route, locales)
+    const dataRoute = this.getDataRoute(routeWithoutLocale, buildId)
+    const localizedDataRoute = this.getDataRoute(
+      this.localize(locales, routeWithoutLocale),
+      buildId
+    )
+
+    return {
+      route,
+      localizedRoute,
+      dataRoute,
+      localizedDataRoute,
     }
   }
 }

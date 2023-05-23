@@ -1,4 +1,4 @@
-import VueRoutes from './VueRoutes'
+import VueRoutes from './router/VueRoutes'
 
 /**
  * Adds all routes from your Vue app to Edgio router

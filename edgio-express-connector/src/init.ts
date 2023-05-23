@@ -7,7 +7,6 @@ import { DeploymentBuilder } from '@edgio/core/deploy'
  * over from src/default-app.
  */
 export default async function init() {
-  new DeploymentBuilder(process.cwd())
-    .addDefaultAppResources(join(__dirname, 'default-app'))
-    .addDefaultEdgioScripts()
+  const builder = new DeploymentBuilder(process.cwd())
+  builder.addDefaultAppResources(join(__dirname, 'default-app')).addDefaultEdgioScripts()
 }

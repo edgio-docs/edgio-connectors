@@ -20,10 +20,7 @@ export const getServerBuildAvailability = ({
       useServerBuild = false,
       standaloneBuildConfig: any = {}
 
-    if (process.env.NEXT_FORCE_SERVER_BUILD) {
-      useServerBuild = true
-      standaloneBuildConfig = { output: 'standalone' }
-    } else if (nextVersion) {
+    if (nextVersion) {
       serverBuildAvailable = satisfies(nextVersion, '>= 12.0.0')
 
       if (!isTargetSupported(nextVersion)) {

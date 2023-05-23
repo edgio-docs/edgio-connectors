@@ -30,17 +30,10 @@ export default class NextConfigBuilder {
   // For performance reason we don't want to trace these dependencies
   // as they will be always added to build
   protected ignoredDependencies = [
-    './node_modules/@edgio/next/config/constants.js',
-    './node_modules/@edgio/next/config/index.js',
-
     './node_modules/@edgio/next/index.js',
     './node_modules/@edgio/next/withEdgio.js',
-    './node_modules/@edgio/next/withEdgioInternal.js',
-
-    './node_modules/@edgio/next/sw/index.js',
-    './node_modules/@edgio/next/sw/withServiceWorker.js',
-    './node_modules/@edgio/next/sw/withServiceWorkerInternal.js',
-
+    './node_modules/@edgio/next/config/constants.js',
+    './node_modules/@edgio/next/config/index.js',
     './node_modules/@edgio/next/util/nextRuntimeConfigExists.js',
   ]
 
@@ -64,7 +57,7 @@ export default class NextConfigBuilder {
    */
   protected async getDependencies(): Promise<string[]> {
     console.log(`> Searching for dependencies of next config file`)
-    const { fileList } = await nodeFileTrace(['next.config.js'], {
+    const { fileList } = await nodeFileTrace([NEXT_CONFIG_FILE], {
       ignore: [
         ...this.ignoredDependencies,
         // Do not resolve symlinks to .yalc folder
@@ -102,7 +95,7 @@ export default class NextConfigBuilder {
    */
   protected async writeRuntimeVersion(): Promise<void> {
     this.builder.copySync(
-      join(process.cwd(), 'next.config.js'),
+      join(process.cwd(), NEXT_CONFIG_FILE),
       join(this.builder.jsDir, NEXT_RUNTIME_CONFIG_FILE)
     )
   }

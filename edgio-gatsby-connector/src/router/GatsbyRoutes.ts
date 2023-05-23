@@ -1,14 +1,11 @@
-import { getConfig } from '../getConfig'
-import { notFoundPageHTML } from '../404'
-import { Router } from '@edgio/core/router'
-import { BACKENDS } from '@edgio/core/constants'
-import RouteGroup from '@edgio/core/router/RouteGroup'
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import { isProductionBuild } from '@edgio/core/environment'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
+import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
+import { join } from 'path'
+import { edgioRoutes } from '@edgio/core'
 
-export default class GatsbyRoutes extends PluginBase {
-  private router?: Router
-  private readonly routeGroupName = 'gatsby_routes_group'
+export default class GatsbyRoutes implements RouterPlugin {
+  protected router?: Router
 
   /**
    * Called when plugin is registered
@@ -18,66 +15,45 @@ export default class GatsbyRoutes extends PluginBase {
   onRegister(router: Router) {
     this.router = router
     if (isProductionBuild()) {
-      this.router.group(this.routeGroupName, group => this.addRoutesToGroup(group))
+      this.addProdRoutes()
     } else {
-      // Stream webpack changes
-      this.router.match('/__webpack_hmr', ({ stream }) => stream(BACKENDS.js))
-      // Proxy everything else from the gatsby devServer
-      this.router.fallback(({ renderWithApp }) => {
-        renderWithApp()
-      })
+      this.addDevRoutes()
     }
-  }
-
-  private addRoutesToGroup(group: RouteGroup) {
-    const edgioConfig = getConfig()
-    const gatsbyConfig = getConfig('gatsby.config.json')
-    // Create empty prefix
-    let routePrefix = ''
-    // Add gatsby path prefix if gatsby.pathPrefix
-    // is set to true inside the edgio config
-    if (edgioConfig?.gatsby?.pathPrefix && gatsbyConfig?.pathPrefix) {
-      routePrefix += gatsbyConfig.pathPrefix
-    }
-    // Load the public folder files paths
-    gatsbyConfig.edgioRoutes.forEach((i: string) => {
-      // Specifically handle index.html for pathPrefixes
-      if (i === 'index.html') {
-        if (routePrefix.length) {
-          group.match(routePrefix, ({ serveStatic }) => {
-            serveStatic(`public/${i}`)
-          })
-        } else {
-          group.match('/', ({ serveStatic }) => {
-            serveStatic(`public/${i}`)
-          })
-        }
-      } else {
-        // Create routes by replacing the /index.html
-        // this takes care of pages other than homepage
-        let path = `/${i.replace('/index.html', '')}`
-        // Serve the path created but the file remains as identified from the config
-        group.match(`${routePrefix}${path}`, ({ serveStatic }) => {
-          serveStatic(`public/${i}`)
-        })
-      }
-    })
-    // Add fallback routes that serve 404 page
-    this.addFallback()
+    this.router.use(edgioRoutes)
   }
 
   /**
-   * Forwards all unmatched requests to the Gatsby app for processing.
+   * Add routes for production mode
    */
-  addFallback() {
-    // Serve the custom 404 in case 404.html is not found in the public directory
-    this.router?.fallback(res =>
-      res.serveStatic(`public/404.html`, {
-        statusCode: 404,
-        onNotFound: async () => {
-          res.send(notFoundPageHTML, 404, 'Not Found')
-        },
-      })
-    )
+  protected addProdRoutes() {
+    const gatsbyConfig = nonWebpackRequire(join(process.cwd(), 'gatsby-config.js'))
+    const pathPrefix = gatsbyConfig?.pathPrefix || ''
+
+    // Serve 404 error page
+    this.router?.match('/(.*)', ({ serveStatic, setResponseCode, compute }) => {
+      serveStatic('public/404.html')
+      setResponseCode(404)
+    })
+
+    // Serve static pages
+    this.router?.static('public', {
+      paths: file => [`${pathPrefix}/${file}`.replace(/\/\//g, '/')],
+      rewritePathSource: `${pathPrefix}/:path*`,
+      handler: ({ setResponseCode }) => setResponseCode(200),
+    })
+  }
+
+  /**
+   * Add routes for development mode
+   */
+  protected addDevRoutes() {
+    // Proxy everything to the gatsby development server by default
+    this.router?.match('/(.*)', ({ renderWithApp }) => {
+      renderWithApp()
+    })
+
+    // TODO: Uncomment this when stream method is implemented
+    // Stream webpack changes
+    // this.router?.match('/__webpack_hmr', ({ stream }) => stream(BACKENDS.js))
   }
 }

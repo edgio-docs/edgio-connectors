@@ -1,9 +1,8 @@
-import Router from '@edgio/core/router/Router'
-import RouteGroup from '@edgio/core/router/RouteGroup'
-import PluginBase from '@edgio/core/plugins/PluginBase'
+import { JsonMap } from '@iarna/toml'
+import { edgioRoutes } from '@edgio/core'
 import loadRedwoodConfig from './utils/loadRedwoodConfig'
 import { isProductionBuild } from '@edgio/core/environment'
-import { JsonMap } from '@iarna/toml'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
 
 /**
  * Adds all routes from your RedwoodJS app to Edgio router
@@ -17,9 +16,8 @@ import { JsonMap } from '@iarna/toml'
  * export default new Router().use(redwoodRoutes)
  * ```
  */
-export default class RedwoodRoutes extends PluginBase {
+export default class RedwoodRoutes implements RouterPlugin {
   private router?: Router
-  private readonly routeGroupName = 'redwood_routes'
 
   /**
    * Called when plugin is registered. Adds a route for static assets.
@@ -29,40 +27,35 @@ export default class RedwoodRoutes extends PluginBase {
     this.router = router
 
     if (isProductionBuild()) {
-      this.router.group(this.routeGroupName, group => this.addRoutesToGroup(group))
-    } else {
-      this.router.fallback(res => res.renderWithApp())
-    }
-  }
+      const redwoodConfig = loadRedwoodConfig()
 
-  private addRoutesToGroup(group: RouteGroup) {
-    const redwoodConfig = loadRedwoodConfig()
-
-    group.match(`${(redwoodConfig.web as JsonMap)?.apiUrl ?? ''}/:path*`, ({ renderWithApp }) => {
-      renderWithApp()
-    })
-
-    group.match('/static/:path*', ({ serveStatic }) => {
-      serveStatic('web/dist/static/:path*')
-    })
-
-    group.match('/', ({ serveStatic }) => {
-      serveStatic('web/dist/index.html')
-    })
-
-    group.match('/:path*', ({ serveStatic }) => {
-      // Attempt to serve the requested path
-      // If not found, serve web/dist/200.html which will exist if routes are prerendered
-      // If not found, fallback to web/dist/index.html
-      serveStatic('web/dist/:path*.html', {
-        onNotFound: async () => {
-          await serveStatic('web/dist/200.html', {
-            onNotFound: async () => {
-              await serveStatic('web/dist/index.html')
-            },
-          })
-        },
+      // Serve SPA as 404 not found page for all routes by default,
+      this.router?.match('/:path*', ({ serveStatic, setResponseCode }) => {
+        serveStatic('web/dist/index.html')
+        setResponseCode(404)
       })
-    })
+
+      // Serve generated pages and static assets
+      this.router?.static('web/dist/', {
+        handler: ({ setResponseCode }) => setResponseCode(200),
+      })
+
+      const apiUrl = (redwoodConfig.web as JsonMap)?.apiUrl
+      if (apiUrl) {
+        // Add route for API if it exists
+        this.router?.match(
+          `${(redwoodConfig.web as JsonMap)?.apiUrl}/:path*`,
+          ({ renderWithApp, setResponseCode }) => {
+            renderWithApp()
+            setResponseCode(200)
+          }
+        )
+      }
+    } else {
+      router.match('/:path*', ({ renderWithApp }) => {
+        renderWithApp()
+      })
+    }
+    router.use(edgioRoutes)
   }
 }

@@ -63,6 +63,6 @@ export default function createBuildEntryPoint({
     const { fileList } = await nodeFileTrace(filesToBePacked)
     fileList.unshift('.env.defaults')
 
-    fileList.forEach(file => builder.copySync(file, join(builder.edgioDir, 'lambda', file)))
+    fileList.forEach((file: string) => builder.copySync(file, join(builder.jsDir, file)))
   }
 }

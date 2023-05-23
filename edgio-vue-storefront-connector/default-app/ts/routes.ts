@@ -1,56 +1,37 @@
 // This file was added by edgio init.
 // You should commit this file to source control.
-
-import { Router, ResponseWriter } from '@edgio/core/router'
-import { CacheOptions } from '@edgio/core/router/CacheOptions'
-import { nuxtRoutes, renderNuxtPage } from '@edgio/nuxt'
+import { Router } from '@edgio/core'
+import { nuxtRoutes } from '@edgio/nuxt'
 import { decompressRequest } from '@edgio/apollo'
 
-const HTML: CacheOptions = {
-  edge: {
-    maxAgeSeconds: 60 * 60 * 24,
-    staleWhileRevalidateSeconds: 60 * 60 * 24,
-    forcePrivateCaching: true,
+const CACHE_HTML_FEATURE = {
+  headers: {
+    remove_origin_response_headers: ['set-cookie'],
   },
-  browser: false,
-}
-
-function cacheHTML({ cache, removeUpstreamResponseHeader }: ResponseWriter) {
-  removeUpstreamResponseHeader('set-cookie')
-  cache(HTML)
+  caching: {
+    max_age: '24h',
+    stale_while_revalidate: '24h',
+    bypass_client_cache: true,
+  },
 }
 
 export default new Router()
-
-  .match('/service-worker.js', ({ serviceWorker }) => {
-    serviceWorker('.nuxt/dist/client/service-worker.js')
-  })
-  .get('/', cacheHTML)
-  .get('/c/:slug*', cacheHTML)
-  .get('/p/:slug*', cacheHTML)
-  // @ts-ignore
-  .post('/:env/graphql', ({ proxy }) => {
-    proxy('api')
-  })
-  .get(
-    {
-      path: '/:env/graphql',
-    },
-    // @ts-ignore
-    ({ proxy, cache, removeUpstreamResponseHeader }) => {
-      cache({
-        edge: {
-          maxAgeSeconds: 60 * 60 * 24 * 365,
-        },
-        browser: {
-          serviceWorkerSeconds: 60 * 60 * 24 * 365,
-        },
-      })
-      proxy('api', {
-        transformRequest: decompressRequest,
-      })
-      removeUpstreamResponseHeader('cache-control')
-    }
-  )
   .use(nuxtRoutes)
-  .fallback(renderNuxtPage)
+  .get('/', CACHE_HTML_FEATURE)
+  .get('/c/:slug*', CACHE_HTML_FEATURE)
+  .get('/p/:slug*', CACHE_HTML_FEATURE)
+  .post('/:env/graphql', ({ proxy }) => proxy('api'))
+  .get("'/:env/graphql'", ({ proxy, cache, removeUpstreamResponseHeader }) => {
+    cache({
+      edge: {
+        maxAgeSeconds: 60 * 60 * 24 * 365,
+      },
+      browser: {
+        serviceWorkerSeconds: 60 * 60 * 24 * 365,
+      },
+    })
+    proxy('api', {
+      transformRequest: decompressRequest,
+    })
+    removeUpstreamResponseHeader('cache-control')
+  })

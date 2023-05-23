@@ -1,8 +1,7 @@
-import { notFoundPageHTML } from './404'
+import { edgioRoutes } from '@edgio/core'
 import loadHexoConfig from './loadHexoConfig'
-import Router from '@edgio/core/router/Router'
-import PluginBase from '@edgio/core/plugins/PluginBase'
 import { isProductionBuild } from '@edgio/core/environment'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
 
 /**
  * Adds all routes from your Hexo app to Edgio router
@@ -17,7 +16,7 @@ import { isProductionBuild } from '@edgio/core/environment'
  * ```
  */
 
-export default class HexoRoutes extends PluginBase {
+export default class HexoRoutes implements RouterPlugin {
   /**
    * Called when plugin is registered. Adds a route for static assets
    * and a fallback to render responses using SSR for all other paths.
@@ -26,14 +25,32 @@ export default class HexoRoutes extends PluginBase {
   onRegister(router: Router) {
     if (isProductionBuild()) {
       const hexoConfig = loadHexoConfig()
-      router.static(hexoConfig?.public_dir ?? 'public')
-      router.fallback(({ send }) => {
-        send(notFoundPageHTML, 404, 'Not Found')
+      const publicDir = hexoConfig?.public_dir ?? 'public'
+
+      if (!hexoConfig) {
+        console.log(
+          `> _config.yml was not found, switching to default value 'public' for 'public_dir' config option.`
+        )
+      }
+
+      router.match('/:path*', ({ serveStatic, setResponseCode, setComment }) => {
+        setComment('Serve 404 error page by default')
+        serveStatic(`${publicDir}/404.html`)
+        setResponseCode(404)
+      })
+
+      router.static(`${publicDir}`, {
+        handler: ({ setResponseCode, setComment }) => {
+          setComment('Serve generated pages and static assets')
+          setResponseCode(200)
+        },
       })
     } else {
-      router.fallback(({ renderWithApp }) => {
+      router.match('/:path*', ({ renderWithApp, setComment }) => {
+        setComment('Render all paths using Hexo server in dev mode')
         renderWithApp()
       })
     }
+    router.use(edgioRoutes)
   }
 }

@@ -1,18 +1,17 @@
 {
   "name": "@edgio/angular",
-  "version": "6.1.7",
+  "version": "7.0.15",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "devDependencies": {
-    "@edgio/core": "^6.1.7",
+    "@edgio/core": "^7.0.15",
     "@types/cross-spawn": "^6.0.2"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/angular/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
-    "release": "npm run build; cd ./dist; npm publish --access public --tag latest-v6",
-    "release:next": "npm run release -- --tag next-v6",
+    "release": "npm run build; cd ./dist; npm publish --access public",
     "test": "jest --watchAll=false --collectCoverage=false --runInBand --forceExit"
   },
   "watch": {

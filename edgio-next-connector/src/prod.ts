@@ -6,7 +6,7 @@ import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import getDistDir from './util/getDistDir'
 import path from 'path'
 import getNextConfig from './getNextConfig'
-import { REMOVE_HEADER_VALUE } from './router/constants'
+import { NEXT_PAGE_HEADER, REMOVE_HEADER_VALUE } from './constants'
 
 // Used in fetchFromAPI so that SSR pages don't call back into the lambda
 // which would result in Edgio being double-billed for each SSR request
@@ -22,6 +22,7 @@ const createStandAloneServer = (
   port: number,
   config: { experimental: { isrFlushToDisk: boolean } }
 ) => {
+  // This is our custom build on next
   const NextServer = nonWebpackRequire('next/dist/server/next-server').default
 
   // Note: we considered using use minimal mode (process.env.NEXT_PRIVATE_MINIMAL_MODE = 'true') to prevent Next.js
@@ -40,16 +41,17 @@ const createStandAloneServer = (
 
   return createServer(async (req, res) => {
     try {
-      // See NextRoutes#ssr. Here we add a default Cache-Control header before handing the request off to Next.js.
+      // Here we add a default Cache-Control header before handing the request off to Next.js.
       // If Next.js sees this default value, it won't add it's own default, which is Cache-Control: private, no-cache, no-store.
-      // We then remove this default value so that there is no Cache-Control header in NextRoutes#ssr
+      // We later remove this value so that there is no Cache-Control header in NextRoutes#addDefaultSSRRoute.
       res.setHeader('Cache-Control', REMOVE_HEADER_VALUE)
       handle(req, res)
     } catch (e) {
-      const message = `An unexpected error occurred while processing the request with next.js.`
-      console.error(e.stack)
+      if (e instanceof Error) {
+        console.error(e.stack)
+      }
       res.writeHead(500)
-      res.end(message)
+      res.end(`An unexpected error occurred while processing the request with next.js.`)
     }
   })
 }
@@ -61,8 +63,14 @@ const createStandAloneServer = (
 const createServerlessServer = () => {
   const distDir = getDistDir()
   return createServer(async (req, res) => {
-    const page = req.headers['x-next-page'] // sent by createNextRenderer
+    let page: string | undefined = req.headers[NEXT_PAGE_HEADER] as string
     const search = req.url?.split('?')[1]
+
+    // Return correct error page with template from _error.js
+    if (['404', '500'].includes(page)) {
+      page = '_error'
+      res.statusCode = Number(page)
+    }
 
     // @ts-ignore
     req.query = qs.parse(search)
@@ -90,10 +98,13 @@ const createServerlessServer = () => {
         await mod.default(req, res)
       }
     } catch (e) {
-      const message = `An unexpected error occurred while processing the request with next.js. (page="${page}")`
-      console.error(e.stack)
+      if (e instanceof Error) {
+        console.error(e.stack)
+      }
       res.writeHead(500)
-      res.end(message)
+      res.end(
+        `An unexpected error occurred while processing the request with next.js. (page="${page}")`
+      )
     }
   })
 }
