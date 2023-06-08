@@ -1,6 +1,7 @@
-import Router, { RouterPlugin } from '@edgio/core/router/Router'
-import { isProductionBuild } from '@edgio/core/environment'
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
+import { isProductionBuild } from '@edgio/core/environment'
+import Router, { RouterPlugin } from '@edgio/core/router/Router'
 
 /**
  * A TTL for assets that never change.  10 years in seconds.
@@ -57,20 +58,19 @@ export default class NuxtRoutes implements RouterPlugin {
    */
   private addAssets() {
     if (isProductionBuild()) {
-      this.router?.static('.output/public', {
+      this.router?.static(join('.output', 'public'), {
         ignore: '_nuxt/**/*',
         handler: ({ cache }) => cache(PUBLIC_CACHE_CONFIG),
       })
-
       this.router?.match('/_nuxt/:path*', async ({ serveStatic, cache }) => {
         cache(FAR_FUTURE_CACHE_CONFIG)
-        serveStatic('.output/public/_nuxt/:path*', {
+        serveStatic(join('.output', 'public', '_nuxt', ':path*'), {
           permanent: true,
         })
       })
-      this.router?.match('/service-worker.js', ({ serviceWorker }) =>
-        serviceWorker('.output/public/_nuxt/service-worker.js')
-      )
+      this.router?.match('/service-worker.js', ({ serviceWorker }) => {
+        serviceWorker(join('.output', 'public', '_nuxt', 'service-worker.js'))
+      })
     } else {
       this.router?.match('/:path*', {
         url: {
@@ -82,7 +82,6 @@ export default class NuxtRoutes implements RouterPlugin {
           ],
         },
       })
-
       /* istanbul ignore next */
       this.router?.static('static', { handler: ({ cache }) => cache(PUBLIC_CACHE_CONFIG) })
     }

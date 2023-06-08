@@ -1,6 +1,6 @@
 import { Router } from '@edgio/core/router'
 import NuxtRoutes from '../../src/router/NuxtRoutes'
-import MockRequest from '../../../core/test/mocks/MockRequest'
+import MockRequest from '../../../core/src/test-utils/MockRequest'
 import MockResponse from '../../../core/test/mocks/MockResponse'
 import PropertyContext from '../../../core/src/runtime/PropertyContext'
 import nock from 'nock'
@@ -190,7 +190,7 @@ describe('NuxtRoutes', () => {
               functions,
             }).execute()
 
-            expect(res.statusCode).toBe(504)
+            expect(res.statusCode).toBe(502)
           })
         })
 

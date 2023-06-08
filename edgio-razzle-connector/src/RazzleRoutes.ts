@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
@@ -25,11 +26,10 @@ export default class RazzleRoutes implements RouterPlugin {
       renderWithApp()
     })
     router.match('/service-worker.js', ({ serviceWorker }) => {
-      // We don't provide a path here because the build and dev process puts it in the correct path (s3/service-worker.js)
-      serviceWorker()
+      serviceWorker(join('.edgio', 's3', 'service-worker.js'))
     })
     if (isProductionBuild()) {
-      router.static('build/public')
+      router.static(join('build', 'public'))
     }
     router.use(edgioRoutes)
   }

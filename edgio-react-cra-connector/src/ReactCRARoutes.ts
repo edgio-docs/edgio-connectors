@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
@@ -22,15 +23,19 @@ export default class ReactCRARoutes implements RouterPlugin {
    */
   onRegister(router: Router) {
     if (isProductionBuild()) {
-      router.match('/:path*', ({ appShell }) => {
-        appShell('build/index.html')
+      router.match('/:path*', ({ serveStatic }) => {
+        serveStatic(join('build', 'index.html'))
       })
-      router.static('build')
+      router.static('build', { ignore: 'service-worker.js' })
     } else {
       router.match('/:path*', ({ renderWithApp }) => {
         renderWithApp()
       })
     }
+    router.match('/service-worker.js', ({ serviceWorker, setResponseHeader }) => {
+      setResponseHeader('content-type', 'text/javascript')
+      serviceWorker(join('.edgio', 'temp', 'service-worker.js'))
+    })
     router.use(edgioRoutes)
   }
 }

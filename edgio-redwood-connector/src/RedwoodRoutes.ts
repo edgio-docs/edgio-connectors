@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { JsonMap } from '@iarna/toml'
 import { edgioRoutes } from '@edgio/core'
 import loadRedwoodConfig from './utils/loadRedwoodConfig'
@@ -17,33 +18,29 @@ import Router, { RouterPlugin } from '@edgio/core/router/Router'
  * ```
  */
 export default class RedwoodRoutes implements RouterPlugin {
-  private router?: Router
-
   /**
    * Called when plugin is registered. Adds a route for static assets.
    * @param router
    */
   onRegister(router: Router) {
-    this.router = router
-
     if (isProductionBuild()) {
       const redwoodConfig = loadRedwoodConfig()
 
       // Serve SPA as 404 not found page for all routes by default,
-      this.router?.match('/:path*', ({ serveStatic, setResponseCode }) => {
-        serveStatic('web/dist/index.html')
+      router.match('/:path*', ({ serveStatic, setResponseCode }) => {
+        serveStatic(join('web', 'dist', 'index.html'))
         setResponseCode(404)
       })
 
       // Serve generated pages and static assets
-      this.router?.static('web/dist/', {
+      router.static(join('web', 'dist'), {
         handler: ({ setResponseCode }) => setResponseCode(200),
       })
 
       const apiUrl = (redwoodConfig.web as JsonMap)?.apiUrl
       if (apiUrl) {
         // Add route for API if it exists
-        this.router?.match(
+        router.match(
           `${(redwoodConfig.web as JsonMap)?.apiUrl}/:path*`,
           ({ renderWithApp, setResponseCode }) => {
             renderWithApp()

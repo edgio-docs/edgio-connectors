@@ -4,11 +4,14 @@ import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
 import { getAngularProject, getOutputPath } from './utils/getBuildPath'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 
-export default async function build({ skipFramework }: BuildOptions) {
-  const builder = new DeploymentBuilder()
-  builder.clearPreviousBuildOutput()
+const appDir = process.cwd()
+const builder = new DeploymentBuilder(appDir)
 
-  const appDir = process.cwd()
+const SW_SRC = join(appDir, 'sw', 'service-worker.js')
+const SW_DEST = join(appDir, '.edgio', 'tmp', 'service-worker.js')
+
+export default async function build({ skipFramework }: BuildOptions) {
+  builder.clearPreviousBuildOutput()
 
   const pkg = read('package.json')
   const isSsr = pkg.dependencies['@nguniversal/express-engine']
@@ -49,6 +52,11 @@ export default async function build({ skipFramework }: BuildOptions) {
       // Index html required by Universal engine
       .addJSAsset(join(appDir, assetsPath, 'index.html'), join('/', assetsPath, 'index.html'))
   }
+
+  await builder.buildServiceWorker({
+    swSrc: SW_SRC,
+    swDest: SW_DEST,
+  })
 
   await builder.build()
 }

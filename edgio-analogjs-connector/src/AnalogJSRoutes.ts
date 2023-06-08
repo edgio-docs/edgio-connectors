@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
@@ -25,8 +26,11 @@ export default class AnalogJSRoutes implements RouterPlugin {
       renderWithApp()
     })
     if (isProductionBuild()) {
-      router.static('dist/analog/public')
+      router.static(join('dist', 'analog', 'public'))
     }
+    router.match('/service-worker.js', ({ serviceWorker }) => {
+      serviceWorker(join('.edgio', 'tmp', 'service-worker.js'))
+    })
     router.use(edgioRoutes)
   }
 }

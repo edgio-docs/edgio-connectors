@@ -8,9 +8,12 @@ import { getConfig } from '@edgio/core/config'
 import { ExtendedConfig } from './types'
 
 const appDir = process.cwd()
+const builder = new DeploymentBuilder(appDir)
+
+const SW_SRC = join(appDir, 'sw', 'service-worker.js')
+const SW_DEST = join(appDir, '.edgio', 'tmp', 'service-worker.js')
 
 export default async function build(options: BuildOptions) {
-  const builder = new DeploymentBuilder()
   builder.clearPreviousBuildOutput()
 
   // Load astro config
@@ -27,6 +30,11 @@ export default async function build(options: BuildOptions) {
       throw new FrameworkBuildError('Astro', command, e)
     }
   }
+
+  await builder.buildServiceWorker({
+    swSrc: SW_SRC,
+    swDest: SW_DEST,
+  })
 
   await builder.build()
 

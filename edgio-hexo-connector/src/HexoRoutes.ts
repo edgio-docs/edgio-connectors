@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import loadHexoConfig from './loadHexoConfig'
 import { isProductionBuild } from '@edgio/core/environment'
@@ -35,11 +36,11 @@ export default class HexoRoutes implements RouterPlugin {
 
       router.match('/:path*', ({ serveStatic, setResponseCode, setComment }) => {
         setComment('Serve 404 error page by default')
-        serveStatic(`${publicDir}/404.html`)
+        serveStatic(join(publicDir, '404.html'))
         setResponseCode(404)
       })
 
-      router.static(`${publicDir}`, {
+      router.static(publicDir, {
         handler: ({ setResponseCode, setComment }) => {
           setComment('Serve generated pages and static assets')
           setResponseCode(200)

@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
@@ -25,7 +26,7 @@ export default class NitropackRoutes implements RouterPlugin {
       renderWithApp()
     })
     if (isProductionBuild()) {
-      router.static('.output/public')
+      router.static(join('.output', 'public'))
     }
     router.use(edgioRoutes)
   }

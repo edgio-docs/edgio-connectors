@@ -434,8 +434,6 @@ export default class NextRoutes implements RouterPlugin {
       this.router?.match(criteria, ({ redirect, rewritePath, setComment }) => {
         if (isInternalRedirect) setComment("Next's internal redirect")
         redirect(destination, { statusCode: statusCode || 302 })
-        // Add empty rewrite to remove any previous rewrites that may have been added.
-        rewritePath('/:path*', '/:path*')
       })
 
       this.logDuringBuild(
@@ -634,7 +632,7 @@ export default class NextRoutes implements RouterPlugin {
         // Force Next.js server to serve fresh page
         req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
         if (this.renderMode !== RENDER_MODES.serverless) return
-        this.addPageParamsToQuery.bind(this)
+        this.addPageParamsToQuery(req)
       },
       transformResponse: (res: Response, _req: Request) => {
         // If we see Cache-Control: {REMOVE_HEADER_VALUE} here, which is set before the request is handled by prod.ts,

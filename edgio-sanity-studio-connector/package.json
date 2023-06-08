@@ -1,6 +1,6 @@
 {
   "name": "@edgio/sanity-studio",
-  "version": "7.0.15",
+  "version": "7.0.17",
   "description": "Deploy Sanity Studio apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -26,8 +26,11 @@
   "publishConfig": {
     "directory": "dist"
   },
+  "dependencies": {
+    "vite": "4.3.8"
+  },
   "devDependencies": {
-    "@edgio/core": "^7.0.15",
-    "@types/node": "^14.0.9"
+    "@edgio/core": "^7.0.17",
+    "@types/node": "^16.18.32"
   }
 }

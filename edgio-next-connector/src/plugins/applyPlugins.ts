@@ -1,5 +1,4 @@
 import { withEdgioConfig } from './withEdgioConfig'
-import { withDevtools } from './withDevtools'
 import { withImageOptimizerConfig } from './withImageOptimizerConfig'
 
 /**
@@ -32,7 +31,7 @@ export default function applyPlugins(_nextConfig: any) {
     process.env.WITH_EDGIO_APPLIED = 'true'
 
     const nextConfig = normalizedNextConfig(...args)
-    const plugins = [withEdgioConfig, withImageOptimizerConfig, withDevtools]
+    const plugins = [withEdgioConfig, withImageOptimizerConfig]
     return plugins.reduce((appliedConfig, plugin) => plugin(appliedConfig), nextConfig)
   }
   return typeof _nextConfig === 'function' ? plugin : plugin()

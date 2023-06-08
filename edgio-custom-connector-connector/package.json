@@ -1,0 +1,63 @@
+{
+  "name": "@edgio/custom-connector",
+  "version": "7.0.17",
+  "license": "Apache-2.0",
+  "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "globby": "^11.0.2",
+    "workbox-webpack-plugin": "^6.1.0"
+  },
+  "devDependencies": {
+    "@edgio/core": "^7.0.17"
+  },
+  "scripts": {
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/custom-connector/src/* dist;",
+    "watch": "npm-watch",
+    "push-build": "npm run build && cd dist && yalc push && cd ..",
+    "release": "cd ./dist; npm publish --access public",
+    "test": "jest"
+  },
+  "watch": {
+    "push-build": {
+      "patterns": [
+        "src",
+        "package.json",
+        "default-app"
+      ],
+      "extensions": "*",
+      "quiet": false
+    }
+  },
+  "jest": {
+    "clearMocks": true,
+    "collectCoverage": true,
+    "transform": {
+      "^.+\\.(js)?$": "babel-jest",
+      "^.+\\.ts$": "ts-jest"
+    },
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "collectCoverageFrom": [
+      "./src/**/*.ts",
+      "./lambda/**/*.ts",
+      "!**/mocks/**",
+      "!./src/default-app/**",
+      "!**/bin/**/*",
+      "!**/index.ts"
+    ],
+    "moduleNameMapper": {
+      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
+      "^@edgio/custom-connector(.*)$": "<rootDir>/../custom-connector/src/$1"
+    }
+  },
+  "publishConfig": {
+    "directory": "dist"
+  }
+}

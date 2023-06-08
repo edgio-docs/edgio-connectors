@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
@@ -12,10 +13,8 @@ export default class AngularRoutes implements RouterPlugin {
   onRegister(router: Router) {
     if (isProductionBuild()) {
       const buildPath = getBuildPath()
-
       // Determine SSR if server output path exists in angular.json
       const isSsr = !!getOutputPath('server')
-
       if (isSsr) {
         // Rest of the requests go to SSR
         router.match('/:path*', ({ renderWithApp }) => {
@@ -23,11 +22,10 @@ export default class AngularRoutes implements RouterPlugin {
         })
       } else {
         // If not SSR, serve SPA fallback
-        router.match('/:path*', ({ appShell }) => {
-          appShell(`${buildPath}/index.html`)
+        router.match('/:path*', ({ serveStatic }) => {
+          serveStatic(join(buildPath, 'index.html'))
         })
       }
-
       // Cache the buildPath directory by default
       router.static(buildPath)
     } else {
@@ -36,6 +34,9 @@ export default class AngularRoutes implements RouterPlugin {
         renderWithApp()
       })
     }
+    router.match('/service-worker.js', ({ serviceWorker }) => {
+      serviceWorker(join('.edgio', 'tmp', 'service-worker.js'))
+    })
     router.use(edgioRoutes)
   }
 }

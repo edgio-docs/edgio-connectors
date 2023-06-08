@@ -1,8 +1,8 @@
+import { join } from 'path'
+import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
-import { join } from 'path'
-import { edgioRoutes } from '@edgio/core'
 
 export default class GatsbyRoutes implements RouterPlugin {
   protected router?: Router
@@ -19,7 +19,7 @@ export default class GatsbyRoutes implements RouterPlugin {
     } else {
       this.addDevRoutes()
     }
-    this.router.use(edgioRoutes)
+    router.use(edgioRoutes)
   }
 
   /**
@@ -31,13 +31,13 @@ export default class GatsbyRoutes implements RouterPlugin {
 
     // Serve 404 error page
     this.router?.match('/(.*)', ({ serveStatic, setResponseCode, compute }) => {
-      serveStatic('public/404.html')
+      serveStatic(join('public', '404.html'))
       setResponseCode(404)
     })
 
     // Serve static pages
     this.router?.static('public', {
-      paths: file => [`${pathPrefix}/${file}`.replace(/\/\//g, '/')],
+      paths: file => [join(pathPrefix, file).replace(/\/\//g, '/')],
       rewritePathSource: `${pathPrefix}/:path*`,
       handler: ({ setResponseCode }) => setResponseCode(200),
     })

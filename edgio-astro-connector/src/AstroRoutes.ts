@@ -1,3 +1,4 @@
+import { join } from 'path'
 import { edgioRoutes } from '@edgio/core'
 import getAstroConfig from './getAstroConfig'
 import { isProductionBuild } from '@edgio/core/environment'
@@ -30,6 +31,9 @@ export default class AstroRoutes implements RouterPlugin {
     if (isProductionBuild()) {
       this.addStaticAssets()
     }
+    router.match('/service-worker.js', ({ serviceWorker }) => {
+      serviceWorker(join('.edgio', 'tmp', 'service-worker.js'))
+    })
     router.use(edgioRoutes)
   }
 
@@ -44,7 +48,7 @@ export default class AstroRoutes implements RouterPlugin {
     // Serve assets from the static directory
     // If the output is server (Astro SSR)
     // Create serve static routes for the all the assets under dist/client folder
-    this.router?.static(server ? `${outDir}/client` : outDir)
+    this.router?.static(server ? join(outDir, 'client') : outDir)
   }
 
   /**
@@ -55,10 +59,12 @@ export default class AstroRoutes implements RouterPlugin {
       this.router?.match('/:path*', ({ renderWithApp }) => {
         renderWithApp()
       })
-      return
+    } else {
+      if (dist) {
+        this.router?.match('/:path*', ({ serveStatic, send }) => {
+          serveStatic(join(dist, '404.html'))
+        })
+      }
     }
-    this.router?.match('/:path*', ({ serveStatic, send }) => {
-      serveStatic(`${dist}/404.html`)
-    })
   }
 }
