@@ -2,9 +2,9 @@
  * Needed for unit tests
  */
 module.exports = {
-  backends: {
-    origin: {
-      domainOrIp: 'jest.origin.moovweb.com',
+  origins: [
+    {
+      hosts: [{ location: 'jest.origin.moovweb.com' }],
     },
-  },
+  ],
 }

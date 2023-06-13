@@ -1,6 +1,6 @@
 {
   "name": "@edgio/custom-connector",
-  "version": "7.0.17",
+  "version": "7.0.18",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -9,7 +9,7 @@
     "workbox-webpack-plugin": "^6.1.0"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.17"
+    "@edgio/core": "^7.0.18"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/custom-connector/src/* dist;",

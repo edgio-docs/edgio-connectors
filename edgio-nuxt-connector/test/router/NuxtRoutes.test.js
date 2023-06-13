@@ -1,7 +1,6 @@
 import { Router } from '@edgio/core/router'
 import NuxtRoutes from '../../src/router/NuxtRoutes'
 import MockRequest from '../../../core/src/test-utils/MockRequest'
-import MockResponse from '../../../core/test/mocks/MockResponse'
 import PropertyContext from '../../../core/src/runtime/PropertyContext'
 import nock from 'nock'
 import {
@@ -13,13 +12,14 @@ import RequestContext from '../../../core/src/runtime/RequestContext'
 import Cache from '../../../core/src/runtime/Cache'
 import { HTTP_HEADERS } from '../../../core/src/constants'
 import { join } from 'path'
+import { LambdaResponse } from '../../../core/src'
 
 function request(url, options) {
   return new MockRequest(url, options)
 }
 
 function response() {
-  return new MockResponse()
+  return new LambdaResponse()
 }
 
 describe('NuxtRoutes', () => {
@@ -92,7 +92,7 @@ describe('NuxtRoutes', () => {
             rules,
             cache: new Cache(),
             functions,
-          }).execute()
+          }).executeSimulator()
 
           expect(res.body.toString()).toBe('index')
         })
@@ -111,7 +111,7 @@ describe('NuxtRoutes', () => {
             rules,
             cache: new Cache(),
             functions,
-          }).execute()
+          }).executeSimulator()
 
           expect(res.body.toString()).toBe('product')
         })
@@ -138,7 +138,7 @@ describe('NuxtRoutes', () => {
               rules,
               cache: new Cache(),
               functions,
-            }).execute()
+            }).executeSimulator()
 
             expect(res.body.toString()).toBe('fallback')
           })
@@ -164,7 +164,7 @@ describe('NuxtRoutes', () => {
               rules,
               cache: new Cache(),
               functions,
-            }).execute()
+            }).executeSimulator()
 
             expect(res.body.toString()).toBe('fallback')
           })
@@ -188,7 +188,7 @@ describe('NuxtRoutes', () => {
               rules,
               cache: new Cache(),
               functions,
-            }).execute()
+            }).executeSimulator()
 
             expect(res.statusCode).toBe(502)
           })
@@ -214,7 +214,7 @@ describe('NuxtRoutes', () => {
               rules,
               cache: new Cache(),
               functions,
-            }).execute()
+            }).executeSimulator()
 
             expect(res.body.toString()).toBe('fallback')
           })
@@ -244,7 +244,7 @@ describe('NuxtRoutes', () => {
           rules,
           cache: new Cache(),
           functions,
-        }).execute()
+        }).executeSimulator()
 
         expect(res.body.toString()).toBe('404')
       })
@@ -263,7 +263,7 @@ describe('NuxtRoutes', () => {
           rules,
           cache: new Cache(),
           functions,
-        }).execute()
+        }).executeSimulator()
 
         expect(res.body.toString()).toBe('static')
       })
@@ -282,7 +282,7 @@ describe('NuxtRoutes', () => {
           rules,
           cache: new Cache(),
           functions,
-        }).execute()
+        }).executeSimulator()
 
         expect(res.headers[HTTP_HEADERS.cacheControl]).toBe('max-age=315360000')
       })
@@ -301,7 +301,7 @@ describe('NuxtRoutes', () => {
           rules,
           cache: new Cache(),
           functions,
-        }).execute()
+        }).executeSimulator()
 
         expect(res.body.toString()).toBe('icon')
       })
@@ -327,7 +327,7 @@ describe('NuxtRoutes', () => {
           rules,
           cache: new Cache(),
           functions,
-        }).execute()
+        }).executeSimulator()
 
         expect(res.body.toString()).toBe('static')
       })
@@ -346,7 +346,7 @@ describe('NuxtRoutes', () => {
           rules,
           cache: new Cache(),
           functions,
-        }).execute()
+        }).executeSimulator()
 
         expect(res.body.toString()).toBe('icon')
       })
