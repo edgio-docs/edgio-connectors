@@ -1,6 +1,6 @@
 {
   "name": "@edgio/react-cra",
-  "version": "7.0.19",
+  "version": "7.0.20",
   "description": "Deploy react-cra apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -27,7 +27,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.19",
+    "@edgio/core": "^7.0.20",
     "@types/node": "^14.0.9"
   }
 }
