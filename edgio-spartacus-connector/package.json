@@ -1,6 +1,6 @@
 {
   "name": "@edgio/spartacus",
-  "version": "7.0.20",
+  "version": "7.0.21",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,10 +10,10 @@
     "cls-hooked": "^4.2.2"
   },
   "devDependencies": {
-    "@edgio/angular": "^7.0.20",
-    "@edgio/cli": "^7.0.20",
-    "@edgio/core": "^7.0.20",
-    "@edgio/prefetch": "^7.0.20",
+    "@edgio/angular": "^7.0.21",
+    "@edgio/cli": "^7.0.21",
+    "@edgio/core": "^7.0.21",
+    "@edgio/prefetch": "^7.0.21",
     "@typescript-eslint/parser": "^4.5.0"
   },
   "scripts": {
