@@ -1,6 +1,6 @@
 {
   "name": "@edgio/fastboot",
-  "version": "7.0.21",
+  "version": "7.0.22",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
