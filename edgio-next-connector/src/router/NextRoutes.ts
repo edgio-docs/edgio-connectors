@@ -414,7 +414,16 @@ export default class NextRoutes implements RouterPlugin {
   protected addRedirects() {
     if (!this.redirects) return
 
-    for (let { source, has, statusCode, destination, internal } of this.redirects) {
+    for (let { source, has, statusCode, destination, internal, locale } of this.redirects) {
+      if (this.defaultLocale && locale !== false) {
+        // Next.js server is performing redirect for paths with and without default locale.
+        // We adjust redirects which start with default locale here, to make sure that they are working the same way.
+        source = source.replace(
+          `/${this.defaultLocale}/`,
+          `/:nextInternalLocale(${this.defaultLocale})?/`
+        )
+      }
+
       // next < 10 did not have the internal property
       const isInternalRedirect = internal || source === '/:path+/'
       let criteria: string | RouteCriteria | RegExp = this.createRouteCriteria(source, has)
@@ -454,10 +463,6 @@ export default class NextRoutes implements RouterPlugin {
    * @returns
    */
   protected createRouteCriteria(path: string, has?: any[]): string | RouteCriteria {
-    // Next.js adds /:nextInternalLocale(...) at the start of the source route - if we leave this in
-    // the actually requests from the browser will never match.
-    let criteria: string | RouteCriteria = path.replace(/\/:nextInternalLocale[^/]+/, '')
-
     if (has) {
       let headers: { [key: string]: RegExp } = {}
       let cookies: { [key: string]: RegExp } = {}
@@ -484,13 +489,13 @@ export default class NextRoutes implements RouterPlugin {
       }
 
       return {
-        path: criteria,
+        path,
         headers: Object.keys(headers).length ? headers : undefined,
         cookies: Object.keys(cookies).length ? cookies : undefined,
         query: Object.keys(query).length ? query : undefined,
       }
     } else {
-      return criteria
+      return path
     }
   }
 

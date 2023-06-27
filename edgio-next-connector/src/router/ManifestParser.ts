@@ -199,11 +199,11 @@ export default class ManifestParser {
    * Attempt to get redirects from routes-manifest.json in production
    * and from next.config.js in development.
    */
-  getRedirects(): any {
+  getRedirects(): any[] {
     let redirects =
       isProductionBuild() || isCloud() ? this.routesManifest?.redirects : this.nextConfig?.redirects
     // We need to reverse the order to match the sailfish behavior when only the last one is applied.
-    return redirects?.reverse() || []
+    return Array.isArray(redirects) ? redirects.reverse() : []
   }
 
   /**

@@ -1,6 +1,6 @@
 {
   "name": "@edgio/custom-connector",
-  "version": "7.0.22",
+  "version": "7.0.23",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -9,10 +9,12 @@
     "workbox-webpack-plugin": "^6.1.0"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.22"
+    "@edgio/core": "^7.0.23",
+    "@types/node": "^14.0.9",
+    "webpack": "^5.74.0"
   },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/custom-connector/src/* dist;",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; cp -r stage/custom-connector/src/* dist; webpack;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "release": "cd ./dist; npm publish --access public",
