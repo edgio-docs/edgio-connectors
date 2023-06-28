@@ -1,20 +1,20 @@
 {
   "name": "@edgio/vue-storefront",
-  "version": "7.0.23",
+  "version": "7.0.24",
   "description": "Deploy vue-storefront apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
-    "@edgio/apollo": "^7.0.23",
-    "@edgio/nuxt": "^7.0.23",
+    "@edgio/apollo": "^7.0.24",
+    "@edgio/nuxt": "^7.0.24",
     "cross-spawn": "^7.0.3",
     "fs-extra": "^10.1.0",
     "jscodeshift": "^0.13.1",
     "ora": "^4.1.1"
   },
   "devDependencies": {
-    "@edgio/cli": "^7.0.23",
-    "@edgio/core": "^7.0.23",
+    "@edgio/cli": "^7.0.24",
+    "@edgio/core": "^7.0.24",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^9.0.13",
     "@types/jscodeshift": "^0.11.5",
