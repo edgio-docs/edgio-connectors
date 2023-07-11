@@ -1,4 +1,4 @@
-// This file was automatically added by edgio deploy.
+// This file was automatically added by edgio init.
 // You should commit this file to source control.
 import { Router } from '@edgio/core'
 import { mkdocsRoutes } from '@edgio/mkdocs'

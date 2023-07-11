@@ -640,11 +640,24 @@ export default class NextRoutes implements RouterPlugin {
         this.addPageParamsToQuery(req)
       },
       transformResponse: (res: Response, _req: Request) => {
-        // If we see Cache-Control: {REMOVE_HEADER_VALUE} here, which is set before the request is handled by prod.ts,
-        // we know that the user did not explicitly set a Cache-Control header. This prevents Next.js from
+        // Nothing to do if there is no Cache-Control header
+        if (!res.getHeader('Cache-Control')) return
+
+        // {REMOVE_HEADER_VALUE} in Cache-Control header value prevents Next.js from
         // adding Cache-Control: private, no-cache, no-store by default, which would disable caching at the edge.
-        if (res.getHeader('Cache-Control') !== REMOVE_HEADER_VALUE) return
-        res.removeHeader('Cache-Control')
+        // When user explicitly sets Cache-Control header in app folder of next.js v13+,
+        // the next.js appends value to current header value. That's why we need to remove just the part with {REMOVE_HEADER_VALUE} from it by regex below.
+        // Example: "{REMOVE_HEADER_VALUE}, private" => "private"
+        // Example: "{REMOVE_HEADER_VALUE}" => ""
+        const transformedHeader = res
+          .getHeader('Cache-Control')
+          ?.toString()
+          ?.replace(new RegExp(`${REMOVE_HEADER_VALUE}\\s*,?\\s*`), '')
+        if (transformedHeader && transformedHeader.length > 0) {
+          res.setHeader('Cache-Control', transformedHeader)
+        } else {
+          res.removeHeader('Cache-Control')
+        }
       },
     })
   }

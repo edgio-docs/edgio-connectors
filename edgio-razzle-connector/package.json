@@ -1,6 +1,6 @@
 {
   "name": "@edgio/razzle",
-  "version": "7.0.24",
+  "version": "7.0.26",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -59,7 +59,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.24",
+    "@edgio/core": "^7.0.26",
     "@types/node": "^14.0.9"
   }
 }

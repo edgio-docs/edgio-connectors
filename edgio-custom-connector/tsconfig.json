@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "moduleResolution": "Node16",
+    "declaration": true,
+    "outDir": "./stage",
+    "strict": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
+    "baseUrl": "..",
+    "skipLibCheck": true,
+    "paths": {
+      "@edgio/core": ["core/src"],
+      "@edgio/core/*": ["core/src/*"],
+      "@edgio/prefetch": ["prefetch/src"],
+      "@edgio/prefetch/*": ["prefetch/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

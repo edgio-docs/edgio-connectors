@@ -16,6 +16,9 @@ import getNextVersion from '../util/getNextVersion'
 import { BuilderOptions } from './BuilderOptions'
 import getRenderMode from '../util/getRenderMode'
 import getBuildId from '../util/getBuildId'
+import { gt } from 'semver'
+import chalk from 'chalk'
+import { existsSync, appendFileSync } from 'fs'
 
 export default class NextBuilder {
   protected builder: DeploymentBuilder
@@ -94,6 +97,27 @@ export default class NextBuilder {
       .addJSAsset(join(this.distDirAbsolute, 'routes-manifest.json')) // needed for rewrites and redirects
       .addJSAsset(join(this.distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
       .build()
+
+    // This is temporary workaround for a bug in latest versions of Next.js 13,
+    // so the customers don't see 500 errors right after playing with new create-next-app project.
+    // https://github.com/vercel/next.js/issues/49169
+    // TODO: EDGSITES-356 - Remove this temporary fix for Next.js when it's no longer needed
+    const foundAppFolder =
+      existsSync(join(this.srcDirAbsolute, 'app')) ||
+      existsSync(join(this.srcDirAbsolute, 'src', 'app'))
+    if (this.nextVersion && gt(this.nextVersion, '13.4.0') && foundAppFolder) {
+      // Setting __NEXT_PRIVATE_PREBUNDLED_REACT to 'next' or any other value
+      // forces Next.js to use the prebundled React version. When this env var is not set, Next.js will use the React version from node_modules.
+      appendFileSync(
+        join(this.builder.jsDir, '.env.production'),
+        `\r\n# Variables below were automatically added by edgio build\r\n__NEXT_PRIVATE_PREBUNDLED_REACT=next\r\n`
+      )
+      console.log(
+        chalk.grey(
+          `[Edgio] Adding env variable to .env.production file: __NEXT_PRIVATE_PREBUNDLED_REACT=next`
+        )
+      )
+    }
 
     // Build optimizations for server build on Next 12, until Next13
     if (
