@@ -1,6 +1,8 @@
 // This file was automatically added by edgio init.
 // You should commit this file to source control.
-const { Router } = require('@edgio/core/router')
-const { customRoutes } = require('@edgio/nodejs-connector')
+import { Router } from '@edgio/core/router'
+import { nodejsRoutes } from '@edgio/nodejs-connector'
 
-module.exports = new Router().use(customRoutes) // automatically adds all routes from your custom connector
+export default new Router()
+  // automatically adds all routes from your custom connector
+  .use(nodejsRoutes)

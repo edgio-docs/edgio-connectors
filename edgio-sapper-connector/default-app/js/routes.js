@@ -1,7 +1,7 @@
 // This file was automatically added by edgio init.
 // You should commit this file to source control.
-const { Router } = require('@edgio/core')
-const { sapperRoutes } = require('@edgio/sapper')
+import { Router } from '@edgio/core'
+import { sapperRoutes } from '@edgio/sapper'
 
 const cacheHandler = {
   caching: {
@@ -14,7 +14,7 @@ const cacheHandler = {
   },
 }
 
-module.exports = new Router()
+export default new Router()
   .use(sapperRoutes) // automatically adds routes for all files
   .match('/blog.json', cacheHandler)
   .match('/:path*/:file.json', cacheHandler)

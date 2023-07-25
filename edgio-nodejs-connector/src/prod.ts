@@ -1,13 +1,19 @@
 import { existsSync } from 'fs'
 import { getConfig } from '@edgio/core/config'
+import { basename } from 'path'
 import { join } from 'path'
 
 export default async function prod(port: number) {
   const edgioConfig = getConfig()
+
+  // We strip the folder location from entry file name
+  // as we always bundle/copy the entry file in the same folder
+  const entryFileName = basename(edgioConfig.nodejsConnector?.entryFile!)
+
   // combine dirname with entryFile, but go one folder backwards
   // as prod module is loaded from _backends_ folder, which is one
   // level up relative to lambda folder that is used by edgio deployer
-  const fullPath = join(__dirname, '..', edgioConfig.nodejsConnector?.entryFile!)
+  const fullPath = join(__dirname, '..', entryFileName)
 
   if (edgioConfig.nodejsConnector?.entryFile && existsSync(fullPath)) {
     process.env[edgioConfig.nodejsConnector!.envPort!] = port.toString()

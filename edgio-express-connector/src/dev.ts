@@ -1,8 +1,10 @@
 import { createDevServer } from '@edgio/core/dev'
-import { join } from 'path'
+import { resolve } from 'path'
 import { findDefaultAppPath } from './utils'
 import chalk from 'chalk'
 import { isPortBound, getNearestUnboundPort } from './portUtils'
+import { getConfig } from '@edgio/core/config'
+import { ExtendedConfig } from './types'
 
 export default function dev() {
   return createDevServer({
@@ -10,16 +12,21 @@ export default function dev() {
     label: 'Express',
     // The command to start your app in dev mode
     run: async port => {
-      const config = require(join(process.cwd(), 'edgio.config.js'))
-
-      const appPath = config.express?.appPath || findDefaultAppPath()
+      const config = getConfig() as ExtendedConfig
+      const appPath = config?.express?.appPath || findDefaultAppPath()
 
       // The user's server module should use this to bind to the correct port
       // @ts-ignore
       process.env.PORT = port
 
       if (appPath) {
-        const app = require(join(appPath))
+        const app = (await import(resolve(appPath)))?.default
+        if (!app) {
+          console.error(
+            `ERROR: No app was exported from '${appPath}'. Please export an express app instance from this file.`
+          )
+          process.exit(1)
+        }
 
         if (app.listen) {
           port = (await getNearestUnboundPort(port)) || port

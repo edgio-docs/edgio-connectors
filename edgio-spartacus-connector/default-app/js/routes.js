@@ -1,7 +1,7 @@
 // This file was automatically added by edgio init.
 // You should commit this file to source control.
-const { Router } = require('@edgio/core')
-const { angularRoutes } = require('@edgio/angular')
+import { Router } from '@edgio/core'
+import { angularRoutes } from '@edgio/angular'
 
 const CACHE_API_FEATURE = {
   caching: {

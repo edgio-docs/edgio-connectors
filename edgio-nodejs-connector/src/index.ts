@@ -1,2 +1,2 @@
 import { CustomRoutes } from './CustomRoutes'
-export const customRoutes = new CustomRoutes()
+export const nodejsRoutes = new CustomRoutes()

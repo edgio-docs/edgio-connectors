@@ -6,6 +6,9 @@ module.exports = {
     prod: './src/prod.ts',
   },
   mode: 'production',
+  optimization: {
+    minimize: false,
+  },
   module: {
     rules: [
       {

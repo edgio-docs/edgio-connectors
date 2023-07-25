@@ -132,7 +132,7 @@ describe('NextRoutes', () => {
 
         it('should add rules which are returning not found page for ISG/ISR pages with fallback:false', () => {
           const rule = rules.find(
-            rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/fallback_false/:id'
+            rule => rule?.if?.[0]?.['and']?.[0]?.['==']?.[1] === '/dynamic/fallback_false/:id'
           )
           const { origin, response } = rule?.if[1]
 
@@ -357,7 +357,8 @@ describe('NextRoutes', () => {
         it('should add rules which are returning not found page for ISG/ISR pages with fallback:false', () => {
           const rule = rules.find(
             rule =>
-              rule?.if?.[0]?.['==']?.[1] === '/:locale(en-US|fr|nl-NL)?/dynamic/fallback_false/:id'
+              rule?.if?.[0]?.['and']?.[0]?.['==']?.[1] ===
+              '/:locale(en-US|fr|nl-NL)?/dynamic/fallback_false/:id'
           )
           const { origin, response } = rule?.if[1]
 
@@ -465,9 +466,8 @@ describe('NextRoutes', () => {
           expect(rulePaths).toContain('/_next/data/buildId/en-US.json')
 
           // With all other locales
-          expect(rulePaths).toContain('/_next/data/buildId/en-US/ssg.json')
-          expect(rulePaths).toContain('/_next/data/buildId/fr/ssg.json')
-          expect(rulePaths).toContain('/_next/data/buildId/nl-NL/ssg.json')
+          expect(rulePaths).toContain('/_next/data/buildId/fr/static.json')
+          expect(rulePaths).toContain('/_next/data/buildId/nl-NL/static.json')
 
           expect(caching.max_age).toBe(FAR_FUTURE_CACHE_CONFIG.edge.maxAgeSeconds)
           expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)

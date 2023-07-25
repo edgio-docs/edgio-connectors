@@ -1,12 +1,9 @@
 // This file was added by edgio init.
 // You should commit this file to source control.
 
-const { Router } = require('@edgio/core/router')
-const { nuxtRoutes } = require('@edgio/nuxt')
+import { Router } from '@edgio/core/router'
+import { nuxtRoutes } from '@edgio/nuxt'
 
-module.exports = new Router()
-
-  .match('/service-worker.js', ({ serviceWorker }) => {
-    serviceWorker('.nuxt/dist/client/service-worker.js')
-  })
+export default new Router()
+  // NuxtRoutes automatically adds routes for all Nuxt pages and their assets
   .use(nuxtRoutes)

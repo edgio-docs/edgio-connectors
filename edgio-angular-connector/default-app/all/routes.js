@@ -1,7 +1,6 @@
 // This file was automatically added by edgio init.
 // You should commit this file to source control.
+import { Router } from '@edgio/core/router'
+import { angularRoutes } from '@edgio/angular'
 
-const { Router } = require('@edgio/core/router')
-const { angularRoutes } = require('@edgio/angular')
-
-module.exports = new Router().use(angularRoutes)
+export default new Router().use(angularRoutes)

@@ -5,8 +5,5 @@ import { Router } from '@edgio/core/router'
 import { nuxtRoutes } from '@edgio/nuxt'
 
 export default new Router()
-
-  .match('/service-worker.js', ({ serviceWorker }) => {
-    serviceWorker('.nuxt/dist/client/service-worker.js')
-  })
+  // NuxtRoutes automatically adds routes for all Nuxt pages and their assets
   .use(nuxtRoutes)

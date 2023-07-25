@@ -120,6 +120,41 @@ export type ExpressStyleRoute = string & { __brand: 'ExpressStyleRoute' }
 export type NextStyleRoute = string & { __brand: 'ExpressStyleRoute' }
 
 /**
+ * Represents one prerendered route of Next's page.
+ */
+export interface PrerenderedRoute {
+  /**
+   * Page route which is prerendered in next.js route format.
+   * This can be either full path or dynamic route of pages with no getStaticProps.
+   * @example '/products/123'
+   * @example '/products/[id]'
+   */
+  nextRoute: string
+
+  /**
+   * Page route which is prerendered.
+   * This can be either full path or dynamic route of pages with no getStaticProps.
+   * @example '/products/123'
+   * @example '/products/:id'
+   */
+  route: string
+
+  /**
+   * Page data route which is prerendered in express-style format.
+   * This property is added only when page has data route.
+   * @example '/_next/data/:__build__/products/:id.json'
+   */
+  dataRoute?: string
+
+  /**
+   * The time after the prerendered route should be revalidated.
+   * This number can be different for each prerendered route.
+   * @example false
+   */
+  initialRevalidateSeconds?: number | boolean
+}
+
+/**
  * Represents one page in the Next.js application.
  */
 export interface Page {
@@ -162,15 +197,20 @@ export interface Page {
   localizedDataRoute?: string
 
   /**
-   * True when page was prerendered during the build.
+   * True when at least one route of page was prerendered during the build.
    * This page can be SSG, ISG or ISR.
    */
   isPrerendered?: boolean
 
   /**
+   * True when at least one route of prerendered routes has revalidation set.
+   */
+  hasRevalidation?: boolean
+
+  /**
    * The list of prerendered routes of this page.
    */
-  prerenderedRoutes?: string[]
+  prerenderedRoutes?: PrerenderedRoute[]
 
   /**
    * True if page has any param in its path.
@@ -203,11 +243,4 @@ export interface Page {
    * @example 'app'
    */
   pageSource?: PageSourceType
-
-  /**
-   * The time after page should be revalidated.
-   * This property is added only for prerendered pages.
-   * @example false
-   */
-  initialRevalidateSeconds?: number | boolean
 }

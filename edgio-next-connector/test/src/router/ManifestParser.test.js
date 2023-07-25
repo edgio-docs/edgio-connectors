@@ -210,27 +210,85 @@ describe('ManifestParser', () => {
         })
 
         describe('prerenderedRoutes', () => {
-          it('should return prerendered routes for each page', () => {
-            expect(pagesMap['/dynamic/ssg/[id]'].prerenderedRoutes).toEqual(['/dynamic/ssg/[id]'])
+          it('should return prerendered routes of dynamic SSG page with no data route', () => {
+            expect(pagesMap['/dynamic/ssg/[id]'].prerenderedRoutes).toEqual([
+              {
+                nextRoute: '/dynamic/ssg/[id]',
+                route: '/dynamic/ssg/:id',
+                dataRoute: undefined,
+              },
+            ])
+          })
+
+          it('should return prerendered routes of dynamic ISG page with data route and fallback:true', () => {
             expect(pagesMap['/dynamic/fallback_true/[id]'].prerenderedRoutes).toEqual([
-              '/dynamic/fallback_true/1',
-              '/dynamic/fallback_true/2',
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true/1.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/dynamic/fallback_true/1',
+                route: '/dynamic/fallback_true/1',
+              },
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true/2.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/dynamic/fallback_true/2',
+                route: '/dynamic/fallback_true/2',
+              },
             ])
+          })
+
+          it('should return prerendered routes of dynamic ISR page with fallback:true', () => {
             expect(pagesMap['/dynamic/fallback_true_revalidate/[id]'].prerenderedRoutes).toEqual([
-              '/dynamic/fallback_true_revalidate/1',
-              '/dynamic/fallback_true_revalidate/2',
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true_revalidate/1.json',
+                initialRevalidateSeconds: 360,
+                nextRoute: '/dynamic/fallback_true_revalidate/1',
+                route: '/dynamic/fallback_true_revalidate/1',
+              },
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true_revalidate/2.json',
+                initialRevalidateSeconds: 360,
+                nextRoute: '/dynamic/fallback_true_revalidate/2',
+                route: '/dynamic/fallback_true_revalidate/2',
+              },
             ])
-            expect(pagesMap['/ssg'].prerenderedRoutes).toEqual(['/ssg'])
-            expect(pagesMap['/static'].prerenderedRoutes).toEqual(['/static'])
+          })
+
+          it('should return prerendered routes of static SSG page without getStaticProps', () => {
+            expect(pagesMap['/ssg'].prerenderedRoutes).toEqual([
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/ssg',
+                route: '/ssg',
+              },
+            ])
+          })
+
+          it('should return prerendered routes of static SSG page with getStaticProps', () => {
+            expect(pagesMap['/static'].prerenderedRoutes).toEqual([
+              {
+                dataRoute: '/_next/data/buildId/static.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/static',
+                route: '/static',
+              },
+            ])
           })
         })
 
         describe('initialRevalidateSeconds', () => {
           it('should return initialRevalidateSeconds for pages with revalidation', () => {
-            expect(pagesMap['/dynamic/revalidate'].initialRevalidateSeconds).toBe(10)
-            expect(
-              pagesMap['/dynamic/fallback_true_revalidate/[id]'].initialRevalidateSeconds
-            ).toBe(360)
+            pagesMap['/dynamic/revalidate']?.prerenderedRoutes?.forEach(
+              ({ initialRevalidateSeconds }) => {
+                expect(initialRevalidateSeconds).toBe(10)
+              }
+            )
+            pagesMap['/dynamic/fallback_true_revalidate/[id]']?.prerenderedRoutes?.forEach(
+              ({ initialRevalidateSeconds }) => {
+                expect(initialRevalidateSeconds).toBe(360)
+              }
+            )
           })
         })
 
@@ -354,48 +412,193 @@ describe('ManifestParser', () => {
         })
 
         describe('prerenderedRoutes', () => {
-          it('should return prerendered routes for each page', () => {
+          it('should return prerendered routes of dynamic SSG page with no data route', () => {
             expect(pagesMap['/en-US/dynamic/ssg/[id]'].prerenderedRoutes).toEqual([
-              '/en-US/dynamic/ssg/[id]',
-              '/dynamic/ssg/[id]',
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/en-US/dynamic/ssg/[id]',
+                route: '/en-US/dynamic/ssg/:id',
+              },
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/dynamic/ssg/[id]',
+                route: '/dynamic/ssg/:id',
+              },
             ])
             expect(pagesMap['/fr/dynamic/ssg/[id]'].prerenderedRoutes).toEqual([
-              '/fr/dynamic/ssg/[id]',
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/fr/dynamic/ssg/[id]',
+                route: '/fr/dynamic/ssg/:id',
+              },
             ])
             expect(pagesMap['/nl-NL/dynamic/ssg/[id]'].prerenderedRoutes).toEqual([
-              '/nl-NL/dynamic/ssg/[id]',
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/nl-NL/dynamic/ssg/[id]',
+                route: '/nl-NL/dynamic/ssg/:id',
+              },
             ])
+          })
+
+          it('should return prerendered routes of dynamic ISG page and fallback:true', () => {
             expect(pagesMap['/dynamic/fallback_true/[id]'].prerenderedRoutes).toEqual([
-              '/en-US/dynamic/fallback_true/1',
-              '/dynamic/fallback_true/1',
-              '/en-US/dynamic/fallback_true/2',
-              '/dynamic/fallback_true/2',
+              {
+                dataRoute: '/_next/data/buildId/en-US/dynamic/fallback_true/1.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/en-US/dynamic/fallback_true/1',
+                route: '/en-US/dynamic/fallback_true/1',
+              },
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true/1.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/dynamic/fallback_true/1',
+                route: '/dynamic/fallback_true/1',
+              },
+              {
+                dataRoute: '/_next/data/buildId/en-US/dynamic/fallback_true/2.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/en-US/dynamic/fallback_true/2',
+                route: '/en-US/dynamic/fallback_true/2',
+              },
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true/2.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/dynamic/fallback_true/2',
+                route: '/dynamic/fallback_true/2',
+              },
             ])
+          })
+
+          it('should return prerendered routes of dynamic ISR page with fallback:true', () => {
             expect(pagesMap['/dynamic/fallback_true_revalidate/[id]'].prerenderedRoutes).toEqual([
-              '/en-US/dynamic/fallback_true_revalidate/1',
-              '/dynamic/fallback_true_revalidate/1',
-              '/en-US/dynamic/fallback_true_revalidate/2',
-              '/dynamic/fallback_true_revalidate/2',
+              {
+                dataRoute: '/_next/data/buildId/en-US/dynamic/fallback_true_revalidate/1.json',
+                initialRevalidateSeconds: 360,
+                nextRoute: '/en-US/dynamic/fallback_true_revalidate/1',
+                route: '/en-US/dynamic/fallback_true_revalidate/1',
+              },
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true_revalidate/1.json',
+                initialRevalidateSeconds: 360,
+                nextRoute: '/dynamic/fallback_true_revalidate/1',
+                route: '/dynamic/fallback_true_revalidate/1',
+              },
+              {
+                dataRoute: '/_next/data/buildId/en-US/dynamic/fallback_true_revalidate/2.json',
+                initialRevalidateSeconds: 360,
+                nextRoute: '/en-US/dynamic/fallback_true_revalidate/2',
+                route: '/en-US/dynamic/fallback_true_revalidate/2',
+              },
+              {
+                dataRoute: '/_next/data/buildId/dynamic/fallback_true_revalidate/2.json',
+                initialRevalidateSeconds: 360,
+                nextRoute: '/dynamic/fallback_true_revalidate/2',
+                route: '/dynamic/fallback_true_revalidate/2',
+              },
             ])
-            expect(pagesMap['/en-US/ssg'].prerenderedRoutes).toEqual(['/en-US/ssg', '/ssg'])
-            expect(pagesMap['/fr/ssg'].prerenderedRoutes).toEqual(['/fr/ssg'])
-            expect(pagesMap['/nl-NL/ssg'].prerenderedRoutes).toEqual(['/nl-NL/ssg'])
+          })
+
+          it('should return prerendered routes of static SSG page without getStaticProps', () => {
+            expect(pagesMap['/en-US/ssg'].prerenderedRoutes).toEqual([
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/en-US/ssg',
+                route: '/en-US/ssg',
+              },
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/ssg',
+                route: '/ssg',
+              },
+            ])
+            expect(pagesMap['/fr/ssg'].prerenderedRoutes).toEqual([
+              {
+                dataRoute: undefined,
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/fr/ssg',
+                route: '/fr/ssg',
+              },
+            ])
+          })
+
+          it('should return prerendered routes of static SSG page with getStaticProps', () => {
             expect(pagesMap['/static'].prerenderedRoutes).toEqual([
-              '/en-US/static',
-              '/static',
-              '/fr/static',
-              '/nl-NL/static',
+              {
+                dataRoute: '/_next/data/buildId/en-US/static.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/en-US/static',
+                route: '/en-US/static',
+              },
+              {
+                dataRoute: '/_next/data/buildId/static.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/static',
+                route: '/static',
+              },
+              {
+                dataRoute: '/_next/data/buildId/fr/static.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/fr/static',
+                route: '/fr/static',
+              },
+              {
+                dataRoute: '/_next/data/buildId/nl-NL/static.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/nl-NL/static',
+                route: '/nl-NL/static',
+              },
             ])
-            expect(pagesMap['/'].prerenderedRoutes).toEqual(['/en-US', '/', '/fr', '/nl-NL'])
+          })
+
+          it('should return prerendered routes of static SSG index page with getStaticProps', () => {
+            expect(pagesMap['/'].prerenderedRoutes).toEqual([
+              {
+                dataRoute: '/_next/data/buildId/en-US.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/en-US',
+                route: '/en-US',
+              },
+              {
+                dataRoute: '/_next/data/buildId/index.json',
+                initialRevalidateSeconds: undefined,
+                nextRoute: '/',
+                route: '/',
+              },
+              {
+                dataRoute: '/_next/data/buildId/fr.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/fr',
+                route: '/fr',
+              },
+              {
+                dataRoute: '/_next/data/buildId/nl-NL.json',
+                initialRevalidateSeconds: false,
+                nextRoute: '/nl-NL',
+                route: '/nl-NL',
+              },
+            ])
           })
         })
 
         describe('initialRevalidateSeconds', () => {
           it('should return initialRevalidateSeconds for pages with revalidation', () => {
-            expect(pagesMap['/dynamic/revalidate'].initialRevalidateSeconds).toBe(10)
-            expect(
-              pagesMap['/dynamic/fallback_true_revalidate/[id]'].initialRevalidateSeconds
-            ).toBe(360)
+            pagesMap['/dynamic/revalidate']?.prerenderedRoutes?.forEach(
+              ({ initialRevalidateSeconds }) => {
+                expect(initialRevalidateSeconds).toBe(10)
+              }
+            )
+            pagesMap['/dynamic/fallback_true_revalidate/[id]']?.prerenderedRoutes?.forEach(
+              ({ initialRevalidateSeconds }) => {
+                expect(initialRevalidateSeconds).toBe(360)
+              }
+            )
           })
         })
 

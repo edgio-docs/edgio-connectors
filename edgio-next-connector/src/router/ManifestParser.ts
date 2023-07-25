@@ -14,6 +14,7 @@ import {
   PAGE_SOURCE_TYPES,
   PAGE_TYPES,
   FALLBACK_TYPES,
+  PrerenderedRoute,
 } from '../types'
 import { isCloud, isProductionBuild } from '@edgio/core/environment'
 import getBuildId from '../util/getBuildId'
@@ -165,9 +166,9 @@ export default class ManifestParser {
       if (page?.isPrerendered) {
         page.prerenderedRoutes = this.getPrerenderedRoutes(page)
       }
-      if (page?.prerenderedRoutes && page.prerenderedRoutes.length > 0) {
-        page.initialRevalidateSeconds = this.getRevalidateSeconds(page.prerenderedRoutes[0])
-      }
+      page.hasRevalidation = page?.prerenderedRoutes?.some(
+        ({ initialRevalidateSeconds }) => initialRevalidateSeconds
+      )
       page.type = this.getPageType(page)
       page.pageSource = this.getPageSourceType(pageName)
 
@@ -214,19 +215,9 @@ export default class ManifestParser {
     const hasFileWithHtmlExtension = this.hasFileWithHtmlExtension(page.name)
     if (this.isTemplate(page.name)) return PAGE_TYPES.template
     if (page.name.startsWith('/api')) return PAGE_TYPES.api
-    if (
-      page.isPrerendered &&
-      page.isDynamic &&
-      !hasFileWithHtmlExtension &&
-      page.initialRevalidateSeconds === false
-    )
+    if (page.isPrerendered && page.isDynamic && !hasFileWithHtmlExtension && !page.hasRevalidation)
       return PAGE_TYPES.isg
-    if (
-      page.isPrerendered &&
-      page.isDynamic &&
-      !hasFileWithHtmlExtension &&
-      page.initialRevalidateSeconds !== false
-    )
+    if (page.isPrerendered && page.isDynamic && !hasFileWithHtmlExtension && page.hasRevalidation)
       return PAGE_TYPES.isr
     if (page.isPrerendered) return PAGE_TYPES.ssg
     return PAGE_TYPES.ssr
@@ -381,11 +372,19 @@ export default class ManifestParser {
    * @param page
    * @returns
    */
-  protected getPrerenderedRoutes(page: Page): string[] {
-    const routeRegex = pathToRegexp(page.localizedRoute)
-    const pageRoutes = Object.keys(this.prerenderManifest.routes).filter(route =>
-      route.match(routeRegex)
-    )
+  protected getPrerenderedRoutes(page: Page): PrerenderedRoute[] {
+    const localizedRouteRegex = pathToRegexp(page.localizedRoute)
+
+    let pageRoutes = Object.keys(this.prerenderManifest.routes).filter(route => {
+      const srcRoute = this.prerenderManifest.routes[route]?.srcRoute
+
+      // When we have srcRoute, we can pair prerendered route with page based on its page name.
+      if (srcRoute) return srcRoute === page.name
+
+      // When we don't have srcRoute, we need to match prerendered route with page route by regex.
+      // We'll get here only for pages with static route.
+      return !page.isDynamic && route.match(localizedRouteRegex)
+    })
 
     // If page is prerendered during the build and has no getServerSideProps or getStaticProps,
     // the page is not listed in prerender-manifest file.
@@ -394,36 +393,53 @@ export default class ManifestParser {
       pageRoutes.push(page.name)
     }
 
-    // We are done if localization is not enabled.
-    if (!this.defaultLocale) return pageRoutes
+    // When localizations is enabled
+    if (this.defaultLocale) {
+      // If prerendered route is starting with default locale,
+      // we need to add the route without locale prefix too.
+      // Example: /en-US/blog => /blog
+      pageRoutes = pageRoutes.flatMap(route => {
+        if (!route.startsWith(`/${this.defaultLocale}`)) return route
+        return [route, route.replace(`/${this.defaultLocale}`, '/').replace(/\/\//g, '/')]
+      })
+    }
 
-    // If prerendered route is starting with default locale,
-    // we need to add the route without locale prefix too.
-    // Example: /en-US/blog => /blog
-    return pageRoutes.flatMap(route => {
-      if (!route.startsWith(`/${this.defaultLocale}`)) return route
-      return [route, route.replace(`/${this.defaultLocale}`, '/').replace(/\/\//g, '/')]
-    })
+    return pageRoutes.map(nextRoute => ({
+      nextRoute,
+      route: this.nextPathFormatter.toRouteSyntax(nextRoute),
+      dataRoute: page?.dataRoute
+        ? this.nextPathFormatter.getDataRoute(nextRoute, this.buildId)
+        : undefined,
+      // Each prerendered route of page can have different initialRevalidateSeconds value,
+      // although Next.js is showing only one value in build logs.
+      initialRevalidateSeconds: this.getRevalidateSeconds(nextRoute),
+    }))
   }
 
   /**
-   * Returns initialRevalidateSeconds value for prerendered page
-   * or undefined when page doesn't exist.
-   * @param pageName
+   * Returns initialRevalidateSeconds value for given prerendered route
+   * or undefined when it doesn't exist.
+   * @param pageRoute
    * @returns
    */
-  protected getRevalidateSeconds(pageName: string): boolean | number | undefined {
-    return this.prerenderManifest?.routes[pageName]?.initialRevalidateSeconds
+  protected getRevalidateSeconds(pageRoute: string): boolean | number | undefined {
+    const revalidationSeconds = this.prerenderManifest?.routes[pageRoute]?.initialRevalidateSeconds
+    if (revalidationSeconds !== undefined) return revalidationSeconds
+    if (this.defaultLocale) {
+      return this.prerenderManifest?.routes[`/${this.defaultLocale}${pageRoute}`]
+        ?.initialRevalidateSeconds
+    }
+    return undefined
   }
 
   /**
-   * Returns fallback value for prerendered pages with dynamic routes
-   * or undefined when page doesn't exist.
-   * @param pageName
+   * Returns fallback value for given prerendered route
+   * or undefined when it doesn't exist.
+   * @param pageRoute
    * @returns
    */
-  protected getFallback(pageName: string): string | boolean | null | undefined {
-    return this.prerenderManifest?.dynamicRoutes[pageName]?.fallback
+  protected getFallback(pageRoute: string): string | boolean | null | undefined {
+    return this.prerenderManifest?.dynamicRoutes[pageRoute]?.fallback
   }
 
   /**

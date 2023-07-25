@@ -4,7 +4,7 @@ import { getDistDirFromConfig } from '../util/getDistDir'
 import { join } from 'path'
 import { RouterPlugin } from '@edgio/core/router/Router'
 import Router from '@edgio/core/router/Router'
-import RouteCriteria from '@edgio/core/router/RouteCriteria'
+import RouteCriteria, { and } from '@edgio/core/router/RouteCriteria'
 import { getConfig } from '@edgio/core/config'
 import getNextConfig from '../getNextConfig'
 import RouteHelper, { FeatureCreator } from '@edgio/core/router/RouteHelper'
@@ -100,10 +100,13 @@ export default class NextRoutes implements RouterPlugin {
 
     this.logDuringBuild(`> Next.js routes (locales: ${this.locales?.join(', ') || 'none'})`)
     this.logDuringBuild('')
+    this.logPages()
+
     if (this.edgioConfig?.next?.proxyToServerlessByDefault !== false) {
       this.addDefaultSSRRoute()
     }
     this.addPages()
+    this.add404ErrorPages()
     this.addPrerenderedPages()
     this.addPublicAssets()
     this.addAssets()
@@ -118,55 +121,47 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
-   * Adds executes addPage() for all pages extracted by the manifest parser
-   */
-  protected addPages() {
-    this.pages.forEach(page => this.addPage(page))
-  }
-
-  /**
-   * Adds routes for pre-rendered pages
+   * Adds rules for pre-rendered pages
    */
   protected addPrerenderedPages() {
     let routes: string[] = []
     let dataRoutes: string[] = []
 
     this.pages.forEach(page =>
-      page?.prerenderedRoutes?.forEach(nextRoute => {
-        // This condition ensures that pre-rendered pages on S3 that should expire will be ignored.
-        // TODO: Remove this part once we'll know how updating files on S3 by XBP is working.
-        if (page.initialRevalidateSeconds) return
+      page?.prerenderedRoutes?.forEach(
+        ({ nextRoute, route, dataRoute, initialRevalidateSeconds }) => {
+          const routeAsset = `${NEXT_PRERENDERED_PAGES_FOLDER}${nextRoute}/index.html`
 
-        const routeAsset = `${NEXT_PRERENDERED_PAGES_FOLDER}${nextRoute}/index.html`
-        let route = this.nextPathFormatter.toRouteSyntax(nextRoute)
-        let dataRoute = this.nextPathFormatter.getDataRoute(nextRoute, this.buildId)
+          // Apply modifiers to route and data route
+          route = this.addBasePath(route)
+          dataRoute = this.addBasePath(dataRoute ?? '')
 
-        // Apply modifiers to routes
-        route = this.addBasePath(route)
-        dataRoute = this.addBasePath(dataRoute)
+          // To reduce the number of generated rules, we will not use XBP for updating prerendered pages with revalidation on S3.
+          // Instead, we will let Next.js handle them and return the stale-while-revalidate cache-control header with revalidation time.
+          // These pages are then cached by the Edge for the specified time.
+          // The only difference between these two approaches is in the first request or when page is fetching external data and it fails.
+          // To achieve this, we will exclude these pages with revalidation from the rule with prerendered pages.
+          if (page.hasRevalidation) return
 
-        // Log route
-        this.logRoute(page, route, 'html')
-        // Log data route
-        if (page?.dataRoute) this.logRoute(page, dataRoute, 'json')
+          // When page is dynamic with params and has no data route,
+          // we need to create a separate dynamic route because the IN operator can't be used with dynamic routes.
+          // Example: /en-US/ssg/[id] => Path: /en-US/ssg/:id, Asset: /en-US/ssg/[id]/index.html
+          if (page?.isDynamic && !page?.dataRoute) {
+            // Create separate rule
+            this.router?.match(route, ({ serveStatic, cache, setComment }) => {
+              setComment('Serve pre-rendered page with dynamic route and no getStaticPaths')
+              serveStatic(routeAsset)
+              cache(PUBLIC_CACHE_CONFIG)
+            })
+            // No need to add data route, so we're done
+            return
+          }
 
-        // When page is dynamic with params and has no data route,
-        // we need to create a separate dynamic route
-        // Example: /en-US/ssg/[id] => Path: /en-US/ssg/:id, Asset: /en-US/ssg/[id]/index.html
-        if (page?.isDynamic && !page?.dataRoute) {
-          // Create separate rule
-          this.router?.match(route, ({ serveStatic, cache, setComment }) => {
-            setComment('Serve pre-rendered page with dynamic route and no getStaticPaths')
-            serveStatic(routeAsset)
-            cache(PUBLIC_CACHE_CONFIG)
-          })
-          // No need to add data route, so we're done
-          return
+          // Add to single rule
+          routes.push(route)
+          if (dataRoute) dataRoutes.push(dataRoute)
         }
-        // Add to single rule
-        routes.push(route)
-        dataRoutes.push(dataRoute)
-      })
+      )
     )
 
     // We're done when we don't have any page routes
@@ -206,89 +201,136 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
-   * Adds routes for defined page
+   * Adds rules with handler for all SSR, ISG, ISR pages
    */
-  protected addPage(page: Page) {
-    // Skip pages which are pure SSG (addPrerenderedPages will handle them)
-    if (page.type === PAGE_TYPES.ssg && !page.initialRevalidateSeconds) return
+  protected addPages() {
+    this.pages.forEach(page => {
+      // Skip pages which are pure SSG (addPrerenderedPages will handle them)
+      if (page.type === PAGE_TYPES.ssg && !page.hasRevalidation) return
 
-    this.logPage(page)
+      const routeHandlers: Array<FeatureCreator> = []
+      const dataRouteHandlers: Array<FeatureCreator> = []
 
-    const routeHandlers: Array<FeatureCreator> = []
-    const dataRouteHandlers: Array<FeatureCreator> = []
+      // Add SSR handler to all pages when addDefaultSSRRoute was not added.
+      // This will generate a separate rule for all not pre-rendered pages.
+      if (this.edgioConfig?.next?.proxyToServerlessByDefault === false) {
+        routeHandlers.push(this.ssrHandler)
+        dataRouteHandlers.push(this.ssrHandler)
+      }
 
-    // Add SSR handler to all pages when addDefaultSSRRoute was not added.
-    // This will generate a separate rule for all not pre-rendered pages.
-    if (this.edgioConfig?.next?.proxyToServerlessByDefault === false) {
-      routeHandlers.push(this.ssrHandler)
-      dataRouteHandlers.push(this.ssrHandler)
-    }
+      // Add request header with page name to all pages except SSG.
+      // This is used to determine which page is being rendered in serverless mode
+      // when request reaches serverless origin.
+      // To not generate extensive amount of routes, we add this header only in serverless mode.
+      if (this.renderMode === RENDER_MODES.serverless) {
+        routeHandlers.push(routeHelper => setNextPage(page.name, routeHelper))
+        dataRouteHandlers.push(routeHelper => setNextPage(page.name, routeHelper))
+      }
 
-    // Add request header with page name to all pages except SSG.
-    // This is used to determine which page is being rendered in serverless mode
-    // when request reaches serverless origin.
-    // To not generate extensive amount of routes, we add this header only in serverless mode.
-    if (this.renderMode === RENDER_MODES.serverless) {
-      routeHandlers.push(routeHelper => setNextPage(page.name, routeHelper))
-      dataRouteHandlers.push(routeHelper => setNextPage(page.name, routeHelper))
-    }
+      // This ensures that we will have all features for one route in one rule
+      // instead of having multiple rules for one route.
+      // Add rule with all route handlers for route.
+      if (routeHandlers.length > 0) {
+        this.router?.match(this.addBasePath(page.localizedRoute), routeHelper => {
+          routeHandlers.forEach(handler => handler(routeHelper))
+        })
+      }
 
-    // Return a 404 page when a request comes in for a fallback:false page that is not pre-rendered
-    if (page?.fallback === FALLBACK_TYPES.false) {
+      // Add rule with all route handlers for data route.
+      if (dataRouteHandlers.length > 0 && page?.localizedDataRoute) {
+        this.router?.match(this.addBasePath(page.localizedDataRoute), routeHelper => {
+          dataRouteHandlers.forEach(handler => handler(routeHelper))
+        })
+      }
+    })
+  }
+
+  /**
+   * Adds rules which serves static HTML 404 error page
+   * for all not prerendered routes which has fallback: false.
+   */
+  protected add404ErrorPages() {
+    this.pages.forEach(page => {
+      // We will add 404 error page just for pages with fallback: false
+      if (page?.fallback !== FALLBACK_TYPES.false) return
+
       const assetPath =
         NEXT_PRERENDERED_PAGES_FOLDER +
         this.addBasePath(`/${this.locales.length > 0 ? ':locale/' : ''}`)
 
-      routeHandlers.push(({ setComment, serveStatic, setResponseCode }) => {
-        // Serve static not found page for all not pre-rendered routes.
-        // We want to serve HTML error page even for data route.
-        setComment('Serve 404 for HTML paths not returned by getStaticPaths (fallback: false)')
-        serveStatic(`${assetPath}/404/index.html`.replace(/\/+/g, '/'))
-        setResponseCode(404)
-      })
+      // Because the rules are overlapping and the features of matched rules are then merged together,
+      // we need to exclude all pre-rendered routes from the 404 error page rule with dynamic path.
+      this.router?.if(
+        and(
+          {
+            path: this.addBasePath(page.localizedRoute),
+          },
+          {
+            path: {
+              not: page.prerenderedRoutes?.map(({ route }) => this.addBasePath(route)) ?? [],
+            },
+          }
+        ),
+        ({ setComment, serveStatic, cache, setResponseCode }) => {
+          // Serve static 404 error page for all not pre-rendered routes.
+          setComment('Serve 404 for HTML paths not returned by getStaticPaths (fallback: false)')
+          serveStatic(`${assetPath}/404/index.html`.replace(/\/+/g, '/'), {
+            rewritePathSource: this.addBasePath(page.localizedRoute),
+          })
+          // Overrides default cache config from serveStatic
+          cache({
+            ...PUBLIC_CACHE_CONFIG,
+            cacheableStatusCodes: [404],
+          })
+          setResponseCode(404)
+        }
+      )
 
-      dataRouteHandlers.push(({ setComment, setResponseCode }) => {
-        // Serve static not found page for all not pre-rendered routes.
-        // We want to serve HTML error page even for data route.
-        setComment('Serve 404 for JSON paths not returned by getStaticPaths (fallback: false)')
-        setResponseCode(404)
-      })
-    }
+      // We're done if there is no data route
+      if (!page?.localizedDataRoute) return
 
-    // This ensures that we will have all features for one route in one rule
-    // instead of having multiple rules for one route.
-    // Call all route handlers for route.
-    if (routeHandlers.length > 0) {
-      const modifiedRoute = this.addBasePath(page.localizedRoute)
-      this.router?.match(modifiedRoute, routeHelper => {
-        routeHandlers.forEach(handler => handler(routeHelper))
-      })
-    }
-    // Call all route handlers for data route.
-    if (dataRouteHandlers.length > 0 && page?.localizedDataRoute) {
-      const modifiedDataRoute = this.addBasePath(page.localizedDataRoute)
-      this.router?.match(modifiedDataRoute, routeHelper => {
-        dataRouteHandlers.forEach(handler => handler(routeHelper))
-      })
-    }
+      this.router?.if(
+        and(
+          {
+            path: this.addBasePath(page.localizedDataRoute),
+          },
+          {
+            path: {
+              not:
+                page.prerenderedRoutes?.map(({ dataRoute }) => this.addBasePath(dataRoute ?? '')) ??
+                [],
+            },
+          }
+        ),
+        ({ setComment, setResponseCode }) => {
+          // We want to serve HTML error page even for not prerendered data route
+          setComment('Serve 404 for JSON paths not returned by getStaticPaths (fallback: false)')
+          setResponseCode(404)
+        }
+      )
+    })
   }
 
   /**
-   * Logs provided route with label to the console during the build.
+   * Logs provided route with label and other params
+   * to the console during the build.
    * @param page
    * @param route
    * @param label
+   * @param initialRevalidateSeconds
    * @returns
    */
-  logRoute(page: Page, route: string, label: string) {
+  logRoute(page: Page, route: string, label: string, initialRevalidateSeconds?: number | boolean) {
     const parameters = []
 
     if (page.fallback) {
       parameters.push(chalk.grey(`${page.fallback}`))
     }
 
-    if (page.initialRevalidateSeconds) {
-      parameters.push(chalk.grey(`revalidate: ${page.initialRevalidateSeconds}`))
+    initialRevalidateSeconds =
+      initialRevalidateSeconds || page?.prerenderedRoutes?.[0].initialRevalidateSeconds
+    if (initialRevalidateSeconds) {
+      parameters.push(chalk.grey(`revalidate: ${initialRevalidateSeconds}`))
     }
 
     const type = `${page.type}${label ? ' ' + label : ''}`
@@ -298,17 +340,31 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
-   * Logs a page and its data route to the console during the build.
-   * @param page
+   * Logs a pages with their data routes
+   * and prerendered routes to the console during the build.
    * @returns
    */
-  logPage(page: Page) {
-    const localizedRoute = this.addBasePath(page.localizedRoute)
-    if (!page.dataRoute || !page.localizedDataRoute) return this.logRoute(page, localizedRoute, '')
+  logPages() {
+    this.pages.forEach(page => {
+      // Skip SSG pages from logging here to not log them twice.
+      // They are logged as prerendered routes.
+      if (page.type !== PAGE_TYPES.ssg) {
+        // Log route of page without data route
+        if (!page.dataRoute || !page.localizedDataRoute)
+          return this.logRoute(page, this.addBasePath(page.localizedRoute), '')
 
-    const localizedDataRoute = this.addBasePath(page.localizedDataRoute || '')
-    this.logRoute(page, localizedRoute, 'html')
-    this.logRoute(page, localizedDataRoute, 'json')
+        // Log routes of page with data route
+        this.logRoute(page, this.addBasePath(page.localizedRoute), 'html')
+        this.logRoute(page, this.addBasePath(page.localizedDataRoute), 'json')
+      }
+
+      // Log prerendered routes of page
+      page.prerenderedRoutes?.forEach(({ route, dataRoute, initialRevalidateSeconds }) => {
+        this.logRoute(page, this.addBasePath(route), 'html', initialRevalidateSeconds)
+        if (dataRoute)
+          this.logRoute(page, this.addBasePath(dataRoute), 'json', initialRevalidateSeconds)
+      })
+    })
   }
 
   /**
@@ -427,6 +483,7 @@ export default class NextRoutes implements RouterPlugin {
       // next < 10 did not have the internal property
       const isInternalRedirect = internal || source === '/:path+/'
       let criteria: string | RouteCriteria | RegExp = this.createRouteCriteria(source, has)
+      statusCode = statusCode || 302
 
       // Do not add internal redirects if enforceTrailingSlash is disabled
       if (isInternalRedirect && this.edgioConfig?.next?.enforceTrailingSlash === false) continue
@@ -440,9 +497,10 @@ export default class NextRoutes implements RouterPlugin {
         destination = bindParams(destination, getBackReferences(source))
       }
 
-      this.router?.match(criteria, ({ redirect, rewritePath, setComment }) => {
+      this.router?.match(criteria, ({ redirect, setComment, setResponseCode }) => {
         if (isInternalRedirect) setComment("Next's internal redirect")
-        redirect(destination, { statusCode: statusCode || 302 })
+        redirect(destination, { statusCode: statusCode })
+        setResponseCode(statusCode)
       })
 
       this.logDuringBuild(
@@ -673,10 +731,9 @@ export default class NextRoutes implements RouterPlugin {
       // Example: /dynamic/ssg/[id]
       if (page?.isDynamic && page?.type === PAGE_TYPES.ssg) return
 
-      page?.prerenderedRoutes?.forEach(prerenderedRoute => {
-        const { route, dataRoute } = this.nextPathFormatter.getRouteVariations(prerenderedRoute)
-        requests.push({ path: route })
-        requests.push({ path: dataRoute })
+      page?.prerenderedRoutes?.forEach(({ route, dataRoute }) => {
+        requests.push({ path: this.addBasePath(route) })
+        if (dataRoute) requests.push({ path: this.addBasePath(dataRoute) })
       })
     })
 
