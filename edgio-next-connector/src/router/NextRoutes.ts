@@ -328,7 +328,7 @@ export default class NextRoutes implements RouterPlugin {
     }
 
     initialRevalidateSeconds =
-      initialRevalidateSeconds || page?.prerenderedRoutes?.[0].initialRevalidateSeconds
+      initialRevalidateSeconds || page?.prerenderedRoutes?.[0]?.initialRevalidateSeconds
     if (initialRevalidateSeconds) {
       parameters.push(chalk.grey(`revalidate: ${initialRevalidateSeconds}`))
     }

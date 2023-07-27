@@ -1,6 +1,6 @@
 {
   "name": "@edgio/nitropack",
-  "version": "7.0.29",
+  "version": "7.0.30",
   "description": "Deploy nitropack apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -27,7 +27,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.29",
+    "@edgio/core": "^7.0.30",
     "@types/node": "^14.0.9"
   }
 }

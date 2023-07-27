@@ -111,6 +111,14 @@
         "id": "id"
       },
       "namedRegex": "^/dynamic/fallback_true_revalidate/(?<id>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dynamic/fallback_false_no_routes/[id]",
+      "regex": "^/dynamic/fallback_false_no_routes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "id": "id"
+      },
+      "namedRegex": "^/dynamic/fallback_false_no_routes/(?<id>[^/]+?)(?:/)?$"
     }
   ],
   "dataRoutes": [
@@ -173,6 +181,14 @@
     {
       "page": "/dynamic/revalidate",
       "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/revalidate.json$"
+    },
+    {
+      "page": "/dynamic/fallback_false_not_prerendered/[id]",
+      "routeKeys": {
+        "id": "id"
+      },
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_false_not_prerendered/([^/]+?)\\.json$",
+      "namedDataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_false_not_prerendered/(?<id>[^/]+?)\\.json$"
     }
   ],
   "staticRoutes": [

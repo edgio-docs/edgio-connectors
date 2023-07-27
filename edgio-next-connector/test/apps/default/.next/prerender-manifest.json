@@ -86,6 +86,12 @@
       "dataRoute": "/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_true_revalidate/[id].json",
       "fallback": "/dynamic/fallback_true_revalidate/[id].html",
       "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_true_revalidate/([^/]+?)\\.json$"
+    },
+    "/dynamic/fallback_false_not_prerendered/[id]": {
+      "routeRegex": "^/dynamic/fallback_false_not_prerendered/([^/]+?)(?:/)?$",
+      "dataRoute": "/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_false_not_prerendered/[id].json",
+      "fallback": false,
+      "dataRouteRegex": "^/_next/data/N00zBHq3_6db3IU3bYZ3m/dynamic/fallback_false_not_prerendered/([^/]+?)\\.json$"
     }
   },
   "notFoundRoutes": [],
