@@ -1,6 +1,6 @@
 {
   "name": "@edgio/nuxt-nitro",
-  "version": "7.0.30",
+  "version": "7.0.31",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,9 +10,9 @@
     "workbox-build": "^6.5.3"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.30",
-    "@edgio/devtools": "^7.0.30",
-    "@edgio/prefetch": "^7.0.30",
+    "@edgio/core": "^7.0.31",
+    "@edgio/devtools": "^7.0.31",
+    "@edgio/prefetch": "^7.0.31",
     "@types/fs-extra": "^8.1.1",
     "@types/lodash": "^4.14.162",
     "@types/workbox-build": "^5.0.1",

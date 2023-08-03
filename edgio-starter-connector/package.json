@@ -1,6 +1,6 @@
 {
   "name": "@edgio/starter",
-  "version": "7.0.30",
+  "version": "7.0.31",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -13,7 +13,7 @@
     "process": "^0.11.10"
   },
   "devDependencies": {
-    "@edgio/core": "^7.0.30",
+    "@edgio/core": "^7.0.31",
     "@types/cheerio": "^0.22.23",
     "@types/fs-extra": "^9.0.6"
   },
