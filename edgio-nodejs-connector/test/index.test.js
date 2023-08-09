@@ -3,10 +3,10 @@ import { SERVERLESS_ORIGIN_NAME, STATIC_ORIGIN_NAME } from '@edgio/core/origins'
 import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
 import { join } from 'path'
 import { FAR_FUTURE_TTL } from '@edgio/core/constants'
-import { CustomRoutes } from '../src/CustomRoutes'
+import { NodejsRoutes } from '../src/NodejsRoutes'
 
-describe('CustomRoutes.ts', () => {
-  let originalDir, customRoutes, router, rules
+describe('NodejsRoutes.ts', () => {
+  let originalDir, nodejsRoutes, router, rules
 
   beforeAll(() => {
     originalDir = process.cwd()
@@ -18,8 +18,8 @@ describe('CustomRoutes.ts', () => {
   })
 
   const init = () => {
-    customRoutes = new CustomRoutes()
-    router = new Router().use(customRoutes)
+    nodejsRoutes = new NodejsRoutes()
+    router = new Router().use(nodejsRoutes)
     rules = router.rules
   }
 
