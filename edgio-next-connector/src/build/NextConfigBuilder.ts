@@ -80,7 +80,7 @@ export default class NextConfigBuilder {
       ...this.ignoredDependencies,
     ]
     includedDependencies.forEach(file => {
-      this.builder.copySync(file, join(this.builder.jsDir, file), {
+      this.builder.copySync(file, join(this.builder.jsAppDir, file), {
         overwrite: false,
         errorOnExist: false,
         filter: file => fs.lstatSync(file).isFile(),
@@ -96,7 +96,7 @@ export default class NextConfigBuilder {
   protected async writeRuntimeVersion(): Promise<void> {
     this.builder.copySync(
       join(process.cwd(), NEXT_CONFIG_FILE),
-      join(this.builder.jsDir, NEXT_RUNTIME_CONFIG_FILE)
+      join(this.builder.jsAppDir, NEXT_RUNTIME_CONFIG_FILE)
     )
   }
 
@@ -126,7 +126,7 @@ export default class NextConfigBuilder {
     )
 
     this.builder.writeFileSync(
-      join(this.builder.jsDir, NEXT_BUILDTIME_CONFIG_FILE),
+      join(this.builder.jsAppDir, NEXT_BUILDTIME_CONFIG_FILE),
       serverConfigSrc
     )
   }
@@ -138,7 +138,7 @@ export default class NextConfigBuilder {
   async writeHandler(): Promise<void> {
     this.builder.copySync(
       join(__dirname, 'nextConfigHandler.js'),
-      join(this.builder.jsDir, NEXT_CONFIG_HANDLER_FILE)
+      join(this.builder.jsAppDir, NEXT_CONFIG_HANDLER_FILE)
     )
   }
 
@@ -157,7 +157,7 @@ export default class NextConfigBuilder {
     const buildCommand = `npx esbuild ${NEXT_CONFIG_HANDLER_FILE} --target=es2018 --bundle --minify --platform=node ${
       this.generateSourceMap ? '--sourcemap' : ''
     } --outfile=${NEXT_CONFIG_FILE} --external:./${NEXT_RUNTIME_CONFIG_FILE}`
-    await this.builder.exec(buildCommand, { cwd: this.builder.jsDir })
+    await this.builder.exec(buildCommand, { cwd: this.builder.jsAppDir })
     this.cleanAfterBuild()
   }
 
@@ -168,8 +168,8 @@ export default class NextConfigBuilder {
   protected cleanAfterBuild(): void {
     console.log(`> Cleaning after build of next config file`)
     // Handler was replaced by bundled version
-    this.builder.removeSync(join(this.builder.jsDir, NEXT_CONFIG_HANDLER_FILE))
+    this.builder.removeSync(join(this.builder.jsAppDir, NEXT_CONFIG_HANDLER_FILE))
     // The buildtime version is no longer needed because it's included in bundle
-    this.builder.removeSync(join(this.builder.jsDir, NEXT_BUILDTIME_CONFIG_FILE))
+    this.builder.removeSync(join(this.builder.jsAppDir, NEXT_BUILDTIME_CONFIG_FILE))
   }
 }

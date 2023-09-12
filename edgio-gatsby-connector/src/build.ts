@@ -13,7 +13,7 @@ export default async function build({ skipFramework }: BuildOptions) {
     // We serialize the JS config output to JSON file,
     // so we don't need to worry about gatsby-config.js dependencies.
     builder.writeFileSync(
-      join(builder.jsDir, 'gatsby-config.js'),
+      join(builder.jsAppDir, 'gatsby-config.js'),
       `module.exports=${JSON.stringify(gatsbyConfig)}`
     )
   }

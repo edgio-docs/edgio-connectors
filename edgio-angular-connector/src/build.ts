@@ -41,13 +41,10 @@ export default async function build({ skipFramework }: BuildOptions) {
     console.log('> Using', join(appDir, serverPath, 'main.js'), 'as the entrypoint for serverless.')
 
     // Include the angular server which is loaded by the prod entrypoint
-    builder.addJSAsset(
-      join(appDir, serverPath, 'main.js'),
-      join('__backends__', 'angular-server.js')
-    )
+    builder.addJSAsset(join(appDir, serverPath, 'main.js'), join('angular-server.js'))
 
     builder
-      // angular.json
+      // angular.json for the app and angularRoutes
       .addJSAsset(join(appDir, 'angular.json'), 'angular.json')
       // Index html required by Universal engine
       .addJSAsset(join(appDir, assetsPath, 'index.html'), join('/', assetsPath, 'index.html'))

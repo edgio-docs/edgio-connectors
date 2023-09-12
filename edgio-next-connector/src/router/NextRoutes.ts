@@ -42,6 +42,7 @@ import { PreloadRequest } from '@edgio/core/router/Preload'
 import bindParams from '@edgio/core/utils/bindParams'
 import { getBackReferences } from '@edgio/core/router/path'
 import { pathToRegexp } from 'path-to-regexp'
+import toEdgeRegex from '@edgio/core/utils/toEdgeRegex'
 
 export default class NextRoutes implements RouterPlugin {
   protected router?: Router
@@ -81,7 +82,6 @@ export default class NextRoutes implements RouterPlugin {
     this.pages = this.manifestParser.getPages()
     this.pagesMap = Object.fromEntries(this.pages.map(page => [page.name, page]))
     this.redirects = this.manifestParser.getRedirects()
-    this.rewrites = this.manifestParser.getRewrites()
     this.locales = this.manifestParser.getLocales()
     this.defaultLocale = this.manifestParser.getDefaultLocale()
 
@@ -111,7 +111,6 @@ export default class NextRoutes implements RouterPlugin {
     this.addPublicAssets()
     this.addAssets()
     this.addImageOptimizer()
-    this.addRewrites()
     this.addRedirects()
     this.addServiceWorker()
     this.addPrerendering()
@@ -130,9 +129,8 @@ export default class NextRoutes implements RouterPlugin {
     this.pages.forEach(page =>
       page?.prerenderedRoutes?.forEach(
         ({ nextRoute, route, dataRoute, initialRevalidateSeconds }) => {
-          const routeAsset = `${NEXT_PRERENDERED_PAGES_FOLDER}${nextRoute}/index.html`
-
           // Apply modifiers to route and data route
+          nextRoute = this.addBasePath(nextRoute)
           route = this.addBasePath(route)
           dataRoute = this.addBasePath(dataRoute ?? '')
 
@@ -147,6 +145,8 @@ export default class NextRoutes implements RouterPlugin {
           // we need to create a separate dynamic route because the IN operator can't be used with dynamic routes.
           // Example: /en-US/ssg/[id] => Path: /en-US/ssg/:id, Asset: /en-US/ssg/[id]/index.html
           if (page?.isDynamic && !page?.dataRoute) {
+            const routeAsset = `${NEXT_PRERENDERED_PAGES_FOLDER}${nextRoute}/index.html`
+
             // Create separate rule
             this.router?.match(route, ({ serveStatic, cache, setComment }) => {
               setComment('Serve pre-rendered page with dynamic route and no getStaticPaths')
@@ -267,7 +267,10 @@ export default class NextRoutes implements RouterPlugin {
           },
           {
             path: {
-              not: page.prerenderedRoutes?.map(({ route }) => this.addBasePath(route)) ?? [],
+              not:
+                page.prerenderedRoutes
+                  ?.map(({ route }) => this.addBasePath(route))
+                  ?.flatMap(route => (route === '/' ? [route] : [route, `${route}/`])) ?? [],
             },
           }
         ),
@@ -377,94 +380,6 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
-   * Finds a backend in edgio.config.js that has the same hostname as the specified rewrite destination URL.
-   * @param url
-   * @returns
-   */
-  protected backendForDestination(url: URL) {
-    return (
-      getConfig()?.hostnames?.find(config => config?.hostname === url.hostname)
-        ?.default_origin_name || SERVERLESS_ORIGIN_NAME
-    )
-  }
-
-  /**
-   * Find an existing route that would match a request with destination as the path - we will run its handler when
-   * the request's path matches the rewrite source.
-   * @param source The source URL
-   * @param has Any has elements
-   * @param destination The destination URL
-   */
-  protected addRewrite(source: string, has: any[] | undefined, destination: string) {
-    // Next.js adds /:nextInternalLocale at the start of the destination route - if we leave this in
-    // we'll never find the destination route
-    let normalizedDestination = destination.replace(/\/:nextInternalLocale[^/]*/, '')
-
-    if (this.defaultLocale) {
-      // Use the defaultLocale in place of the the :locale parameter since we restrict the locale to only the
-      // configured locales. If we don't do this, we'll never find the destination route.
-      normalizedDestination = normalizedDestination.replace(/:locale/, this.defaultLocale)
-    }
-
-    this.logDuringBuild(`  ${chalk.blueBright('rewrite')}: ${source} => ${normalizedDestination}`)
-
-    if (destination.match(/^https?:\/\//)) {
-      const url = new URL(destination)
-      const backend = this.backendForDestination(url)
-
-      if (backend) {
-        // proxy
-        this.router?.match(this.createRouteCriteria(source, has), ({ proxy, updatePath }) => {
-          updatePath(url.pathname)
-          proxy(backend, {
-            path: url.pathname,
-          })
-        })
-      } else {
-        console.warn(
-          `No matching backend was found in edgio.config.js for rewrite to ${url.toString()}. ` +
-            `To fix this problem, add key to the backends config with the following value: { "domainOrIp": "${url.hostname}" }. ` +
-            `See https://docs.edg.io/guides/edgio_config#section_backends for more information.`
-        )
-      }
-    } else {
-      // render
-      this.router?.match(this.createRouteCriteria(source, has), ({ rewritePath }) => {
-        // TODO: Check the old implementation behaviour and make sure it works the same say
-        rewritePath(source, normalizedDestination)
-      })
-    }
-  }
-
-  protected addRewrites() {
-    if (!this.rewrites) return
-    let rewrites = []
-
-    if (Array.isArray(this.rewrites)) {
-      // Rewrites can be either array of rewrites
-      rewrites = this.rewrites
-    } else {
-      // Or an object with beforeFiles, afterFiles and fallback properties
-
-      // We can't properly support this with edge-control at this moment.
-      // The inner rewrite from serveStatic would always override the rewrite from beforeFiles,
-      // because the sailfish is executing only the last rewrite, and we can't stop the rules execution flow.
-      // Possible solution is to put all beforeFiles rewrites into same rule with the router.static,
-      // but this would work only for static files and it is not possible right now because of bug SAIL-5897.
-      // TODO: Refactor this when SAIL-5897 is fixed
-      rewrites = [
-        ...(this.rewrites.beforeFiles || []),
-        ...(this.rewrites.afterFiles || []),
-        ...(this.rewrites.fallback || []),
-      ]
-    }
-
-    for (let { source, destination, has } of rewrites) {
-      this.addRewrite(source, has, destination)
-    }
-  }
-
-  /**
    * Adds rewrites and redirects from next.config.js
    */
   protected addRedirects() {
@@ -487,21 +402,35 @@ export default class NextRoutes implements RouterPlugin {
 
       // Do not add internal redirects if enforceTrailingSlash is disabled
       if (isInternalRedirect && this.edgioConfig?.next?.enforceTrailingSlash === false) continue
-      if (isInternalRedirect) {
-        // For Next's internal redirects, which either add or remove the trailing slash, depending on the value of the trailingSlash config,
-        // we need to ensure that the route matches the entire path or these redirects will cause an infinite loop.
+      this.router?.match(
+        criteria,
+        ({ setComment, setResponseCode, addFeatures, rewritePath, redirect }) => {
+          if (isInternalRedirect) {
+            // For Next's internal redirects, which either add or remove the trailing slash, depending on the value of the trailingSlash config,
+            // we need to ensure that the route matches the entire path or these redirects will cause an infinite loop.
 
-        // These internal redirects don't have valid path-to-regex syntax used by edge-control.
-        // That's why we need to convert them to actual regex.
-        criteria = new RegExp(pathToRegexp(source))
-        destination = bindParams(destination, getBackReferences(source))
-      }
-
-      this.router?.match(criteria, ({ redirect, setComment, setResponseCode }) => {
-        if (isInternalRedirect) setComment("Next's internal redirect")
-        redirect(destination, { statusCode: statusCode })
-        setResponseCode(statusCode)
-      })
+            // These internal redirects don't have valid path-to-regex syntax used by edge-control.
+            // That's why we need to convert them to actual regex.
+            setComment("Next's internal redirect")
+            addFeatures({
+              url: {
+                url_redirect: {
+                  code: statusCode,
+                  syntax: 'regexp',
+                  source: toEdgeRegex(new RegExp(pathToRegexp(source))),
+                  destination: bindParams(destination, getBackReferences(source)),
+                },
+              },
+            })
+            // We need to add this empty rewrite to delete any previous rewrites.
+            // Otherwise, the redirect will not match the URL.
+            rewritePath('/:path*', '/:path*')
+          } else {
+            redirect(destination, { statusCode: statusCode })
+          }
+          setResponseCode(statusCode)
+        }
+      )
 
       this.logDuringBuild(
         `  ${chalk.blueBright('redirect')}: ${
@@ -529,7 +458,7 @@ export default class NextRoutes implements RouterPlugin {
       for (let el of has) {
         if (typeof el.value === 'string' && el.value.match(/\(\?<[^>]+>/)) {
           throw new Error(
-            'Edgio does not yet support capturing named parameters in `has` elements of `rewrites` or `redirects` in next.config.js.'
+            'Edgio does not yet support capturing named parameters in `has` elements of `redirects` in next.config.js.'
           )
         }
 
@@ -665,7 +594,7 @@ export default class NextRoutes implements RouterPlugin {
    */
   protected addServiceWorker() {
     if (this.edgioConfig?.next?.disableServiceWorker) return
-    this.router?.match(this.addBasePath(`/${SERVICE_WORKER_FILENAME}`), ({ serviceWorker }) => {
+    this.router?.match(`/${SERVICE_WORKER_FILENAME}`, ({ serviceWorker }) => {
       serviceWorker() // We don't provide a path here because the build process puts it in the correct path (s3/service-worker.js)
     })
   }

@@ -6,16 +6,15 @@ module.exports = {
     prod: './src/prod.ts',
   },
   mode: 'production',
+  optimization: {
+    minimize: false,
+  },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
         use: 'ts-loader',
         exclude: /node_modules/,
-      },
-      {
-        test: /.js$/,
-        use: 'babel-loader',
       },
     ],
   },

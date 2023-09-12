@@ -1,7 +1,8 @@
 /* istanbul ignore file */
-import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
+import { resolve } from 'path'
 
 export default async function prod(port: number) {
   process.env.PORT = port.toString()
-  nonWebpackRequire('../__sapper__/build/server/server')
+  // @ts-ignore
+  return import(/* webpackIgnore: true */ resolve('__sapper__/build/server/server.js'))
 }

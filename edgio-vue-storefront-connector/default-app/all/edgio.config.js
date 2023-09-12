@@ -8,8 +8,8 @@ module.exports = {
   // The name of the site in Edgio to which this app should be deployed.
   // name: 'my-site-name',
 
-  // The name of the team in Edgio to which this app should be deployed.
-  // team: 'my-team-name',
+  // The name of the organization in Edgio to which this app should be deployed.
+  // organization: 'my-organization-name',
 
   // Overrides the default path to the routes file. The path should be relative to the root of your app.
   // routes: 'routes.js',

@@ -1,12 +1,11 @@
 /* istanbul ignore file */
-import { join } from 'path'
+import { resolve } from 'path'
 import qs from 'qs'
 import { createServer, Server } from 'http'
-import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import getDistDir from './util/getDistDir'
-import path from 'path'
 import getNextConfig from './getNextConfig'
 import { NEXT_PAGE_HEADER, REMOVE_HEADER_VALUE } from './constants'
+import { existsSync } from 'fs'
 
 // Used in fetchFromAPI so that SSR pages don't call back into the lambda
 // which would result in Edgio being double-billed for each SSR request
@@ -18,12 +17,20 @@ let server: Server
  * Creates a server for target: 'server', output: 'standalone', which is the default from Next 12.2 onward.
  * @param port The port to which to bind the Next server
  */
-const createStandAloneServer = (
+const createStandAloneServer = async (
   port: number,
   config: { experimental: { isrFlushToDisk: boolean } }
 ) => {
-  // This is our custom build on next
-  const NextServer = nonWebpackRequire('next/dist/server/next-server').default
+  // Try to find the optimized version of Next.js server first
+  const nextServerPath = [
+    resolve('node_modules/next/dist/server/next-server-optimized.js'),
+    resolve('node_modules/next/dist/server/next-server.js'),
+  ].find(existsSync)
+
+  // @ts-ignore
+  let NextServer = await import(/* webpackIgnore: true */ nextServerPath)
+  // Try to find the default export
+  NextServer = NextServer?.default?.default || NextServer?.default || NextServer
 
   // Note: we considered using use minimal mode (process.env.NEXT_PRIVATE_MINIMAL_MODE = 'true') to prevent Next.js
   // from flushing ISR pages to disk, but that also disables middleware, so instead we force revalidate by
@@ -34,7 +41,7 @@ const createStandAloneServer = (
   const handle = new NextServer({
     hostname: 'localhost',
     port: port,
-    dir: path.resolve(__dirname, '..'),
+    dir: process.cwd(),
     dev: false,
     conf: config,
   }).getRequestHandler()
@@ -42,7 +49,7 @@ const createStandAloneServer = (
   return createServer(async (req, res) => {
     try {
       // Here we add a default Cache-Control header before handing the request off to Next.js.
-      // If Next.js sees this default value, it won't add it's own default, which is Cache-Control: private, no-cache, no-store.
+      // If Next.js sees this default value, it won't add its own default, which is Cache-Control: private, no-cache, no-store.
       // We later remove this value so that there is no Cache-Control header in NextRoutes#addDefaultSSRRoute.
       res.setHeader('Cache-Control', REMOVE_HEADER_VALUE)
       handle(req, res)
@@ -60,7 +67,7 @@ const createStandAloneServer = (
  * Creates the server for the legacy target: 'serverless' configuration which was prominent
  * prior to Next 12
  */
-const createServerlessServer = () => {
+const createServerlessServer = async () => {
   const distDir = getDistDir()
   return createServer(async (req, res) => {
     let page: string | undefined = req.headers[NEXT_PAGE_HEADER] as string
@@ -76,8 +83,8 @@ const createServerlessServer = () => {
     req.query = qs.parse(search)
 
     try {
-      const pagePath = join(process.cwd(), distDir, 'serverless', 'pages', <string>page)
-      const mod = nonWebpackRequire(pagePath)
+      const pagePath = resolve(distDir, 'serverless', 'pages', `${page}.js`)
+      const mod = (await import(/* webpackIgnore: true */ pagePath))?.default
 
       if (mod.getServerSideProps || mod.getStaticProps) {
         // Is a React component
@@ -118,9 +125,9 @@ export default async function prod(port: number) {
     // so we reverse checking the target option as we know
     // that if it is not serverless, it must be server
     if (config.target === 'serverless' || config.target === 'experimental-serverless-trace') {
-      server = createServerlessServer()
+      server = await createServerlessServer()
     } else {
-      server = createStandAloneServer(port, config)
+      server = await createStandAloneServer(port, config)
     }
   }
 

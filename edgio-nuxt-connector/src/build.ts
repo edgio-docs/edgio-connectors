@@ -94,7 +94,7 @@ export default async function build(options: BuildOptions) {
   if (getEdgioSourceMapsValue(config) === false) {
     console.log(`> Found edgioSourceMaps set to false`)
     console.log(`> Deleting .map files from lambda folder`)
-    builder.deleteMapFiles(builder.jsDir)
+    builder.deleteMapFiles(builder.jsAppDir)
   }
 }
 

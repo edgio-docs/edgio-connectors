@@ -1,11 +1,11 @@
 {
   "name": "@edgio/qwik",
-  "version": "7.1.1",
+  "version": "7.2.3",
   "description": "Deploy Qwik apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/qwik/src/* dist; webpack; node ./replaceDynamicImports.js",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/qwik/src/* dist; webpack;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
@@ -27,7 +27,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.1.1",
+    "@edgio/core": "^7.2.3",
     "@types/node": "^14.0.9"
   },
   "dependencies": {

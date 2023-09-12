@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 import { join, resolve } from 'path'
+import fs from 'fs'
 import { nodeFileTrace } from '@vercel/nft'
 import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
@@ -23,7 +24,7 @@ export default async function build(options: BuildOptions) {
 
   const serverFilePath = resolve(join(appDir, 'server', 'entry.express.js'))
 
-  if (serverFilePath) {
+  if (fs.existsSync(serverFilePath)) {
     console.log('> Found server/entry.express.js!')
 
     // Bundle the server folder per
@@ -34,7 +35,7 @@ export default async function build(options: BuildOptions) {
 
     // Get the node_modules required for running the server on serverless
     const { fileList } = await nodeFileTrace([serverFilePath])
-    fileList.forEach((file: string) => builder.copySync(file, join(builder.jsDir, file)))
+    fileList.forEach((file: string) => builder.copySync(file, join(builder.jsAppDir, file)))
 
     console.log('> Done...')
   } else {

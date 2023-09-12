@@ -6,6 +6,6 @@ export default async function prod(port: number) {
   if (existsSync(appFilePath)) {
     process.env.PORT = port.toString()
     // @ts-ignore
-    return __edgioDynamicImport__(appFilePath)
+    return await import(/* webpackIgnore: true */ appFilePath)
   }
 }

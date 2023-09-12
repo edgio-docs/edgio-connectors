@@ -1,7 +1,7 @@
 import { join } from 'path'
 import { existsSync, readFileSync } from 'fs'
 
-module.exports = async (port: number) => {
+export default async function (port: number) {
   const appFilePath = join(process.cwd(), 'appPath.json')
   // If appPath inside edgio.config.js doesn't exist, then appPath.json will not be created.
   if (!existsSync(appFilePath)) {
@@ -21,7 +21,7 @@ module.exports = async (port: number) => {
     let appPath = JSON.parse(readFileSync(appFilePath, 'utf8')).appPath
     process.env.PORT = port.toString()
     // @ts-ignore
-    await __edgioDynamicImport__(join(process.cwd(), appPath))
+    await import(/* webpackIgnore: true */ join(process.cwd(), appPath))
   } catch (e) {
     console.log(e)
   }

@@ -1,5 +1,7 @@
-import { join } from 'path'
+import { resolve } from 'path'
 import { readAsset } from './assets'
+import { isCloud } from '@edgio/core/environment'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 
 /**
  * Gets the build output directory for Astro
@@ -9,10 +11,10 @@ export default function getAstroConfig() {
   let astroConfig = { outDir: './dist', output: 'static' }
 
   // Load the astro config
-  const astroConfigFile = join(process.cwd(), 'astro.config.json')
-
   try {
-    let config = JSON.parse(readAsset(astroConfigFile))
+    const configFilename = 'astro.config.json'
+    const configFilePath = isCloud() ? resolve(configFilename) : resolve(JS_APP_DIR, configFilename)
+    const config = JSON.parse(readAsset(configFilePath))
 
     // If output in the outDir exists, assign it to the astroConfig
     if (config?.outDir) {

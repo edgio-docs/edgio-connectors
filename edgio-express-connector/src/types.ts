@@ -1,5 +1,13 @@
 import type Config from '@edgio/core/config'
 
+export const BUNDLER_TYPES = {
+  esbuild: 'esbuild',
+  vercelNft: '@vercel/nft',
+  vercelNcc: '@vercel/ncc',
+}
+
+export type BundlerType = (typeof BUNDLER_TYPES)[keyof typeof BUNDLER_TYPES]
+
 /**
  * Extended object of config from edgio.config.js
  * with connector specific properties.
@@ -26,6 +34,6 @@ export interface ExtendedConfig extends Config {
     /**
      * The bundler which will be used to bundle your app.
      */
-    bundler?: string
+    bundler?: BundlerType
   }
 }

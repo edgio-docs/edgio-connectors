@@ -1,10 +1,9 @@
 /* istanbul ignore file */
-import { createServer } from 'http'
+import { resolve } from 'path'
 
-export default function prod(port: number) {
-  return new Promise<void>(resolve => {
-    // @ts-ignore
-    const app = __non_webpack_require__('../index.js').default
-    createServer(app).listen(port, resolve)
-  })
+export default async function prod(port: number) {
+  process.env.PORT = port.toString()
+  // NOTE: This is where we call our server from sveltekit/files/server.mjs
+  const serverPath = resolve(resolve('.svelte-kit', 'output', 'server', 'server.mjs'))
+  return import(/* webpackIgnore: true */ serverPath)
 }

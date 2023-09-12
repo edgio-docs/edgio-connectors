@@ -34,6 +34,6 @@ export default function createBuildEntryPoint({ buildCommand }: BuilderOptions) 
 
     const { fileList } = await nodeFileTrace([join(appDir, 'dist', 'node', 'index.js')])
 
-    fileList.forEach((file: string) => builder.copySync(file, join(builder.jsDir, file)))
+    fileList.forEach((file: string) => builder.copySync(file, join(builder.jsAppDir, file)))
   }
 }

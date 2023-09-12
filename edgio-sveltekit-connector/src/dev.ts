@@ -5,6 +5,6 @@ export default async function dev() {
   return createDevServer({
     label: 'Sveltekit',
     ready: [/localhost:\d+/],
-    command: port => `npx svelte-kit dev --port ${port}`,
+    command: port => `npx vite dev --port ${port}`,
   })
 }

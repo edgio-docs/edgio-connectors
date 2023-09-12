@@ -24,7 +24,7 @@ export default async function build(options: BuildOptions) {
     // run the next.js build
     try {
       await builder.exec(command)
-      await bundle(join(builder.jsDir, 'build'))
+      await bundle(join(builder.jsAppDir, 'build'))
     } catch (e) {
       throw new FrameworkBuildError('Razzle', command)
     }

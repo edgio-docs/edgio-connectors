@@ -30,9 +30,6 @@ describe('ManifestParser', () => {
       manifestParser = new ManifestParser('./', distDir, renderMode)
     })
 
-    it('should not throw error and return empty array for rewrites', () => {
-      expect(manifestParser.getRewrites()).toEqual([])
-    })
     it('should not throw error and return empty array for redirects', () => {
       expect(manifestParser.getRedirects()).toEqual([])
     })
@@ -54,18 +51,6 @@ describe('ManifestParser', () => {
         distDir = getDistDirFromConfig(nextConfig)
         renderMode = getRenderMode(nextConfig)
         manifestParser = new ManifestParser('./', distDir, renderMode)
-      })
-      it('should extract rewrites from routes-manifest.json', () => {
-        expect(manifestParser.getRewrites()).toEqual([
-          {
-            source: '/no-matching-rewrite',
-            destination: '/not-defined',
-          },
-          {
-            source: '/rewrites/:id',
-            destination: '/p/:id',
-          },
-        ])
       })
 
       it('should extract redirects from routes-manifest.json', () => {

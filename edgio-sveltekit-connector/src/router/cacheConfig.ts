@@ -11,9 +11,7 @@ export const FAR_FUTURE_CACHE_CONFIG: CacheOptions = {
 }
 
 export const PUBLIC_CACHE_CONFIG: CacheOptions = {
-  browser: {
-    maxAgeSeconds: '1h',
-  },
+  browser: false,
   edge: {
     maxAgeSeconds: FAR_FUTURE_TTL,
   },

@@ -1,4 +1,4 @@
-import { JS_DIR } from '@edgio/core/deploy/paths'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 import { FILENAME } from '../src/getBuildVersion'
 import { join } from 'path'
 
@@ -21,7 +21,7 @@ describe('createBuildVersion', () => {
   it('should use the hash of browser.js in hex format', () => {
     createBuildVersion()
     expect(writeFileSync).toHaveBeenCalledWith(
-      join(process.cwd(), JS_DIR, FILENAME),
+      join(process.cwd(), JS_APP_DIR, FILENAME),
       '62068be6ca7c890f241c4562b1f5c58a776a5b28034edd115d52aaec3498dead',
       'utf8'
     )

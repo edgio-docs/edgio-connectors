@@ -1,12 +1,11 @@
 import { join } from 'path'
-import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
+import { readFileSync } from 'fs'
 
 /**
  * Gets the contents of angular.json as an object
  */
 export function getAngularConfig() {
-  const angularConfigPath = join(process.cwd(), 'angular.json')
-  return nonWebpackRequire(angularConfigPath)
+  return JSON.parse(readFileSync(join(process.cwd(), 'angular.json')).toString())
 }
 
 /**

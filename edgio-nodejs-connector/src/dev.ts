@@ -22,7 +22,7 @@ export default async function () {
         ? undefined
         : port => {
             process.env[edgioConfig.nodejsConnector!.envPort!] = port.toString()
-            return edgioConfig.nodejsConnector!.devCommand!
+            return edgioConfig.nodejsConnector!.devCommand!.replace(/\${PORT}/gi, port.toString())
           },
     ready,
   })

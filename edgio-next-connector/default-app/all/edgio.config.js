@@ -7,8 +7,8 @@ module.exports = {
   // The name of the site in Edgio to which this app should be deployed.
   // name: 'my-site-name',
 
-  // The name of the team in Edgio to which this app should be deployed.
-  // team: 'my-team-name',
+  // The name of the organization in Edgio to which this app should be deployed.
+  // organization: 'my-organization-name',
 
   // Overrides the default path to the routes file. The path should be relative to the root of your app.
   // routes: 'routes.js',
@@ -65,13 +65,13 @@ module.exports = {
   //
   //     // When provided, the following value will be sent as the host header when connecting to the origin.
   //     // If omitted, the host header from the browser will be forwarded to the origin.
-  //     override_host_header: "example.com",
+  //     override_host_header: "test-origin.edgio.net",
   //
   //     // The list of backend hosts
   //     hosts: [
   //       {
   //         // The domain name or IP address of the origin server
-  //         location: "example.com"
+  //         location: "test-origin.edgio.net"
   //       }
   //     ]
   //   }

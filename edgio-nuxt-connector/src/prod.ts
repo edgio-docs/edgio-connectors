@@ -1,7 +1,7 @@
 /* istanbul ignore file */
-import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import { createServer } from 'http'
 import fs from 'fs'
+import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 
 export default async function prod(port: number) {
   const config = JSON.parse(fs.readFileSync('.edgio/edgio-nuxt.config.json').toString())

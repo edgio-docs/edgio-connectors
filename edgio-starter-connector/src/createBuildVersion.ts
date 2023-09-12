@@ -1,6 +1,6 @@
 import { join } from 'path'
 import crypto from 'crypto'
-import { JS_DIR } from '@edgio/core/deploy/paths'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 import { FILENAME } from './getBuildVersion'
 import fs from './fs'
 
@@ -10,7 +10,7 @@ import fs from './fs'
  */
 export default function createBuildVersion() {
   fs.writeFileSync(
-    join(process.cwd(), JS_DIR, FILENAME),
+    join(process.cwd(), JS_APP_DIR, FILENAME),
     crypto
       .createHash('sha256')
       .update(fs.readFileSync(join(process.cwd(), 'dist', 'browser.js'), 'utf8'))

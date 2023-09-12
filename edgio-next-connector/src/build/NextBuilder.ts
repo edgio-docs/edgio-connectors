@@ -1,5 +1,5 @@
 import globby from 'globby'
-import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
+import { DeploymentBuilder, BuildOptions, resolveInPackage } from '@edgio/core/deploy'
 import { join } from 'path'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
@@ -109,7 +109,7 @@ export default class NextBuilder {
       // Setting __NEXT_PRIVATE_PREBUNDLED_REACT to 'next' or any other value
       // forces Next.js to use the prebundled React version. When this env var is not set, Next.js will use the React version from node_modules.
       appendFileSync(
-        join(this.builder.jsDir, '.env.production'),
+        join(this.builder.jsAppDir, '.env.production'),
         `\r\n# Variables below were automatically added by edgio build\r\n__NEXT_PRIVATE_PREBUNDLED_REACT=next\r\n`
       )
       console.log(
@@ -132,7 +132,15 @@ export default class NextBuilder {
       console.log(
         `[Edgio] Found generateSourceMaps set to false. Deleting .map files from lambda folder`
       )
-      this.builder.deleteMapFiles(this.builder.jsDir)
+      this.builder.deleteMapFiles(this.builder.jsAppDir)
+    }
+
+    if (this.renderMode === RENDER_MODES.serverless && this.nextConfig?.rewrites) {
+      console.warn(
+        `[Edgio] ${chalk.yellow(
+          "Warning: The rewrites from 'next.config.js' are currently not fully supported with the Next.js serverless build.\r\nPlease use the server build instead or upgrade to Next.js 12 and newer."
+        )}`
+      )
     }
   }
 
@@ -152,7 +160,7 @@ export default class NextBuilder {
     const nextServerFile = 'next-server.js'
     const outputFile = 'next-server-optimized.js'
 
-    const nextPackageJson = require(join(process.cwd(), 'node_modules', 'next', 'package.json'))
+    const nextPackageJson = require(resolveInPackage('next', 'package.json'))
 
     // Dependencies from the next server which we don't want to bundle
     const externalDependencies = [
@@ -182,14 +190,7 @@ export default class NextBuilder {
     const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --allow-overwrite --outfile=${outputFile} ${externalDependencies
       .map(l => `--external:${l}`)
       .join(' ')}`
-    const nextSourceFiles = join(
-      this.builder.buildDir,
-      'lambda',
-      'node_modules',
-      'next',
-      'dist',
-      'server'
-    )
+    const nextSourceFiles = join(this.builder.jsAppDir, 'node_modules', 'next', 'dist', 'server')
 
     await this.builder.exec(buildCommand, { cwd: nextSourceFiles })
   }
@@ -228,10 +229,10 @@ export default class NextBuilder {
       'process.env.EDGIO_IMAGE_OPTIMIZER_HOST'
     )
 
-    this.builder.writeFileSync(join(this.builder.jsDir, 'next.config.js'), serverConfigSrc)
+    this.builder.writeFileSync(join(this.builder.jsAppDir, 'next.config.js'), serverConfigSrc)
 
     // add the standalone app and dependencies
-    this.builder.copySync(join(this.distDirAbsolute, 'standalone'), this.builder.jsDir, {
+    this.builder.copySync(join(this.distDirAbsolute, 'standalone'), this.builder.jsAppDir, {
       // exclude the server.js since we roll our own in prod.ts
       filter: (file: string) => file !== join(this.distDirAbsolute, 'standalone', 'server.js'),
     })
@@ -242,14 +243,14 @@ export default class NextBuilder {
    * targets.
    */
   async addLegacyBuildAssets() {
-    const pagesDir = join(this.builder.jsDir, this.distDir, this.renderMode, 'pages')
+    const pagesDir = join(this.builder.jsAppDir, this.distDir, this.renderMode, 'pages')
     this.builder
       // React components and api endpoints
       .addJSAsset(join(this.distDir, this.renderMode))
 
       // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
       .writeFileSync(
-        join(this.builder.jsDir, 'next.config.js'),
+        join(this.builder.jsAppDir, 'next.config.js'),
         `module.exports=${JSON.stringify({ distDir: this.distDir })}`
       )
 

@@ -1,9 +1,9 @@
 import { edgioRoutes } from '@edgio/core'
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
-import { nonWebpackRequire } from '@edgio/core/utils'
 import { SERIALIZED_CONFIG_FILE } from '../types'
 import { join } from 'path'
+import { readFileSync } from 'fs'
 
 /**
  * Adds all routes from your Vue 3 app to Edgio router
@@ -26,8 +26,8 @@ export default class VueRoutes implements RouterPlugin {
   async onRegister(router: Router) {
     if (isProductionBuild()) {
       // Load previously serialized config with outputDir
-      const serializedConfig = nonWebpackRequire(
-        join(process.cwd(), '.edgio', SERIALIZED_CONFIG_FILE)
+      const serializedConfig = JSON.parse(
+        readFileSync(join(process.cwd(), '.edgio', SERIALIZED_CONFIG_FILE)).toString()
       )
       const outputDir = serializedConfig.outputDir
 

@@ -56,8 +56,10 @@ export default async function build(options: BuildOptions) {
 
   // Sapper will fail at startup if the static dir isn't present.
   // We just put an empty one there since we serve static files from S3
-  mkdirSync(join(builder.jsDir, 'static'))
-  writeFileSync(join(builder.jsDir, 'static', '.keep'), '', 'utf8')
+  mkdirSync(join(builder.jsAppDir, 'static'), {
+    recursive: true,
+  })
+  writeFileSync(join(builder.jsAppDir, 'static', '.keep'), '', 'utf8')
 
   await builder.build()
 }

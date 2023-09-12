@@ -271,23 +271,12 @@ describe('NextRoutes', () => {
         expect(origin.set_origin).toBe(IMAGE_OPTIMIZER_ORIGIN_NAME)
       })
 
-      it('should add rules for rewrites (addRewrites)', () => {
-        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/rewrites/:id')
-        const urlRewrite = rule?.if[1]?.url?.url_rewrite[0]
-        expect(urlRewrite.source).toContain('/rewrites/:id')
-        expect(urlRewrite.destination).toContain('/p/:id')
-      })
-
       it('should add rules for redirects (addRedirects)', () => {
-        const rule = rules.find(
-          rule =>
-            rule?.if?.[0]?.['=~']?.[1] ===
-            '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
-        )
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path+/')
         const urlRedirect = rule?.if[1]?.url?.url_redirect
         const urlRewrite = rule?.if[1]?.url?.url_rewrite[0]
 
-        // redirect
+        // Should add redirect
         expect(urlRedirect.code).toBeDefined()
         expect(urlRedirect.source).toContain(
           '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
@@ -295,7 +284,8 @@ describe('NextRoutes', () => {
         expect(urlRedirect.destination).toContain('/$1')
         expect(urlRedirect.syntax).toBe('regexp')
 
-        // empty rewrite to remove any previous rewrites that may have been added
+        // Should add empty rewrite to remove any previous rewrites that may have been added
+        // by serveStatic for example
         expect(urlRewrite.source).toContain('/:path*')
         expect(urlRewrite.destination).toContain('/:path*')
         expect(urlRewrite.syntax).toBe('path-to-regexp')
@@ -323,19 +313,13 @@ describe('NextRoutes', () => {
         const publicAssetIndex = rules.findIndex(
           rule => rule?.if?.[0]?.['==']?.[1] === '/public.txt'
         )
-        const rewriteIndex = rules.findIndex(rule => rule?.if?.[0]?.['==']?.[1] === '/rewrites/:id')
-        const redirectIndex = rules.findIndex(
-          rule =>
-            rule?.if?.[0]?.['=~']?.[1] ===
-            '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
-        )
+        const redirectIndex = rules.findIndex(rule => rule?.if?.[0]?.['==']?.[1] === '/:path+/')
 
         expect(
           defaultSSRIndex <
             dynamicRouteIndex <
             prerenderedRouteIndex <
             publicAssetIndex <
-            rewriteIndex <
             redirectIndex
         ).toBe(true)
       })

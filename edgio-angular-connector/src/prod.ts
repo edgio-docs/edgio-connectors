@@ -1,15 +1,15 @@
-import { join } from 'path'
+import { resolve } from 'path'
 import { existsSync } from 'fs'
 
 /* istanbul ignore file */
 export default async function prod(port: number) {
-  const serverPath = join(process.cwd(), '__backends__', 'angular-server.js')
-  if (!existsSync(serverPath)) {
-    return
-  }
+  const serverPath = resolve('angular-server.js')
+  if (!existsSync(serverPath)) return
+
+  const { app } = (await import(/* webpackIgnore: true */ serverPath)).default
   return new Promise((resolve, reject) => {
     try {
-      require('./angular-server').app().listen(port, resolve)
+      app().listen(port, resolve)
     } catch (e) {
       reject(e)
     }

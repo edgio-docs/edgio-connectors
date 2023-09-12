@@ -1,8 +1,10 @@
 import { isProductionBuild } from '@edgio/core/environment'
 import Router, { RouterPlugin } from '@edgio/core/router/Router'
-import { PUBLIC_CACHE_CONFIG } from './cacheConfig'
+import { FAR_FUTURE_CACHE_CONFIG, PUBLIC_CACHE_CONFIG } from './cacheConfig'
 import { edgioRoutes } from '@edgio/core'
-
+import { join } from 'path'
+import { TMP_DIR } from '@edgio/core/deploy/paths'
+import { PRERENDERED_PAGES_FOLDER } from '../constants'
 /**
  * An Edgio middleware that automatically adds all standard SvelteKit routes to Edgio router.
  * These include route for pages in src/routes and static assets in the static directory.
@@ -19,9 +21,8 @@ export default class SvelteKitRoutes implements RouterPlugin {
     this.addDefaultSSRRoute()
     if (isProductionBuild()) {
       this.addStaticAssets()
+      this.addPrerenderedPages()
       this.addServiceWorker()
-    } else {
-      this.addWebpackRoutes()
     }
     this.router.use(edgioRoutes)
   }
@@ -30,15 +31,44 @@ export default class SvelteKitRoutes implements RouterPlugin {
    * Add default SSR rule
    */
   protected addDefaultSSRRoute() {
-    this.router?.match('/:path*', ({ renderWithApp }) => renderWithApp())
+    this.router?.match('/:path*', ({ renderWithApp, setComment }) => {
+      renderWithApp()
+      setComment('Send all requests to Astro server running in serverless by default')
+    })
   }
 
   /**
-   * Add rule for static assets from static folder
+   * Add rule for static assets from '.svelte-kit/output/' folder
    */
   protected addStaticAssets() {
     this.router?.static('.svelte-kit/output/client', {
-      handler: ({ cache }) => cache(PUBLIC_CACHE_CONFIG),
+      // The assets in /client/ folder don't have any hash,
+      // so we can cache them only on the edge.
+      handler: ({ cache, setComment }) => {
+        cache(PUBLIC_CACHE_CONFIG)
+        setComment('Serve static assets')
+      },
+    })
+    // The assets in /client/_app/ folder are with unique hash,
+    // so we can cache them in the browser too.
+    this.router?.match('/_app/:path*', ({ cache, setComment }) => {
+      cache(FAR_FUTURE_CACHE_CONFIG)
+      setComment('Cache static assets with hash in the browser')
+    })
+  }
+
+  /**
+   * Add rule for prerendered pages from '.svelte-kit/output/prerendered/pages' folder
+   */
+  protected addPrerenderedPages() {
+    // The pages need to be renamed to correct path first.
+    // This is done by us during build process.
+    // Example: /about.html => /about/index.html
+    this.router?.static(join(TMP_DIR, PRERENDERED_PAGES_FOLDER), {
+      handler: ({ cache, setComment }) => {
+        cache(PUBLIC_CACHE_CONFIG)
+        setComment('Serve pre-rendered HTML pages')
+      },
     })
   }
 
@@ -53,18 +83,5 @@ export default class SvelteKitRoutes implements RouterPlugin {
     this.router?.match('/service-worker.js', ({ serviceWorker }) => {
       serviceWorker(`.svelte-kit/output/client/service-worker.js`)
     })
-  }
-
-  /**
-   * Add rule for webpack hot loader.
-   * This is only used in development mode.
-   */
-  protected addWebpackRoutes() {
-    // TODO: Uncomment this when stream method is implemented
-    // this.router?.match('/_app', ({ stream }) => stream('__js__'))
-    // this.router?.match('/.svelte-kit/:path*', ({ stream }) => stream('__js__'))
-    // this.router?.match('/src/:path*', ({ stream }) => stream('__js__'))
-    // this.router?.match('/node_modules/:path*', ({ stream }) => stream('__js__'))
-    // this.router?.match('/@vite/:path*', ({ stream }) => stream('__js__'))
   }
 }

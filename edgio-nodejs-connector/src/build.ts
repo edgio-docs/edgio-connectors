@@ -26,7 +26,7 @@ module.exports = async function build(options: BuildOptions) {
   const entryFile = edgioConfig.nodejsConnector?.entryFile ?? ''
 
   if (buildFolder !== '') {
-    builder.copySync(buildFolder, builder.jsDir)
+    builder.copySync(buildFolder, builder.jsAppDir)
 
     await builder.buildServiceWorker({
       swSrc: SW_SOURCE,
@@ -40,7 +40,7 @@ module.exports = async function build(options: BuildOptions) {
     // relative to build folder, otherwise we resolve it relative to lambda root
     // as build folder would be empty
     const entryFileSrc = resolve(buildFolder, entryFile)
-    const entryFileDest = resolve(builder.jsDir, basename(entryFile))
+    const entryFileDest = resolve(builder.jsAppDir, basename(entryFile))
 
     if (edgioConfig.nodejsConnector?.bundleEntryFile === true) {
       await bundle({ entryPoints: [entryFileSrc], outfile: entryFileDest })

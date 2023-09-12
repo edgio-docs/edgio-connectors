@@ -2,7 +2,7 @@ import { createDevServer } from '@edgio/core/dev'
 import { resolve } from 'path'
 import { findDefaultAppPath } from './utils'
 import chalk from 'chalk'
-import { isPortBound, getNearestUnboundPort } from './portUtils'
+import { isPortBound, getNearestUnboundPort } from '@edgio/core/utils/portUtils'
 import { getConfig } from '@edgio/core/config'
 import { ExtendedConfig } from './types'
 
@@ -20,7 +20,10 @@ export default function dev() {
       process.env.PORT = port
 
       if (appPath) {
-        const app = (await import(resolve(appPath)))?.default
+        let app = await import(resolve(appPath))
+        // Find the default export
+        app = app?.default?.default || app?.default || app
+
         if (!app) {
           console.error(
             `ERROR: No app was exported from '${appPath}'. Please export an express app instance from this file.`

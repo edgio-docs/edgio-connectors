@@ -179,24 +179,6 @@ export default class ManifestParser {
   }
 
   /**
-   * Attempt to get rewrites from routes-manifest.json in production.
-   * and from next.config.js in development.
-   */
-  getRewrites(): any {
-    let rewrites =
-      isProductionBuild() || isCloud() ? this.routesManifest?.rewrites : this.nextConfig?.rewrites
-    if (!rewrites) return []
-
-    // We need to reverse the order to match the sailfish behavior when only the last one is applied.
-    if (Array.isArray(rewrites)) return rewrites.reverse()
-    return {
-      beforeFiles: rewrites?.beforeFiles?.reverse() || [],
-      afterFiles: rewrites?.afterFiles?.reverse() || [],
-      fallback: rewrites?.fallback?.reverse() || [],
-    }
-  }
-
-  /**
    * Attempt to get redirects from routes-manifest.json in production
    * and from next.config.js in development.
    */

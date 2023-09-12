@@ -1,9 +1,9 @@
 /* istanbul ignore file */
-import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import dotenv from 'dotenv-defaults'
 import { createServer } from 'http'
 // @ts-ignore
 import toLambdaEvent from '@edgio/cli/serverless/toLambdaEvent'
+import { resolve } from 'path'
 
 dotenv.config()
 
@@ -14,7 +14,9 @@ export default async function prod(port: number) {
 
       // determine which handler to invoke based on the request path
       const handlerName = event.path.split('/').reverse()[0]
-      const { handler } = nonWebpackRequire(`../api/dist/functions/${handlerName}`)
+
+      // @ts-ignore
+      const { handler } = nonWebpackRequire(resolve(`./api/dist/functions/${handlerName}`))
 
       // `handler(event, context)` takes an event comprised of the http request and lambda
       // event properties.

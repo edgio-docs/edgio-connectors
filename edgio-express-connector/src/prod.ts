@@ -1,37 +1,29 @@
-export default function prod(port: number) {
-  let getNearestUnboundPort: (port: number, host?: string) => Promise<number>
+import { resolve } from 'path'
+import { isPortBound } from '@edgio/core/utils/portUtils'
+import { getConfig } from '@edgio/core/config'
+import { ExtendedConfig } from './types'
+import { findDefaultAppPath } from './utils'
 
+export default async function prod(port: number) {
   try {
-    getNearestUnboundPort = require('@edgio/express/portUtils').getNearestUnboundPort
-  } catch (e) {
-    console.warn(
-      "Warning: Couldn't import @edgio/express/portUtils. The used port can't be checked."
-    )
-    getNearestUnboundPort = async (port: number, _) => port
-  }
+    const edgioConfig = getConfig() as ExtendedConfig
+    const appPath = edgioConfig?.express?.appPath || findDefaultAppPath() || 'index.js'
 
-  return new Promise<void>((resolve, reject) => {
-    try {
-      process.env.PORT = port.toString()
-      let app = require('../index')
+    process.env.PORT = port.toString()
 
-      if (app.default) {
-        app = app.default
-      }
+    // @ts-ignore
+    let app = await import(/* webpackIgnore: true */ resolve(appPath))
+    // Find the default export
+    app = app?.default?.default || app?.default || app
 
-      if (app && app.listen) {
-        getNearestUnboundPort(port).then((port: number | null) => {
-          if (port === null) {
-            console.error(`Error: Couldn't find any unsed port`)
-            reject()
-          }
-          app.listen(port, resolve)
-        })
-      } else {
-        resolve()
-      }
-    } catch (e) {
-      reject(e)
+    // When the port is occupied,
+    // we assume the server started by itself in the exported module.
+    if (await isPortBound(port)) {
+      return
     }
-  })
+
+    app?.listen(port)
+  } catch (e) {
+    return Promise.reject(e)
+  }
 }

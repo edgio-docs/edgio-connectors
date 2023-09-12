@@ -1,9 +1,10 @@
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { loadConfigFromFile } from 'vite'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import { DeploymentBuilder, BuildOptions } from '@edgio/core/deploy'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
+// @ts-ignore
+import { loadConfigFromFile } from 'vite'
 
 const appDir = process.cwd()
 
@@ -43,9 +44,9 @@ export default async function build(options: BuildOptions) {
     const command = 'npx sanity build dist'
     try {
       await builder.exec(command)
-      // Add sanity.json to the build iff the sanity build succeeds
+      // Add sanity.json to the build if the sanity build succeeds
       builder.writeFileSync(
-        join(builder.jsDir, 'sanity.json'),
+        join(builder.jsAppDir, 'sanity.json'),
         JSON.stringify({ sanityConfig, method })
       )
     } catch (e) {
