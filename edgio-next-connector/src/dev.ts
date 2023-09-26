@@ -31,7 +31,7 @@ export default async function dev() {
   return createDevServer({
     label: 'Next',
     command: port => `npx next dev -p ${port}`,
-    ready: [/(started server on|ready on)/i],
+    ready: [/(started server on|ready on|ready in)/i],
     // The whole Router will be reloaded if any of these dirs change.
     reloadOnChangeOf: dirsToWatch,
   })

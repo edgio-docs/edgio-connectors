@@ -233,7 +233,7 @@ export default class ManifestParser {
   public getRoutesManifest(): any {
     const routesManifestPath =
       process.env.NEXT_ROUTES_MANIFEST_PATH ||
-      join(process.cwd(), this.distDir, 'routes-manifest.json')
+      join(process.cwd(), this.nextRootDir, this.distDir, 'routes-manifest.json')
 
     return nonWebpackRequire(routesManifestPath)
   }
@@ -243,7 +243,7 @@ export default class ManifestParser {
    */
   public getPagesManifest(): any {
     return nonWebpackRequire(
-      join(process.cwd(), this.distDir, this.renderMode, 'pages-manifest.json')
+      join(process.cwd(), this.nextRootDir, this.distDir, this.renderMode, 'pages-manifest.json')
     )
   }
 
@@ -252,7 +252,13 @@ export default class ManifestParser {
    * and changes the format of keys to correct URLs
    */
   public getAppPathsManifest(): any {
-    const location = join(process.cwd(), this.distDir, this.renderMode, 'app-paths-manifest.json')
+    const location = join(
+      process.cwd(),
+      this.nextRootDir,
+      this.distDir,
+      this.renderMode,
+      'app-paths-manifest.json'
+    )
     if (!existsSync(location)) return {}
 
     const appPaths = nonWebpackRequire(location)
@@ -274,7 +280,13 @@ export default class ManifestParser {
    * Returns the contents of middleware-manifest.json
    */
   public getMiddlewareManifest(): any {
-    const path = join(process.cwd(), this.distDir, this.renderMode, 'middleware-manifest.json')
+    const path = join(
+      process.cwd(),
+      this.nextRootDir,
+      this.distDir,
+      this.renderMode,
+      'middleware-manifest.json'
+    )
     if (existsSync(path)) return nonWebpackRequire(path)
     return {
       sortedMiddleware: [],
@@ -286,7 +298,7 @@ export default class ManifestParser {
    * Returns the contents of prerender-manifest.json
    */
   public getPrerenderManifest(): any {
-    const path = join(process.cwd(), this.distDir, 'prerender-manifest.json')
+    const path = join(process.cwd(), this.nextRootDir, this.distDir, 'prerender-manifest.json')
     try {
       return nonWebpackRequire(path)
     } catch (e) {
@@ -314,7 +326,6 @@ export default class ManifestParser {
   protected isPrerendered(page: string): boolean {
     const file = this.pageFiles[page] || ''
     const pageSource = this.getPageSourceType(page) || ''
-    const htmlPath = join(this.distDir, this.renderMode, pageSource, `${page}.html`)
     let routeKey = (this.defaultLocale ? `/${this.defaultLocale}` : '') + `${page}`
 
     if (routeKey !== '/') {
@@ -325,7 +336,7 @@ export default class ManifestParser {
       file.endsWith('.html') ||
       this.prerenderManifest.routes[routeKey] != null ||
       this.prerenderManifest.dynamicRoutes[page] != null ||
-      existsSync(htmlPath)
+      existsSync(join(this.nextRootDir, this.distDir, this.renderMode, pageSource, `${page}.html`))
     )
   }
 

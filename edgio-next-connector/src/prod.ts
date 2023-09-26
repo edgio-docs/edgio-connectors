@@ -2,7 +2,8 @@
 import { resolve } from 'path'
 import qs from 'qs'
 import { createServer, Server } from 'http'
-import getDistDir from './util/getDistDir'
+import getNextRootDir from './util/getNextRootDir'
+import { getDistDirFromConfig } from './util/getDistDir'
 import getNextConfig from './getNextConfig'
 import { NEXT_PAGE_HEADER, REMOVE_HEADER_VALUE } from './constants'
 import { existsSync } from 'fs'
@@ -15,16 +16,19 @@ let server: Server
 
 /**
  * Creates a server for target: 'server', output: 'standalone', which is the default from Next 12.2 onward.
+ * @param nextRootDir The root directory of the Next.js app where .next build output is located
  * @param port The port to which to bind the Next server
+ * @param nextConfig The Next.js config object
  */
 const createStandAloneServer = async (
+  nextRootDir: string,
   port: number,
-  config: { experimental: { isrFlushToDisk: boolean } }
+  nextConfig: { experimental: { isrFlushToDisk: boolean } }
 ) => {
   // Try to find the optimized version of Next.js server first
   const nextServerPath = [
-    resolve('node_modules/next/dist/server/next-server-optimized.js'),
-    resolve('node_modules/next/dist/server/next-server.js'),
+    resolve(nextRootDir, 'node_modules/next/dist/server/next-server-optimized.js'),
+    resolve(nextRootDir, 'node_modules/next/dist/server/next-server.js'),
   ].find(existsSync)
 
   // @ts-ignore
@@ -36,14 +40,14 @@ const createStandAloneServer = async (
   // from flushing ISR pages to disk, but that also disables middleware, so instead we force revalidate by
   // sending x-prerender-revalidate when making requests to Next. See NextRoutes for details.
   // disable next writing ISR generated html files to disk.
-  config.experimental.isrFlushToDisk = false
+  nextConfig.experimental.isrFlushToDisk = false
 
   const handle = new NextServer({
     hostname: 'localhost',
     port: port,
-    dir: process.cwd(),
+    dir: resolve(nextRootDir),
     dev: false,
-    conf: config,
+    conf: nextConfig,
   }).getRequestHandler()
 
   return createServer(async (req, res) => {
@@ -67,8 +71,7 @@ const createStandAloneServer = async (
  * Creates the server for the legacy target: 'serverless' configuration which was prominent
  * prior to Next 12
  */
-const createServerlessServer = async () => {
-  const distDir = getDistDir()
+const createServerlessServer = async (nextRootDir: string, distDir: string) => {
   return createServer(async (req, res) => {
     let page: string | undefined = req.headers[NEXT_PAGE_HEADER] as string
     const search = req.url?.split('?')[1]
@@ -83,7 +86,7 @@ const createServerlessServer = async () => {
     req.query = qs.parse(search)
 
     try {
-      const pagePath = resolve(distDir, 'serverless', 'pages', `${page}.js`)
+      const pagePath = resolve(nextRootDir, distDir, 'serverless', 'pages', `${page}.js`)
       const mod = (await import(/* webpackIgnore: true */ pagePath))?.default
 
       if (mod.getServerSideProps || mod.getStaticProps) {
@@ -118,16 +121,24 @@ const createServerlessServer = async () => {
 
 export default async function prod(port: number) {
   if (!server) {
-    const config = getNextConfig()
+    // nextRootDir is relative location where the Next.js build is located in app folder.
+    // This is the './' by default, but when the next app is built in NPM/YARN workspaces,
+    // the path is different based on app location in the workspace.
+    const nextRootDir = getNextRootDir()
+    const nextConfig = getNextConfig(resolve(nextRootDir))
+    const distDir = getDistDirFromConfig(nextConfig)
 
     // target option has been depricated in next 13,
     // but we still need to support it for legacy projects
     // so we reverse checking the target option as we know
     // that if it is not serverless, it must be server
-    if (config.target === 'serverless' || config.target === 'experimental-serverless-trace') {
-      server = await createServerlessServer()
+    if (
+      nextConfig.target === 'serverless' ||
+      nextConfig.target === 'experimental-serverless-trace'
+    ) {
+      server = await createServerlessServer(nextRootDir, distDir)
     } else {
-      server = await createStandAloneServer(port, config)
+      server = await createStandAloneServer(nextRootDir, port, nextConfig)
     }
   }
 

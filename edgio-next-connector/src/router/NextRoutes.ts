@@ -43,6 +43,7 @@ import bindParams from '@edgio/core/utils/bindParams'
 import { getBackReferences } from '@edgio/core/router/path'
 import { pathToRegexp } from 'path-to-regexp'
 import toEdgeRegex from '@edgio/core/utils/toEdgeRegex'
+import getNextRootDir from '../util/getNextRootDir'
 
 export default class NextRoutes implements RouterPlugin {
   protected router?: Router
@@ -66,10 +67,10 @@ export default class NextRoutes implements RouterPlugin {
    * Provides next registered routes to router
    * @param nextRootDir The root directory for the Next.js app
    */
-  constructor(nextRootDir: string = '.') {
-    this.nextRootDir = nextRootDir
+  constructor(nextRootDir?: string) {
+    this.nextRootDir = nextRootDir ?? getNextRootDir()
     this.edgioConfig = getConfig() as ExtendedConfig
-    this.nextConfig = getNextConfig(join(process.cwd(), nextRootDir))
+    this.nextConfig = getNextConfig(this.nextRootDir)
     this.distDir = getDistDirFromConfig(this.nextConfig)
     this.renderMode = getRenderMode(this.nextConfig)
     this.nextPathFormatter = new NextPathFormatter(this.nextConfig)
@@ -87,7 +88,7 @@ export default class NextRoutes implements RouterPlugin {
 
     // Production mode
     if (isProductionBuild() || isCloud()) {
-      this.buildId = getBuildId(join(nextRootDir, this.distDir))
+      this.buildId = getBuildId(join(this.nextRootDir, this.distDir))
     }
   }
 
@@ -490,7 +491,7 @@ export default class NextRoutes implements RouterPlugin {
    * Adds routes for static assets in /public
    */
   protected addPublicAssets() {
-    this.router?.static(join(this.nextRootDir, 'public'), {
+    this.router?.static('public', {
       handler: ({ cache, setComment }) => {
         setComment('Serve all assets from public/ folder')
         cache(SHORT_PUBLIC_CACHE_CONFIG)

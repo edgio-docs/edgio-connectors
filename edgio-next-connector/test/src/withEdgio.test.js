@@ -1,5 +1,5 @@
 describe('withEdgio', () => {
-  let withEdgio, mockApplyPlugins, mockExistsValue
+  let withEdgio, mockApplyPlugins, mockIsCloud, mockIsProductionBuild
   const nextConfig = { distDir: '.output' }
 
   beforeAll(() => {
@@ -9,7 +9,10 @@ describe('withEdgio', () => {
       jest.mock('../../src/plugins/applyPlugins', () => ({
         default: mockApplyPlugins,
       }))
-      jest.mock('../../src/util/nextRuntimeConfigExists', () => jest.fn(() => mockExistsValue))
+      jest.mock('@edgio/core/environment', () => ({
+        isCloud: () => mockIsCloud,
+        isProductionBuild: () => mockIsProductionBuild,
+      }))
       withEdgio = require('../../src/withEdgio')
     })
   })
@@ -18,14 +21,16 @@ describe('withEdgio', () => {
     jest.resetAllMocks()
   })
 
-  it("should call applyPlugins when next.config.runtime.js file doesn't exist", () => {
-    mockExistsValue = false
+  it("should call applyPlugins when we're not running production build", () => {
+    mockIsCloud = false
+    mockIsProductionBuild = false
     expect(withEdgio(nextConfig)).toEqual(nextConfig)
     expect(mockApplyPlugins).toHaveBeenCalled()
   })
 
-  it('should not call applyPlugins when next.config.runtime.js file exists', () => {
-    mockExistsValue = true
+  it("should not call applyPlugins when we're running production build", () => {
+    mockIsCloud = true
+    mockIsProductionBuild = true
     expect(withEdgio(nextConfig)).toEqual(nextConfig)
     expect(mockApplyPlugins).not.toHaveBeenCalled()
   })

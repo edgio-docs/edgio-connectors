@@ -4,6 +4,7 @@ module.exports = {
   target: 'node',
   entry: {
     prod: './src/prod.ts',
+    withEdgio: './src/withEdgio.ts',
   },
   mode: 'production',
   module: {

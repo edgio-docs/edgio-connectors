@@ -1,5 +1,4 @@
 import { DeploymentBuilder } from '@edgio/core/deploy'
-import { nonWebpackRequire } from '@edgio/core/utils'
 import { join } from 'path'
 import {
   NEXT_BUILDTIME_CONFIG_FILE,
@@ -8,9 +7,6 @@ import {
   NEXT_CONFIG_FILE,
 } from '../config/constants'
 import { nodeFileTrace } from '@vercel/nft'
-import getNextConfig from '../getNextConfig'
-import getDistDir from '../util/getDistDir'
-import fs from 'fs'
 
 /**
  *  NextConfigBuilder creates the buildtime version and runtime version of next.config.js file.
@@ -23,32 +19,22 @@ import fs from 'fs'
  */
 export default class NextConfigBuilder {
   protected builder: DeploymentBuilder
-  protected useServerBuild: boolean
+  protected nextConfig: any
   protected generateSourceMap: boolean
-  protected distDir: string
-
-  // For performance reason we don't want to trace these dependencies
-  // as they will be always added to build
-  protected ignoredDependencies = [
-    './node_modules/@edgio/next/index.js',
-    './node_modules/@edgio/next/withEdgio.js',
-    './node_modules/@edgio/next/config/constants.js',
-    './node_modules/@edgio/next/config/index.js',
-    './node_modules/@edgio/next/util/nextRuntimeConfigExists.js',
-  ]
+  protected nextRootDir: string
 
   constructor(
     builder: DeploymentBuilder,
     options: {
-      useServerBuild: boolean
+      nextConfig: any
       generateSourceMap: boolean
-      distDir: string
+      nextRootDir: string
     }
   ) {
     this.builder = builder
-    this.useServerBuild = options.useServerBuild ?? false
+    this.nextConfig = options.nextConfig ?? {}
     this.generateSourceMap = options.generateSourceMap ?? true
-    this.distDir = options.distDir ?? getDistDir()
+    this.nextRootDir = options.nextRootDir ?? './'
   }
 
   /**
@@ -57,13 +43,7 @@ export default class NextConfigBuilder {
    */
   protected async getDependencies(): Promise<string[]> {
     console.log(`> Searching for dependencies of next config file`)
-    const { fileList } = await nodeFileTrace([NEXT_CONFIG_FILE], {
-      ignore: [
-        ...this.ignoredDependencies,
-        // Do not resolve symlinks to .yalc folder
-        ...this.ignoredDependencies.map(file => file.replace('./node_modules/', '.yalc/')),
-      ],
-    })
+    const { fileList } = await nodeFileTrace([NEXT_CONFIG_FILE])
     // filter out duplicates
     return [...new Set(fileList)]
   }
@@ -74,16 +54,10 @@ export default class NextConfigBuilder {
    */
   protected async copyDependencies(dependencies: string[]): Promise<void> {
     console.log(`> Copying dependencies of next config file`)
-    const includedDependencies = [
-      // We need to include external dependencies which may customer use
-      ...dependencies,
-      ...this.ignoredDependencies,
-    ]
-    includedDependencies.forEach(file => {
-      this.builder.copySync(file, join(this.builder.jsAppDir, file), {
+    dependencies.forEach(file => {
+      this.builder.copySync(file, join(this.builder.jsAppDir, this.nextRootDir, file), {
         overwrite: false,
         errorOnExist: false,
-        filter: file => fs.lstatSync(file).isFile(),
       })
     })
   }
@@ -96,7 +70,7 @@ export default class NextConfigBuilder {
   protected async writeRuntimeVersion(): Promise<void> {
     this.builder.copySync(
       join(process.cwd(), NEXT_CONFIG_FILE),
-      join(this.builder.jsAppDir, NEXT_RUNTIME_CONFIG_FILE)
+      join(this.builder.jsAppDir, this.nextRootDir, NEXT_RUNTIME_CONFIG_FILE)
     )
   }
 
@@ -105,16 +79,7 @@ export default class NextConfigBuilder {
    * @return
    */
   protected async writeBuildtimeVersion(): Promise<void> {
-    let serverConfig
-    if (this.useServerBuild) {
-      const loadConfig = nonWebpackRequire('next/dist/server/config').default
-      serverConfig = await loadConfig('phase-production-server', process.cwd())
-    } else {
-      serverConfig = getNextConfig()
-    }
-    serverConfig.distDir = this.distDir
-
-    let serverConfigSrc = `module.exports=${JSON.stringify(serverConfig)}`
+    let serverConfigSrc = `module.exports=${JSON.stringify(this.nextConfig)}`
 
     // All variables in domains config field are resolved during build time but
     // the process.env.EDGIO_IMAGE_OPTIMIZER_HOST is available during runtime.
@@ -126,7 +91,7 @@ export default class NextConfigBuilder {
     )
 
     this.builder.writeFileSync(
-      join(this.builder.jsAppDir, NEXT_BUILDTIME_CONFIG_FILE),
+      join(this.builder.jsAppDir, this.nextRootDir, NEXT_BUILDTIME_CONFIG_FILE),
       serverConfigSrc
     )
   }
@@ -138,7 +103,7 @@ export default class NextConfigBuilder {
   async writeHandler(): Promise<void> {
     this.builder.copySync(
       join(__dirname, 'nextConfigHandler.js'),
-      join(this.builder.jsAppDir, NEXT_CONFIG_HANDLER_FILE)
+      join(this.builder.jsAppDir, this.nextRootDir, NEXT_CONFIG_HANDLER_FILE)
     )
   }
 
@@ -157,7 +122,7 @@ export default class NextConfigBuilder {
     const buildCommand = `npx esbuild ${NEXT_CONFIG_HANDLER_FILE} --target=es2018 --bundle --minify --platform=node ${
       this.generateSourceMap ? '--sourcemap' : ''
     } --outfile=${NEXT_CONFIG_FILE} --external:./${NEXT_RUNTIME_CONFIG_FILE}`
-    await this.builder.exec(buildCommand, { cwd: this.builder.jsAppDir })
+    await this.builder.exec(buildCommand, { cwd: join(this.builder.jsAppDir, this.nextRootDir) })
     this.cleanAfterBuild()
   }
 
@@ -168,8 +133,10 @@ export default class NextConfigBuilder {
   protected cleanAfterBuild(): void {
     console.log(`> Cleaning after build of next config file`)
     // Handler was replaced by bundled version
-    this.builder.removeSync(join(this.builder.jsAppDir, NEXT_CONFIG_HANDLER_FILE))
+    this.builder.removeSync(join(this.builder.jsAppDir, this.nextRootDir, NEXT_CONFIG_HANDLER_FILE))
     // The buildtime version is no longer needed because it's included in bundle
-    this.builder.removeSync(join(this.builder.jsAppDir, NEXT_BUILDTIME_CONFIG_FILE))
+    this.builder.removeSync(
+      join(this.builder.jsAppDir, this.nextRootDir, NEXT_BUILDTIME_CONFIG_FILE)
+    )
   }
 }

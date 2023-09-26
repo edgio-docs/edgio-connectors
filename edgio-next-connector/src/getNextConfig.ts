@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { nonWebpackRequire } from '@edgio/core/utils'
-import { join } from 'path'
+import { resolve } from 'path'
 
 /**
  * Gets the data in next.config.js
@@ -8,7 +8,7 @@ import { join } from 'path'
  * @returns
  */
 export default function getNextConfig(appDir = process.cwd()): any {
-  const configFile = join(appDir, 'next.config.js')
+  const configFile = resolve(appDir, 'next.config.js')
 
   if (moduleExists(configFile)) {
     let config: any = nonWebpackRequire(configFile)

@@ -45,3 +45,9 @@ export const SERVICE_WORKER_SOURCE_PATH = `sw/${SERVICE_WORKER_FILENAME}`
  * when :path param is used.
  */
 export const NEXT_PRERENDERED_PAGES_FOLDER = 'next_prerendered_pages'
+
+/**
+ * @private
+ * The name of the file which is used to determine the root directory of the Next.js app.
+ */
+export const NEXT_ROOT_DIR_FILE = 'NEXT_ROOT_DIR'

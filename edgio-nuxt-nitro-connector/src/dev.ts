@@ -11,6 +11,6 @@ export default async function dev() {
   return createDevServer({
     label: 'Nuxt',
     command: port => `npx nuxt dev --port ${port}`,
-    ready: [/> Local:/],
+    ready: [/Local:/],
   })
 }

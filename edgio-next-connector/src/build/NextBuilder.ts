@@ -1,6 +1,6 @@
 import globby from 'globby'
 import { DeploymentBuilder, BuildOptions, resolveInPackage } from '@edgio/core/deploy'
-import { join } from 'path'
+import { join, relative } from 'path'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import validateNextConfig from './validateNextConfig'
@@ -9,8 +9,7 @@ import getNextConfig from '../getNextConfig'
 import NextConfigBuilder from './NextConfigBuilder'
 import { getConfig } from '@edgio/core/config'
 import { lt } from 'semver'
-import fs from 'fs'
-import { FAR_FUTURE_TTL, NEXT_PRERENDERED_PAGES_FOLDER } from '../constants'
+import { FAR_FUTURE_TTL, NEXT_PRERENDERED_PAGES_FOLDER, NEXT_ROOT_DIR_FILE } from '../constants'
 import { ExtendedConfig, RenderMode, RENDER_MODES } from '../types'
 import getNextVersion from '../util/getNextVersion'
 import { BuilderOptions } from './BuilderOptions'
@@ -18,7 +17,7 @@ import getRenderMode from '../util/getRenderMode'
 import getBuildId from '../util/getBuildId'
 import { gt } from 'semver'
 import chalk from 'chalk'
-import { existsSync, appendFileSync } from 'fs'
+import { existsSync, appendFileSync, mkdirSync } from 'fs'
 
 export default class NextBuilder {
   protected builder: DeploymentBuilder
@@ -26,6 +25,7 @@ export default class NextBuilder {
   protected distDir: string
   protected srcDirAbsolute: string
   protected distDirAbsolute: string
+  protected nextRootDir: string
   protected edgioConfig: ExtendedConfig
   protected nextConfig: any
   protected defaultLocale?: string
@@ -40,6 +40,7 @@ export default class NextBuilder {
     this.distDir = distDir
     this.srcDirAbsolute = join(process.cwd(), srcDir)
     this.distDirAbsolute = join(process.cwd(), distDir)
+    this.nextRootDir = './'
     this.builder = new DeploymentBuilder(process.cwd())
     this.edgioConfig = getConfig() as ExtendedConfig
     this.nextConfig = getNextConfig()
@@ -67,17 +68,22 @@ export default class NextBuilder {
     // Add Next.js runtime assets
     if (this.renderMode === RENDER_MODES.server) {
       console.log('> Using Next standalone build...')
+      await this.loadStandaloneBuildConfig()
       await this.addStandaloneBuildAssets()
     } else {
       console.log(`> Using Next ${this.nextConfig.target} build...`)
       await this.addLegacyBuildAssets()
     }
 
+    // Add the file with relative location to the Next.js app.
+    // This is needed for Next.js 13 app which is built in workspaces.
+    this.builder.writeFileSync(join(this.builder.jsAppDir, NEXT_ROOT_DIR_FILE), this.nextRootDir)
+
     // builds the next.config.js file and add our config file handler
     const nextConfigBuilder = new NextConfigBuilder(this.builder, {
-      useServerBuild: this.renderMode === RENDER_MODES.server,
+      nextConfig: this.nextConfig,
       generateSourceMap: this.edgioConfig?.next?.generateSourceMaps ?? true,
-      distDir: this.distDir,
+      nextRootDir: this.nextRootDir,
     })
     await nextConfigBuilder.build()
 
@@ -92,11 +98,7 @@ export default class NextBuilder {
       NEXT_PRERENDERED_PAGES_FOLDER
     )
 
-    await this.builder
-      .addJSAsset(join(this.distDirAbsolute, 'BUILD_ID')) // needed for NextRoutes
-      .addJSAsset(join(this.distDirAbsolute, 'routes-manifest.json')) // needed for rewrites and redirects
-      .addJSAsset(join(this.distDirAbsolute, 'prerender-manifest.json')) // needed for cache times
-      .build()
+    await this.builder.build()
 
     // This is temporary workaround for a bug in latest versions of Next.js 13,
     // so the customers don't see 500 errors right after playing with new create-next-app project.
@@ -109,7 +111,7 @@ export default class NextBuilder {
       // Setting __NEXT_PRIVATE_PREBUNDLED_REACT to 'next' or any other value
       // forces Next.js to use the prebundled React version. When this env var is not set, Next.js will use the React version from node_modules.
       appendFileSync(
-        join(this.builder.jsAppDir, '.env.production'),
+        join(this.builder.jsAppDir, this.nextRootDir, '.env.production'),
         `\r\n# Variables below were automatically added by edgio build\r\n__NEXT_PRIVATE_PREBUNDLED_REACT=next\r\n`
       )
       console.log(
@@ -153,8 +155,6 @@ export default class NextBuilder {
    * This leads to very long cold starts on the platform ~5s+, with bundling everything into single
    * we are able to get under ~1s load time from the Lambda disk.
    * We are not seeing these problems with Next 13
-   *
-   * @param builder
    */
   async optimizeAndCompileServerBuild() {
     const nextServerFile = 'next-server.js'
@@ -190,7 +190,14 @@ export default class NextBuilder {
     const buildCommand = `npx esbuild ${nextServerFile} --target=es2018 --bundle --minify --platform=node --allow-overwrite --outfile=${outputFile} ${externalDependencies
       .map(l => `--external:${l}`)
       .join(' ')}`
-    const nextSourceFiles = join(this.builder.jsAppDir, 'node_modules', 'next', 'dist', 'server')
+    const nextSourceFiles = join(
+      this.builder.jsAppDir,
+      this.nextRootDir,
+      'node_modules',
+      'next',
+      'dist',
+      'server'
+    )
 
     await this.builder.exec(buildCommand, { cwd: nextSourceFiles })
   }
@@ -215,27 +222,46 @@ export default class NextBuilder {
    * Copies the output of the Next standalone build to the lambda dir.
    */
   async addStandaloneBuildAssets() {
-    // add the next config
-    const loadConfig = nonWebpackRequire('next/dist/server/config').default
-    const serverConfig = await loadConfig('phase-production-server', process.cwd())
-    let serverConfigSrc = `module.exports=${JSON.stringify(serverConfig)}`
-
-    // All variables in domains config field are resolved during build time but
-    // the process.env.EDGIO_IMAGE_OPTIMIZER_HOST is available during runtime.
-    // If disableImageOptimizer is set to true, the next/image optimizer is used and
-    // we need to replace 'SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE' by process.env.EDGIO_IMAGE_OPTIMIZER_HOST when build finish to force next/image optimizer to work.
-    serverConfigSrc = serverConfigSrc.replace(
-      /["']SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE["']/,
-      'process.env.EDGIO_IMAGE_OPTIMIZER_HOST'
-    )
-
-    this.builder.writeFileSync(join(this.builder.jsAppDir, 'next.config.js'), serverConfigSrc)
-
-    // add the standalone app and dependencies
-    this.builder.copySync(join(this.distDirAbsolute, 'standalone'), this.builder.jsAppDir, {
-      // exclude the server.js since we roll our own in prod.ts
-      filter: (file: string) => file !== join(this.distDirAbsolute, 'standalone', 'server.js'),
+    mkdirSync(join(this.builder.jsAppDir, 'node_modules'), {
+      recursive: true,
     })
+
+    // Add the standalone app and dependencies
+    this.builder.copySync(join(this.distDirAbsolute, 'standalone'), this.builder.jsAppDir, {
+      // Exclude the server.js since we roll our own in prod.ts
+      filter: (file: string) =>
+        file !== join(this.distDirAbsolute, 'standalone', this.nextRootDir, 'server.js'),
+    })
+
+    // Copy the Next.js package.json to the .edgio/lambda/app dir,
+    // so we can determine the build type (serverless/server) from the Next.js version in lambda
+    this.builder.copySync(
+      join(
+        this.distDirAbsolute,
+        'standalone',
+        this.nextRootDir,
+        'node_modules',
+        'next',
+        'package.json'
+      ),
+      join(this.builder.jsAppDir, 'node_modules', 'next', 'package.json')
+    )
+  }
+
+  /**
+   * Loads the config for the standalone build output
+   */
+  async loadStandaloneBuildConfig() {
+    // When app is using standalone build, we need to load the next config by next server
+    // to get all additional config and default values added by Next Server.
+    const loadConfig = nonWebpackRequire('next/dist/server/config').default
+    this.nextConfig = await loadConfig('phase-production-server', process.cwd())
+
+    // When Next.js is built in workspaces or the outputFileTracingRoot config option is explicitly set,
+    // the standalone build folder will have different folder structure.
+    // This is where we can get the project root folder where the server files are actually placed.
+    this.nextRootDir =
+      relative(this.nextConfig?.experimental?.outputFileTracingRoot, process.cwd()) || './'
   }
 
   /**
@@ -243,16 +269,24 @@ export default class NextBuilder {
    * targets.
    */
   async addLegacyBuildAssets() {
-    const pagesDir = join(this.builder.jsAppDir, this.distDir, this.renderMode, 'pages')
-    this.builder
-      // React components and api endpoints
-      .addJSAsset(join(this.distDir, this.renderMode))
+    // Add files needed by app and our connector
+    ;['BUILD_ID', 'routes-manifest.json', 'prerender-manifest.json', this.renderMode].forEach(
+      assetName => {
+        this.builder.addJSAsset(
+          join(this.distDirAbsolute, assetName),
+          join(this.nextRootDir, this.distDir, assetName)
+        )
+      }
+    )
 
-      // write a minimal next.config.js to the lambda so that we can find the path to static assets in the cloud
-      .writeFileSync(
-        join(this.builder.jsAppDir, 'next.config.js'),
-        `module.exports=${JSON.stringify({ distDir: this.distDir })}`
-      )
+    // Add next pages
+    const pagesDir = join(
+      this.builder.jsAppDir,
+      this.nextRootDir,
+      this.distDir,
+      this.renderMode,
+      'pages'
+    )
 
     if (this.nextConfig?.target !== 'serverless') {
       // If the user has overridden the default target and is using serverless do not perform tracing for required node modules
@@ -261,16 +295,15 @@ export default class NextBuilder {
           onlyFiles: true,
           cwd: pagesDir,
         })
-        .map(file => {
-          const src = join(pagesDir, file)
-          return src
-        })
+        .map(file => join(pagesDir, file))
 
+      // Add dependencies of the pages
       const { fileList } = await nodeFileTrace(pageHandlerFiles)
-
       fileList
         .filter(file => file.indexOf('node_modules') === 0)
-        .forEach(file => this.builder.copySync(file, join(this.builder.buildDir, 'lambda', file)))
+        .forEach(file =>
+          this.builder.copySync(file, join(this.builder.jsAppDir, this.nextRootDir, file))
+        )
     }
 
     const disableImageOptimizer = this.edgioConfig?.next?.disableImageOptimizer || false
@@ -287,7 +320,7 @@ export default class NextBuilder {
    * in the lambda will make NextRoutes add duplicate routes for each.
    */
   addSSGPages(srcDir: string, destDir: string) {
-    if (!fs.existsSync(srcDir)) return
+    if (!existsSync(srcDir)) return
     this.builder.log(`Adding SSG pages from ${srcDir}`)
     const basePath = this.nextConfig?.basePath || ''
 
