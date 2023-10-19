@@ -10,7 +10,7 @@ export default async function dev() {
   await new DeploymentBuilder().watchServiceWorker(SW_SRC, SW_DEST)
   return createDevServer({
     label: 'Astro',
-    command: port => `npx astro dev --port ${port}`,
+    command: port => `npx astro dev --port ${port} --host`,
     ready: [/Local/i],
   })
 }

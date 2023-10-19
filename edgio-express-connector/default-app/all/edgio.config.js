@@ -13,6 +13,10 @@ module.exports = {
   // Overrides the default path to the routes file. The path should be relative to the root of your app.
   // routes: 'routes.js',
 
+  // When set to true or omitted entirely, Edgio includes the deployment number in the cache key,
+  // effectively purging the cache each time you deploy.
+  // purgeCacheOnDeploy: false,
+
   express: {
     // The main entry point for your app, which exports an instance of express app.
     // This file and its dependencies will be bundled into a single file for serverless deployment.

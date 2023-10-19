@@ -1,6 +1,6 @@
 {
   "name": "@edgio/express",
-  "version": "7.2.8",
+  "version": "7.3.0",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
@@ -53,7 +53,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.2.8",
+    "@edgio/core": "^7.3.0",
     "@types/node": "^14.0.9",
     "@vercel/ncc": "^0.34.0",
     "@vercel/nft": "^0.21.0",
