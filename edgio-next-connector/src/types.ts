@@ -22,13 +22,6 @@ export interface ExtendedConfig extends Config {
     disableImageOptimizer?: boolean
 
     /**
-     * Disables the Edgio development tools widget on the site.
-     * This config options replaces the disableEdgioDevTools option in next.config.js.
-     * @default false
-     */
-    disableDevtools?: boolean
-
-    /**
      * Disables the build of the service worker.
      * @default false
      */

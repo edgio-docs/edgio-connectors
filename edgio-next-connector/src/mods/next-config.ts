@@ -1,7 +1,13 @@
 /* istanbul ignore file */
-
 import { readFileSync } from 'fs-extra'
-import { API, FileInfo } from 'jscodeshift'
+import type {
+  API,
+  AssignmentExpression,
+  Collection,
+  FileInfo,
+  MemberExpression,
+  Identifier,
+} from 'jscodeshift'
 import { join } from 'path'
 
 const OLD_EXPORT_VAR_NAME = '_preEdgioExport'
@@ -15,21 +21,39 @@ module.exports = function transformNextConfig(fileInfo: FileInfo, api: API) {
   const j = api.jscodeshift
   const root = j(fileInfo.source)
 
-  // TODO - do we need to handle "export default ..."? doesn't seem like it based
-  // on docs https://nextjs.org/docs/api-reference/next.config.js/introduction
-  const defaultExport = root.find(
-    j.AssignmentExpression,
-    node => node.left?.object?.name === 'module' && node.left?.property?.name === 'exports'
-  )
+  const isMemberExpression = (node: any): node is MemberExpression => {
+    return node.type === 'MemberExpression'
+  }
+
+  const isIdentifier = (node: any): node is Identifier => {
+    return 'name' in node
+  }
+
+  const getDefaultExport = (root: Collection<any>) => {
+    return root.find(j.AssignmentExpression, (node: AssignmentExpression) => {
+      if (!isMemberExpression(node.left)) return false
+
+      const leftProperty = node.left.property
+      const leftObject = node.left.object
+
+      if (isIdentifier(leftProperty) && isIdentifier(leftObject)) {
+        return leftObject.name === 'module' && leftProperty.name === 'exports'
+      }
+
+      return false
+    })
+  }
+
+  const defaultExport = getDefaultExport(root)
+  // If we couldn't find the default export, we can't do anything
+  if (defaultExport.length === 0) return fileInfo.source
+
   const isFunction = defaultExport.get().value.right.type.includes('FunctionExpression')
 
   const edgioNextConfigRoot = j(
     readFileSync(join(__dirname, '..', 'default-app', 'all', 'next.config.js')).toString()
   )
-  const edgDefaultExport = edgioNextConfigRoot.find(
-    j.AssignmentExpression,
-    node => node.left?.object?.name === 'module' && node.left?.property?.name === 'exports'
-  )
+  const edgDefaultExport = getDefaultExport(edgioNextConfigRoot)
 
   const existingExportVar = j.identifier(OLD_EXPORT_VAR_NAME)
   defaultExport.replaceWith(
@@ -42,10 +66,9 @@ module.exports = function transformNextConfig(fileInfo: FileInfo, api: API) {
     : existingExportVar
   const existingResult = j.spreadElement(existingResultExpr)
 
-  const withEdgioExpr = edgioNextConfigRoot.find(
-    j.CallExpression,
-    expr => expr.callee.name === 'withEdgio'
-  )
+  const withEdgioExpr = edgioNextConfigRoot.find(j.CallExpression, expr => {
+    return isIdentifier(expr.callee) && expr.callee.name === 'withEdgio'
+  })
   const withEdgioArg = withEdgioExpr.find(j.ObjectExpression)
   withEdgioArg.get().value.properties.push(existingResult)
 

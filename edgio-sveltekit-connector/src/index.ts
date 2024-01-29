@@ -1,3 +1,11 @@
-import SvelteKitRoutes from './router/SvelteKitRoutes'
+import { connectorRoutes } from '@edgio/connectors'
 
-export const svelteKitRoutes = new SvelteKitRoutes()
+/**
+ * Adds all routes from your Node.js app to Edgio router
+ *
+ * @deprecated
+ * Package '@edgio/sveltekit' is deprecated!
+ * Please replace the 'svelteKitRoutes' with 'connectorRoutes' from '@edgio/connectors' package.
+ */
+
+export const svelteKitRoutes = connectorRoutes

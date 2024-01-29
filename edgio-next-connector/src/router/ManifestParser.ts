@@ -66,7 +66,7 @@ export default class ManifestParser {
     // Exit when we are in development mode
     if (!isProductionBuild() && !isCloud()) return
 
-    this.buildId = getBuildId(join(this.nextRootDir, this.distDir))
+    this.buildId = getBuildId(join(process.cwd(), this.nextRootDir, this.distDir))
     this.routesManifest = this.getRoutesManifest()
     this.prerenderManifest = this.getPrerenderManifest()
     this.middlewareManifest = this.getMiddlewareManifest()
@@ -464,7 +464,7 @@ export default class ManifestParser {
    * @returns
    */
   protected isTemplate(pageName: string) {
-    return pageName.match(/\/(_app|_document|_error|404|500)$/)
+    return pageName.match(/\/(_app|_document|_error)$/)
   }
 
   /**

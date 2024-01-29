@@ -29,11 +29,6 @@ module.exports = {
     // @default false
     // disableImageOptimizer: false
     //
-    // Disables the Edgio development tools widget on the site.
-    // This config options replaces the disableEdgioDevTools option in next.config.js.
-    // @default false
-    // disableDevtools: false
-    //
     // Disables the build of the service worker.
     // @default false
     // disableServiceWorker: false

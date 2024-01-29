@@ -10,10 +10,12 @@ describe('applyPlugins', () => {
       jest.mock('../../../src/plugins/withEdgioConfig', () => ({
         withEdgioConfig: mockPluginFunc,
       }))
-      jest.mock('../../../src/plugins/withImageOptimizerConfig', () => ({
-        withImageOptimizerConfig: mockPluginFunc,
+      jest.mock('../../../src/plugins/withImageDomainsConfig', () => ({
+        withImageDomainsConfig: mockPluginFunc,
       }))
-
+      jest.mock('../../../src/plugins/withImageLoaderConfig', () => ({
+        withImageLoaderConfig: mockPluginFunc,
+      }))
       applyPlugins = require('../../../src/plugins/applyPlugins').default
     })
   })
@@ -21,12 +23,12 @@ describe('applyPlugins', () => {
   it('should call all plugins', () => {
     const nextConfig = { distDir: 'customDir' }
     expect(applyPlugins(nextConfig)).toEqual(nextConfig)
-    expect(mockPluginFunc).toHaveBeenCalledTimes(2)
+    expect(mockPluginFunc).toHaveBeenCalledTimes(3)
   })
 
   it('should work with function as config', () => {
     const nextConfig = { distDir: 'customDir' }
     expect(applyPlugins(() => nextConfig)()).toEqual(nextConfig)
-    expect(mockPluginFunc).toHaveBeenCalledTimes(2)
+    expect(mockPluginFunc).toHaveBeenCalledTimes(3)
   })
 })

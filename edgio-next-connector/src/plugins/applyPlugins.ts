@@ -1,5 +1,6 @@
 import { withEdgioConfig } from './withEdgioConfig'
-import { withImageOptimizerConfig } from './withImageOptimizerConfig'
+import { withImageDomainsConfig } from './withImageDomainsConfig'
+import { withImageLoaderConfig } from './withImageLoaderConfig'
 
 /**
  * Creates a Next.js config suitable for deployment on Edgio
@@ -31,7 +32,7 @@ export default function applyPlugins(_nextConfig: any) {
     process.env.WITH_EDGIO_APPLIED = 'true'
 
     const nextConfig = normalizedNextConfig(...args)
-    const plugins = [withEdgioConfig, withImageOptimizerConfig]
+    const plugins = [withEdgioConfig, withImageLoaderConfig, withImageDomainsConfig]
     return plugins.reduce((appliedConfig, plugin) => plugin(appliedConfig), nextConfig)
   }
   return typeof _nextConfig === 'function' ? plugin : plugin()

@@ -1,0 +1,4 @@
+{
+  ".svelte-kit/output/client": ["static_asset.txt", "style.css"],
+  ".edgio/tmp/prerendered_pages": ["index.html", "about/index.html"]
+}

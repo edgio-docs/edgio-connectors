@@ -8,7 +8,7 @@ import RouteCriteria, { and } from '@edgio/core/router/RouteCriteria'
 import { getConfig } from '@edgio/core/config'
 import getNextConfig from '../getNextConfig'
 import RouteHelper, { FeatureCreator } from '@edgio/core/router/RouteHelper'
-import { IMAGE_OPTIMIZER_ORIGIN_NAME, SERVERLESS_ORIGIN_NAME } from '@edgio/core/origins'
+import { SERVERLESS_ORIGIN_NAME } from '@edgio/core/origins'
 import {
   FAR_FUTURE_CACHE_CONFIG,
   PUBLIC_CACHE_CONFIG,
@@ -22,7 +22,7 @@ import {
   SERVICE_WORKER_FILENAME,
 } from '../constants'
 import chalk from 'chalk'
-import { EDGIO_IMAGE_OPTIMIZER_PATH, edgioRoutes } from '@edgio/core'
+import { edgioRoutes } from '@edgio/core'
 import {
   RenderMode,
   Page,
@@ -111,7 +111,7 @@ export default class NextRoutes implements RouterPlugin {
     this.addPrerenderedPages()
     this.addPublicAssets()
     this.addAssets()
-    this.addImageOptimizer()
+    this.addNextImageOptimizerRoutes()
     this.addRedirects()
     this.addServiceWorker()
     this.addPrerendering()
@@ -492,9 +492,10 @@ export default class NextRoutes implements RouterPlugin {
    */
   protected addPublicAssets() {
     this.router?.static('public', {
-      handler: ({ cache, setComment }) => {
+      handler: ({ cache, setComment, optimizeImages }) => {
         setComment('Serve all assets from public/ folder')
         cache(SHORT_PUBLIC_CACHE_CONFIG)
+        optimizeImages(true)
       },
     })
   }
@@ -505,13 +506,14 @@ export default class NextRoutes implements RouterPlugin {
   protected addAssets() {
     if (!isCloud()) this.router?.match(this.addBasePath('/_next/webpack-hmr'), this.ssrHandler)
 
-    const staticHandler: FeatureCreator = ({ serveStatic, cache }) => {
+    const staticHandler: FeatureCreator = ({ serveStatic, cache, optimizeImages }) => {
       serveStatic(`${this.distDir}/static/:path*`, {
         permanent: true,
       })
       // These files have unique names,
       // so we can cache them for a long time
       cache(FAR_FUTURE_CACHE_CONFIG)
+      optimizeImages(true)
     }
     const handler: FeatureCreator =
       isCloud() || isProductionBuild() ? staticHandler : this.ssrHandler
@@ -524,35 +526,6 @@ export default class NextRoutes implements RouterPlugin {
     //   non-unique filenames like 'service-worker.js'. This will
     this.router?.match(this.addBasePath('/_next/static/:path*'), handler)
     this.router?.match(this.addBasePath('/autostatic/:path*'), handler)
-  }
-
-  /**
-   * Adds routes for correct image optimizer
-   * based on used config from edgio.config.js
-   */
-  protected addImageOptimizer() {
-    if (this.edgioConfig?.next?.disableImageOptimizer) {
-      this.addNextImageOptimizerRoutes()
-      return
-    }
-    this.addEdgioImageOptimizerRoutes()
-  }
-
-  /**
-   * Adds routes for edgio image-optimizer when app run in production mode
-   */
-  protected addEdgioImageOptimizerRoutes() {
-    // We replace '/_next/image' the '/__layer0_image_optimizer'
-    // so Edgio Buffer Proxy can route to the right lambda in the cloud.
-    this.router?.match(
-      this.addBasePath('/_next/(image|future/image)'),
-      ({ setOrigin, cache, updatePath, setComment }) => {
-        setComment('Edgio Image Optimizer')
-        cache(PUBLIC_CACHE_CONFIG)
-        updatePath(EDGIO_IMAGE_OPTIMIZER_PATH)
-        setOrigin(IMAGE_OPTIMIZER_ORIGIN_NAME)
-      }
-    )
   }
 
   /**
@@ -620,15 +593,24 @@ export default class NextRoutes implements RouterPlugin {
     // in addPage() method if it exists.
     if (this.renderMode === RENDER_MODES.serverless) setNextPage('404', routeHelper)
 
+    // Special case for 404 error page with revalidation.
+    // If 404 page has revalidation, we'll cache it on the edge for time specified in cache-control header returned by Next.js
+    // unless cache-control header is set to private, no-cache or no-store.
+    // @example cache-control: s-maxage=10, stale-while-revalidate
+    if (this.pagesMap['/404']?.hasRevalidation) {
+      routeHelper.cache({
+        cacheableStatusCodes: [404],
+      })
+    }
+
     routeHelper.proxy(SERVERLESS_ORIGIN_NAME, {
       transformRequest: (req: Request) => {
         // Force Next.js server to serve fresh page
         req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
-        if (this.renderMode !== RENDER_MODES.serverless) return
-        this.addPageParamsToQuery(req)
+        if (this.renderMode === RENDER_MODES.serverless) this.addPageParamsToQuery(req)
       },
       transformResponse: (res: Response, _req: Request) => {
-        // Nothing to do if there is no Cache-Control header
+        // Nothing to transform if there is no Cache-Control header
         if (!res.getHeader('Cache-Control')) return
 
         // {REMOVE_HEADER_VALUE} in Cache-Control header value prevents Next.js from

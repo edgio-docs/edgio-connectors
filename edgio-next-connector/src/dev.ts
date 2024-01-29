@@ -6,8 +6,11 @@ import { existsSync } from 'fs'
 import { join } from 'path'
 import { getConfig } from '@edgio/core'
 import { ExtendedConfig } from './types'
+import getNextVersion from './util/getNextVersion'
+import getNodeOptions from './util/getNodeOptions'
 
 const edgioConfig = getConfig() as ExtendedConfig
+const nextVersion = getNextVersion()
 
 const nextRootDir = process.cwd()
 const pagesDir = existsSync(join(nextRootDir, 'src', 'pages'))
@@ -31,6 +34,12 @@ export default async function dev() {
   return createDevServer({
     label: 'Next',
     command: port => `npx next dev -p ${port}`,
+    env: {
+      // We need to add these special NODE_OPTIONS to the build command
+      // as a workaround for Next.js 10 and older versions on Node 18.
+      // Otherwise, the dev server fails with error: "error:0308010C:digital envelope routines::unsupported"
+      NODE_OPTIONS: getNodeOptions(nextVersion || '0.0.0'),
+    },
     ready: [/(started server on|ready on|ready in)/i],
     // The whole Router will be reloaded if any of these dirs change.
     reloadOnChangeOf: dirsToWatch,

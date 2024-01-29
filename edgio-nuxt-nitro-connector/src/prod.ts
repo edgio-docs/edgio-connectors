@@ -8,7 +8,8 @@ export default async function prod(port: number) {
     // Set the NITRO_PORT per
     // https://github.com/nuxt/framework/discussions/4972#:~:text=the%20PORT%20or-,NITRO_PORT,-environment%20variables
     process.env.NITRO_PORT = port.toString()
+    // We need to use 'import()' with 'file://' prefix here as a workaround for Windows systems.
     // @ts-ignore
-    return import(/* webpackIgnore: true */ appFilePath)
+    return import(/* webpackIgnore: true */ `file://${appFilePath}`)
   }
 }

@@ -1,15 +1,10 @@
-import ReactCRARoutes from './ReactCRARoutes'
+import { connectorRoutes } from '@edgio/connectors'
 
 /**
- * Adds all routes from your React CRA app to Edgio router
+ * Adds all routes from your Node.js app to Edgio router
  *
- * Example:
- *
- * ```js
- * import { Router } from '@edgio/core/router'
- * import { reactCRARoutes } from '@edgio/react-cra'
- *
- * export default new Router().use(reactCRARoutes)
- * ```
+ * @deprecated
+ * Package '@edgio/react-cra' is deprecated!
+ * Please replace the 'reactCRARoutes' with 'connectorRoutes' from '@edgio/connectors' package.
  */
-export const reactCRARoutes = new ReactCRARoutes()
+export const reactCRARoutes = connectorRoutes

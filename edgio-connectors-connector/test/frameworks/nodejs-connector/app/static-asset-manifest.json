@@ -1,0 +1,3 @@
+{
+  "build": ["static_asset.txt", "style.css"]
+}

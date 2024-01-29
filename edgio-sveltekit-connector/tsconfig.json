@@ -8,11 +8,13 @@
     "strict": true,
     "esModuleInterop": true,
     "downlevelIteration": true,
-    "lib": ["dom", "es2019", "scriptHost", "dom.iterable"],
+    "lib": ["dom", "es2020", "scriptHost", "dom.iterable"],
     "baseUrl": "..",
     "paths": {
       "@edgio/core": ["core/src"],
-      "@edgio/core/*": ["core/src/*"]
+      "@edgio/core/*": ["core/src/*"],
+      "@edgio/connectors": ["connectors/src"],
+      "@edgio/connectors/*": ["connectors/src/*"]
     },
     "skipLibCheck": true
   },

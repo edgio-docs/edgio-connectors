@@ -1,6 +1,6 @@
 {
   "name": "@edgio/nuxt-nitro",
-  "version": "7.3.1",
+  "version": "7.7.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,14 +10,13 @@
     "workbox-build": "^6.5.3"
   },
   "devDependencies": {
-    "@edgio/core": "^7.3.1",
-    "@edgio/devtools": "^7.3.1",
-    "@edgio/prefetch": "^7.3.1",
+    "@edgio/core": "^7.7.4",
+    "@edgio/devtools": "^7.7.4",
+    "@edgio/prefetch": "^7.7.4",
     "@types/fs-extra": "^8.1.1",
     "@types/lodash": "^4.14.162",
     "@types/workbox-build": "^5.0.1",
-    "esbuild": "^0.13.4",
-    "nuxt": "3.0.0-rc.4"
+    "esbuild": "^0.13.4"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/nuxt-nitro/src/* dist; webpack;",

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "declaration": true,
+    "outDir": "./stage",
+    "strict": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
+    "lib": ["dom", "es2020", "scriptHost", "dom.iterable"],
+    "baseUrl": "..",
+    "paths": {
+      "@edgio/core": ["core/src"],
+      "@edgio/core/*": ["core/src/*"],
+      "@edgio/connectors": ["connectors/src"],
+      "@edgio/connectors/*": ["connectors/src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

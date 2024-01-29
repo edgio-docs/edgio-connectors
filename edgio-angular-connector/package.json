@@ -1,25 +1,26 @@
 {
   "name": "@edgio/angular",
-  "version": "7.3.1",
+  "version": "7.7.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "devDependencies": {
-    "@edgio/core": "^7.3.1",
+    "@edgio/core": "^7.7.4",
     "@types/cross-spawn": "^6.0.2"
   },
+  "dependencies": {
+    "@edgio/connectors": "^7.7.4"
+  },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/angular/src/* dist;",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md ./dist; tsc; cp -r stage/angular/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
-    "release": "npm run build; cd ./dist; npm publish --access public",
-    "test": "jest --watchAll=false --collectCoverage=false --runInBand --forceExit"
+    "release": "npm run build; cd ./dist; npm publish --access public"
   },
   "watch": {
     "push-build": {
       "patterns": [
         "src",
-        "package.json",
-        "default-app"
+        "package.json"
       ],
       "extensions": "*",
       "quiet": false
@@ -45,7 +46,7 @@
       "!**/index.ts"
     ],
     "moduleNameMapper": {
-      "^@edgio/core(.*)$": "<rootDir>/../core/dist/$1",
+      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
       "^@edgio/angular(.*)$": "<rootDir>/../angular/src/$1"
     }
   },

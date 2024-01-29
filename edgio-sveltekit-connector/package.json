@@ -1,63 +1,24 @@
 {
   "name": "@edgio/sveltekit",
-  "version": "7.3.1",
+  "version": "7.7.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
-  "dependencies": {
-    "@vercel/nft": "^0.23.1",
-    "chalk": "^4.1.2",
-    "fs-extra": "^11.1.1",
-    "slash": "^3.0.0",
-    "yargs": "^15.1.0"
-  },
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app files ./dist; tsc; cp -r stage/sveltekit/src/* dist; webpack",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md ./dist; tsc; cp -r stage/sveltekit/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
-    "release": "cd ./dist; npm publish --access public",
-    "test": "jest --watchAll=false --collectCoverage=false --runInBand --forceExit"
+    "release": "cd ./dist; npm publish --access public"
   },
   "watch": {
     "push-build": {
       "patterns": [
         "src",
         "package.json",
-        "default-app",
-        "files",
-        "webpack.config.js",
         "README.md"
       ],
       "extensions": "*",
       "quiet": false
-    }
-  },
-  "jest": {
-    "clearMocks": true,
-    "collectCoverage": true,
-    "transform": {
-      "^.+\\.(js)?$": "babel-jest",
-      "^.+\\.ts$": "ts-jest"
-    },
-    "moduleFileExtensions": [
-      "ts",
-      "js",
-      "json"
-    ],
-    "transformIgnorePatterns": [
-      "<rootDir>/node_modules/"
-    ],
-    "collectCoverageFrom": [
-      "./src/**/*.ts",
-      "./lambda/**/*.ts",
-      "!**/mocks/**",
-      "!./src/default-app/**",
-      "!**/bin/**/*",
-      "!**/index.ts"
-    ],
-    "moduleNameMapper": {
-      "^@edgio/core(.*)$": "<rootDir>/../core/src/$1",
-      "^@edgio/sveltekit(.*)$": "<rootDir>/../sveltekit/src/$1"
     }
   },
   "publishConfig": {
@@ -65,10 +26,11 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.13.12",
-    "@edgio/core": "^7.3.1",
-    "@types/node": "^14.0.9",
-    "babel-loader": "^8.2.2",
-    "globby": "^11.0.2"
+    "@edgio/core": "^7.7.4",
+    "babel-loader": "^8.2.2"
+  },
+  "dependencies": {
+    "@edgio/connectors": "^7.7.4"
   },
   "./adapter": {
     "types": "./adapter.d.ts",

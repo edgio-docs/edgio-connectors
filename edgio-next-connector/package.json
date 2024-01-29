@@ -1,6 +1,6 @@
 {
   "name": "@edgio/next",
-  "version": "7.3.1",
+  "version": "7.7.4",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,7 +10,7 @@
     "encoding": "^0.1.13",
     "esbuild": "^0.15.13",
     "globby": "^11.0.1",
-    "jscodeshift": "^0.13.1",
+    "jscodeshift": "^0.15.1",
     "ora": "^4.0.0",
     "path-to-regexp": "^6.2.0",
     "qs": "^6.11.0",
@@ -21,10 +21,10 @@
     "webpack-sources": "^2.2.0"
   },
   "devDependencies": {
-    "@edgio/core": "^7.3.1",
+    "@edgio/core": "^7.7.4",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
-    "@types/jscodeshift": "^0.11.2",
+    "@types/jscodeshift": "^0.11.11",
     "@types/lodash": "^4.14.162",
     "@types/node": "^14.0.9",
     "@types/qs": "^6.9.3",
@@ -59,7 +59,7 @@
   "jest": {
     "clearMocks": true,
     "testEnvironment": "jsdom",
-    "collectCoverage": true,
+    "collectCoverage": false,
     "transform": {
       "^.+\\.(js)?$": "babel-jest",
       "^.+\\.ts$": "ts-jest"

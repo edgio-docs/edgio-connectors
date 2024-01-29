@@ -1,15 +1,10 @@
-import VueRoutes from './router/VueRoutes'
+import { connectorRoutes } from '@edgio/connectors'
 
 /**
- * Adds all routes from your Vue app to Edgio router
+ * Adds all routes from your Qwik app to Edgio router
  *
- * Example:
- *
- * ```js
- * import { Router } from '@edgio/core/router'
- * import { vueRoutes } from '@edgio/vue-cva'
- *
- * export default new Router().use(vue3Routes)
- * ```
+ * @deprecated
+ * Package '@edgio/vue-cva' is deprecated!
+ * Please replace the 'vueRoutes' with 'connectorRoutes' from '@edgio/connectors' package.
  */
-export const vueRoutes = new VueRoutes()
+export const vueRoutes = connectorRoutes

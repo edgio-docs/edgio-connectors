@@ -25,6 +25,10 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
+    alias: {
+      '@edgio/core': '@edgio/core/dist/',
+      '@edgio/cli': '@edgio/cli/dist/',
+    },
   },
   output: {
     filename: '[name].js',

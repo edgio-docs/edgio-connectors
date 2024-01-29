@@ -8,16 +8,18 @@ import { nodeFileTrace } from '@vercel/nft'
 import getNextConfig from '../getNextConfig'
 import NextConfigBuilder from './NextConfigBuilder'
 import { getConfig } from '@edgio/core/config'
-import { lt } from 'semver'
+import {lt, gt} from 'semver'
 import { FAR_FUTURE_TTL, NEXT_PRERENDERED_PAGES_FOLDER, NEXT_ROOT_DIR_FILE } from '../constants'
 import { ExtendedConfig, RenderMode, RENDER_MODES } from '../types'
 import getNextVersion from '../util/getNextVersion'
 import { BuilderOptions } from './BuilderOptions'
 import getRenderMode from '../util/getRenderMode'
 import getBuildId from '../util/getBuildId'
-import { gt } from 'semver'
 import chalk from 'chalk'
 import { existsSync, appendFileSync, mkdirSync } from 'fs'
+import getNodeOptions from "../util/getNodeOptions";
+import { NextConfig, isRewriteGroup } from '../next.types'
+import ManifestParser from '../router/ManifestParser'
 
 export default class NextBuilder {
   protected builder: DeploymentBuilder
@@ -27,7 +29,7 @@ export default class NextBuilder {
   protected distDirAbsolute: string
   protected nextRootDir: string
   protected edgioConfig: ExtendedConfig
-  protected nextConfig: any
+  protected nextConfig: NextConfig
   protected defaultLocale?: string
   protected buildId?: string
   protected renderMode: RenderMode
@@ -43,7 +45,7 @@ export default class NextBuilder {
     this.nextRootDir = './'
     this.builder = new DeploymentBuilder(process.cwd())
     this.edgioConfig = getConfig() as ExtendedConfig
-    this.nextConfig = getNextConfig()
+    this.nextConfig = getNextConfig() as NextConfig
     this.defaultLocale = this.nextConfig.i18n?.defaultLocale
     this.renderMode = getRenderMode(this.nextConfig)
     this.nextVersion = getNextVersion()
@@ -137,14 +139,41 @@ export default class NextBuilder {
       this.builder.deleteMapFiles(this.builder.jsAppDir)
     }
 
-    if (this.renderMode === RENDER_MODES.serverless && this.nextConfig?.rewrites) {
+    if (this.nextVersion && lt(this.nextVersion, '12.0.0')) {
       console.warn(
         `[Edgio] ${chalk.yellow(
-          "Warning: The rewrites from 'next.config.js' are currently not fully supported with the Next.js serverless build.\r\nPlease use the server build instead or upgrade to Next.js 12 and newer."
+          "Warning: Next.js 11 and older versions are not officially supported. The support for these older versions via Edgio is experimental, and not all features might work correctly.\r\nWe recommend upgrading your application to Next.js 12 and newer for the best experience."
         )}`
       )
     }
   }
+
+  /**
+   * This function is used in build to get all destinations that are set by
+   * rewrites. This is used to make sure that this is bundled as we don't handle
+   * rewrites on CDN, but Next does. If we don't bundle this, the rewrites
+   * on lambda will fail when it is sent to Next server, as it won't regenerate
+   * static pages.
+   * @returns List of all destinations from rewrites and redirects
+   */
+  async getRewritesDestinations() {
+    
+    const rewrites = this.nextConfig.rewrites ?
+      await this.nextConfig.rewrites() :
+      [];
+
+    const destinations: string[] = [];
+    
+    if (isRewriteGroup(rewrites)) {
+      const { beforeFiles, afterFiles, fallback } = rewrites;
+      const r = [...beforeFiles, ...afterFiles, ...fallback].map(p => p.destination)
+      destinations.push(...r);
+    } else {
+      destinations.push(...rewrites.map(p => p.destination));
+    }
+
+    return destinations;    
+  }  
 
   getPrerenderManifest() {
     return nonWebpackRequire(join(this.distDirAbsolute, 'prerender-manifest.json'))
@@ -212,7 +241,16 @@ export default class NextBuilder {
 
     try {
       // run the next.js build
-      await this.builder.exec(this.buildCommand)
+      await this.builder.exec(this.buildCommand, {
+        env: {
+          ...process.env,
+          // We need to add these special NODE_OPTIONS to the build command
+          // as a workaround for Next.js 10 and older versions on Node 18.
+          // Otherwise, the build fails with error: "error:0308010C:digital envelope routines::unsupported"
+          NODE_OPTIONS: getNodeOptions(this.nextVersion || '0.0.0'),
+        }
+      })
+
     } catch (e) {
       throw new FrameworkBuildError('Next.js', this.buildCommand, e)
     }
@@ -226,11 +264,65 @@ export default class NextBuilder {
       recursive: true,
     })
 
-    // Add the standalone app and dependencies
-    this.builder.copySync(join(this.distDirAbsolute, 'standalone'), this.builder.jsAppDir, {
-      // Exclude the server.js since we roll our own in prod.ts
-      filter: (file: string) =>
-        file !== join(this.distDirAbsolute, 'standalone', this.nextRootDir, 'server.js'),
+    // As there is posibility to have both folders present in a build, we check for both 'pages' and 'app' folders
+    const pagesDir = join(this.distDirAbsolute, 'standalone', this.nextRootDir, this.distDir, "server/pages/") 
+    const appDir = join(this.distDirAbsolute, 'standalone', this.nextRootDir, this.distDir, "server/app/")
+
+    // For server file, we add our own file, so skip this one
+    const serverFile = join(this.distDirAbsolute, 'standalone', this.nextRootDir, 'server.js')
+
+    const rootFiles = [
+      join(pagesDir, "index.html"),
+      join(pagesDir, "index.json"),
+      join(appDir, "index.html"),
+      join(appDir, "index.json")];
+
+    const manifestParser = new ManifestParser("./", this.distDir, this.renderMode)
+
+    // Add prerendered pages with fallback:false as we don't handle them on CDN
+    // and we fallback to Next, but if fallback is set to false, Next won't regenerate
+    // the page (as that's the fallback:false is for), so we need to add them to lambda
+    const prerenderedPages = manifestParser
+      .getPages()
+      .filter(p => p.isPrerendered && p.fallback === 'fallback:false')
+      .flatMap(p => (p.prerenderedRoutes ?? []).map(c => c.route))
+      .map((f) => join(pagesDir, f));
+
+    const rewritesRedirectsDestinations = (await this.getRewritesDestinations())
+      .map((f) => join(pagesDir, f))
+  
+    const importantFiles = [...rootFiles, ...prerenderedPages, ...rewritesRedirectsDestinations]
+
+    // Add the standalone app and dependencies, but optimize our bundle as we want to 
+    // exclude all prerenderd pages from the lambda bundle, but only that we can, as
+    // Next is dependent on some files.
+    this.builder.copySync(join(this.distDirAbsolute, 'standalone'), this.builder.jsAppDir, {      
+      filter: (file: string) => {
+        const isInPageFolder = file.startsWith(pagesDir) || file.startsWith(appDir)
+
+        // All files outside of pages folder are important, so skip going to the next check
+        if (!isInPageFolder)
+          return true;
+        
+        const important = importantFiles.filter(f => file.startsWith(f)).length > 0
+        
+        if (important)
+          return true;
+
+        const isServerFile = file === serverFile
+        const isJson = file.endsWith(".json") && !file.endsWith(".nft.json")        
+        const isHtml = file.endsWith(".htm") || file.endsWith(".html")
+        const isNot404 = !file.endsWith("404.html") && !file.endsWith("404.json")
+        const isNot500 = !file.endsWith("500.html") && !file.endsWith("500.json")
+        const notImportant = isServerFile || (isNot404 && isNot500 && (isJson || isHtml))        
+
+        if (notImportant) {
+          console.log(`${chalk.blueBright("[Edgio]")} Bundle skipping file ${chalk.greenBright(file)}`)
+          return false
+        }
+
+        return true
+      }
     })
 
     // Copy the Next.js package.json to the .edgio/lambda/app dir,
@@ -261,7 +353,7 @@ export default class NextBuilder {
     // the standalone build folder will have different folder structure.
     // This is where we can get the project root folder where the server files are actually placed.
     this.nextRootDir =
-      relative(this.nextConfig?.experimental?.outputFileTracingRoot, process.cwd()) || './'
+      relative(this.nextConfig?.experimental!.outputFileTracingRoot!, process.cwd()) || './'
   }
 
   /**
@@ -306,10 +398,11 @@ export default class NextBuilder {
         )
     }
 
-    const disableImageOptimizer = this.edgioConfig?.next?.disableImageOptimizer || false
-    if (disableImageOptimizer) {
-      console.warn(
-        "[Edgio] Warning: This build target doesn't contain next image optimizer. All images will be unoptimized when Edgio image optimizer is disabled and other optimizer is not provided."
+    if (this.edgioConfig?.next?.disableImageOptimizer) {
+      console.log(
+          chalk.grey(
+              `[Edgio] Edgio Image Optimizer is disabled. Images will be optimized by Next's built-in image optimizer if it's available.`
+          )
       )
     }
   }

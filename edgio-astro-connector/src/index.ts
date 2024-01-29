@@ -1,4 +1,4 @@
-import AstroRoutes from './AstroRoutes'
+import { connectorRoutes } from '@edgio/connectors'
 
 /**
  * Adds all routes from your Astro app to Edgio router
@@ -12,4 +12,4 @@ import AstroRoutes from './AstroRoutes'
  * export default new Router().use(astroRoutes)
  * ```
  */
-export const astroRoutes = new AstroRoutes()
+export const astroRoutes = connectorRoutes

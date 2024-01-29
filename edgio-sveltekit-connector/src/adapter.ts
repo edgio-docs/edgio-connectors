@@ -1,5 +1,7 @@
 /* istanbul ignore file */
 
+// This file is a fallback to existing connector usage
+
 export = () => {
   return {
     name: '@edgio/sveltekit/adapter',

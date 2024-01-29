@@ -1,11 +1,11 @@
 {
   "name": "@edgio/astro",
-  "version": "7.3.1",
+  "version": "7.7.4",
   "description": "Deploy Astro apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/astro/src/* dist; webpack;",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/astro/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
@@ -16,8 +16,7 @@
     "push-build": {
       "patterns": [
         "src",
-        "package.json",
-        "default-app"
+        "package.json"
       ],
       "extensions": "*",
       "quiet": false
@@ -27,11 +26,9 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.3.1",
-    "@types/node": "^14.0.9"
+    "@edgio/core": "^7.7.4"
   },
   "dependencies": {
-    "@vercel/nft": "^0.22.1",
-    "webpack": "^5.74.0"
+    "@edgio/connectors": "^7.7.4"
   }
 }
