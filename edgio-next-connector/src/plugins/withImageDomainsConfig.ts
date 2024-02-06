@@ -15,12 +15,7 @@ export function withImageDomainsConfig(_nextConfig: any) {
   const plugin = (...args: any[]): any => {
     const nextConfig = normalizedNextConfig(...args)
     const nextVersion = getNextVersion() || '0.0.0'
-    const predefinedDomains = [
-      'localhost',
-      '127.0.0.1',
-      '[::1]',
-      'SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE',
-    ]
+    const predefinedDomains = ['SET_EDGIO_PERMALINK_HOST_HERE']
     const predefinedRemotePatterns = predefinedDomains.map(domain => ({
       hostname: domain,
     }))

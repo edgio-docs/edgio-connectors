@@ -29,21 +29,14 @@ export function withImageLoaderConfig(_nextConfig: any) {
     const nextVersion = getNextVersion() || '0.0.0'
 
     const disableImageOptimizer = edgioConfig?.next?.disableImageOptimizer
-    const domains = nextConfig.images?.domains ?? []
-    const remotePatterns = nextConfig.images?.remotePatterns ?? []
     const imageLoader = nextConfig.images?.loader
 
     // Do not add our image loader if we're in development mode,
-    // Edgio Image Optimizer is disabled,
+    // Edgio Image Optimizer is disabled or
     // there's already a custom image loader defined in next.config.js
-    // or project is using image optimization with external domains,
-    if (
-      (!isCloud() && !isProductionBuild()) ||
-      imageLoader ||
-      disableImageOptimizer ||
-      domains.length > 0 ||
-      remotePatterns.length > 0
-    ) {
+    // NOTE: This is needed because Next.js disables its built-in image optimizer
+    // when there's other than default image loader defined in next.config.js.
+    if ((!isCloud() && !isProductionBuild()) || imageLoader || disableImageOptimizer) {
       return nextConfig
     }
 

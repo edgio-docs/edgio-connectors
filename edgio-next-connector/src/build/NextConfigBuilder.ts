@@ -83,11 +83,13 @@ export default class NextConfigBuilder {
 
     // All variables in domains config field are resolved during build time but
     // the process.env.EDGIO_IMAGE_OPTIMIZER_HOST is available during runtime.
-    // If disableImageOptimizer is set to true, the next/image optimizer is used and
-    // we need to replace 'SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE' by process.env.EDGIO_IMAGE_OPTIMIZER_HOST when build finish to force next/image optimizer to work.
+    // In order to make the next/image optimizer work with assets on S3,
+    // we need to replace 'SET_EDGIO_PERMALINK_HOST_HERE' by process.env.EDGIO_PERMALINK_HOST
+    // or legacy process.env.EDGIO_IMAGE_OPTIMIZER_HOST when build finish.
+    // TODO: Remove EDGIO_IMAGE_OPTIMIZER_HOST here when console-api is setting EDGIO_PERMALINK_HOST env var
     serverConfigSrc = serverConfigSrc.replace(
-      /["']SET_EDGIO_IMAGE_OPTIMIZER_HOST_HERE["']/,
-      'process.env.EDGIO_IMAGE_OPTIMIZER_HOST'
+      /["']SET_EDGIO_PERMALINK_HOST_HERE["']/,
+      'process.env.EDGIO_PERMALINK_HOST || process.env.EDGIO_IMAGE_OPTIMIZER_HOST'
     )
 
     this.builder.writeFileSync(

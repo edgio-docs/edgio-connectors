@@ -16,13 +16,14 @@ import {
 } from './cacheConfig'
 import ManifestParser from './ManifestParser'
 import {
+  EDGIO_IMAGE_PROXY_PATH,
   NEXT_PAGE_HEADER,
   NEXT_PRERENDERED_PAGES_FOLDER,
   REMOVE_HEADER_VALUE,
   SERVICE_WORKER_FILENAME,
 } from '../constants'
 import chalk from 'chalk'
-import { edgioRoutes } from '@edgio/core'
+import { edgioRoutes, HTTP_HEADERS } from '@edgio/core'
 import {
   RenderMode,
   Page,
@@ -44,6 +45,7 @@ import { getBackReferences } from '@edgio/core/router/path'
 import { pathToRegexp } from 'path-to-regexp'
 import toEdgeRegex from '@edgio/core/utils/toEdgeRegex'
 import getNextRootDir from '../util/getNextRootDir'
+import isValidRemotePattern from '../util/isValidRemotePattern'
 
 export default class NextRoutes implements RouterPlugin {
   protected router?: Router
@@ -102,7 +104,6 @@ export default class NextRoutes implements RouterPlugin {
     this.logDuringBuild(`> Next.js routes (locales: ${this.locales?.join(', ') || 'none'})`)
     this.logDuringBuild('')
     this.logPages()
-
     if (this.edgioConfig?.next?.proxyToServerlessByDefault !== false) {
       this.addDefaultSSRRoute()
     }
@@ -111,7 +112,7 @@ export default class NextRoutes implements RouterPlugin {
     this.addPrerenderedPages()
     this.addPublicAssets()
     this.addAssets()
-    this.addNextImageOptimizerRoutes()
+    this.addImageOptimizerRoutes()
     this.addRedirects()
     this.addServiceWorker()
     this.addPrerendering()
@@ -529,11 +530,30 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
+   * Adds routes for Image Optimizer:
+   * - Edgio Image Proxy
+   * - Next Image Optimizer
+   */
+  protected addImageOptimizerRoutes() {
+    if (this.edgioConfig?.next?.disableImageOptimizer || !isProductionBuild()) {
+      // We also need to add rule for Next's image-optimizer
+      // when app is running in development mode
+      // just for case when proxyToServerlessByDefault is false.
+      this.addNextImageOptimizerRoutes()
+    }
+    if (!this.edgioConfig?.next?.disableImageOptimizer) {
+      this.addEdgioImageProxyRoutes()
+    }
+  }
+
+  /**
    * Adds route for next image-optimizer when app run in production mode
    */
   protected addNextImageOptimizerRoutes() {
-    // We need to transform relative image paths to absolute to force next/image optimizer in server built to fully work.
-    // This route is used when our image optimizer is disabled
+    // We need to transform relative image paths to absolute to force next/image optimizer in server built to fully work
+    // because images are not on local file system but on S3.
+    // This route is used when our sailfish's image optimizer is disabled
+    // or when user wants to optimize images on remote hosts.
     this.router?.match(
       this.addBasePath('/_next/(image|future/image)'),
       ({ proxy, cache, setComment }) => {
@@ -541,13 +561,13 @@ export default class NextRoutes implements RouterPlugin {
         cache(PUBLIC_CACHE_CONFIG)
         proxy(SERVERLESS_ORIGIN_NAME, {
           transformRequest: req => {
+            // TODO: Remove EDGIO_IMAGE_OPTIMIZER_HOST here when console-api is setting EDGIO_PERMALINK_HOST env var
+            const permalinkHost =
+              process.env.EDGIO_PERMALINK_HOST || process.env.EDGIO_IMAGE_OPTIMIZER_HOST
             const protocol = req.secure ? 'https://' : 'http://'
-
             // The request will be proxied to the same host on local
-            // Deployed app will use permalink host from EDGIO_IMAGE_OPTIMIZER_HOST
-            const hostname = isLocal()
-              ? req.headers['host']
-              : process.env.EDGIO_IMAGE_OPTIMIZER_HOST
+            // Deployed app will use permalink host from EDGIO_PERMALINK_HOST env variable
+            const hostname = isLocal() ? req.headers['host'] : permalinkHost
             const url = new URL(req.url, `${protocol}${hostname}`)
             const imgUrl = url.searchParams.get('url')
 
@@ -560,6 +580,64 @@ export default class NextRoutes implements RouterPlugin {
         })
       }
     )
+  }
+
+  /**
+   * Adds route that will proxy images from remote hosts,
+   * so they can be later optimized by Sailfish's image-optimizer,
+   * and cached on the edge. This approach works even with old serverless builds
+   * without Next's image-optimizer. This rule is used by our imageLoader.
+   */
+  protected addEdgioImageProxyRoutes() {
+    this.router?.match(EDGIO_IMAGE_PROXY_PATH, ({ compute, cache, setComment, optimizeImages }) => {
+      setComment('Edgio Image Proxy - Proxies images from remote hosts')
+      cache(PUBLIC_CACHE_CONFIG)
+      optimizeImages(true)
+      compute(async (req, res) => {
+        try {
+          const url = new URL(req.url, `http://${req.headers['host']}`)
+          const imgUrl = url.searchParams.get('url')
+
+          if (!imgUrl || !isValidRemotePattern(this.nextConfig, imgUrl)) {
+            res.statusCode = 400
+            res.statusMessage = 'Bad Request'
+            res.body = `ERROR: The provided URL is not defined in 'next.config.js' under 'images.remotePatterns' or 'images.domains'.`
+            if (isLocal()) {
+              console.error(
+                `[Edgio] Image Proxy ERROR: The provided URL is not allowed.\r\n` +
+                  `Please add the URL to 'next.config.js' under 'images.remotePatterns' or 'images.domains'.\r\n` +
+                  `See https://nextjs.org/docs/pages/api-reference/components/image#remotepatterns for more details.\r\n` +
+                  `URL: ${imgUrl}\r\n`
+              )
+            }
+            return
+          }
+
+          // Standard fetch func is returning arrayBuffer,
+          // so we need to convert it to Buffer from Node.js here.
+          const remoteRes = await fetch(imgUrl)
+          const bufferedBody = Buffer.from(await remoteRes.arrayBuffer())
+          // Copy required headers from the remote response to the response
+          // NOTE: Do not content-encoding header, because the response is already encoded
+          // by @edgio/core with brotli or gzip, and it sets the correct content-encoding header.
+          remoteRes.headers.forEach((value, name) => {
+            if (
+              ![HTTP_HEADERS.contentLength as string, HTTP_HEADERS.contentType as string].includes(
+                name.toLowerCase()
+              )
+            )
+              return
+            res.setHeader(name, value)
+          })
+          res.write(bufferedBody)
+          res.end()
+        } catch (e: any) {
+          res.statusCode = 500
+          res.body = `ERROR: Couldn't fetch the image from the provided URL.`
+          console.error(`[Edgio] Image Proxy ERROR: ${e.message}`)
+        }
+      })
+    })
   }
 
   /**

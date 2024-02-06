@@ -261,17 +261,6 @@ describe('NextRoutes', () => {
         })
       })
 
-      it('should add rule for next image optimizer (addEdgioImageOptimizerRoutes) when "disableImageOptimizer" is true', () => {
-        const rule = rules.find(
-          rule => rule?.if?.[0]?.['==']?.[1] === '/_next/(image|future/image)'
-        )
-        const { caching, origin } = rule?.if[1]
-
-        expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
-        expect(caching.bypass_client_cache).toBe(true)
-        expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
-      })
-
       it('should add rules for redirects (addRedirects)', () => {
         const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path+/')
         const urlRedirect = rule?.if[1]?.url?.url_redirect
@@ -301,6 +290,17 @@ describe('NextRoutes', () => {
       it('should add rule for devtools (edgioRoutes)', () => {
         const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1].includes('/__edgio__/devtools/'))
         expect(rule).toBeDefined()
+      })
+
+      it('should add rule for Edgio Image Proxy (addEdgioImageProxyRoutes)', () => {
+        console.debug('nextconfig', mockNextConfig)
+        const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/__edgio__/image')
+        const { caching, origin, response } = rule?.if[1]
+
+        expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+        expect(caching.bypass_client_cache).toBe(true)
+        expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        expect(response.optimize_images).toBe(true)
       })
 
       it('should add rules in correct order', () => {
@@ -561,6 +561,35 @@ describe('NextRoutes', () => {
               rule?.if?.[0]?.['=~']?.[1] ===
               '(?i)^(?:/((?:[^/#\\?]+?)(?:/(?:[^/#\\?]+?))*))/[/#\\?]?$'
           )
+          expect(rule).not.toBeDefined()
+        })
+      })
+
+      describe('disableImageOptimizer is true', () => {
+        beforeAll(() => {
+          mockEdgioConfig = {
+            ...mockEdgioConfig,
+            next: { ...mockEdgioConfig.next, disableImageOptimizer: true },
+          }
+          init()
+        })
+        afterAll(reset)
+
+        it('should add rule for next image optimizer (addEdgioImageOptimizerRoutes)', () => {
+          console.debug('nextconfig', mockNextConfig)
+          const rule = rules.find(
+            rule => rule?.if?.[0]?.['==']?.[1] === '/_next/(image|future/image)'
+          )
+          const { caching, origin } = rule?.if[1]
+
+          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.bypass_client_cache).toBe(true)
+          expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        })
+
+        it('should not add rule for Edgio Image Proxy (addEdgioImageProxyRoutes)', () => {
+          console.debug('nextconfig', mockNextConfig)
+          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/__edgio__/image')
           expect(rule).not.toBeDefined()
         })
       })

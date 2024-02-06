@@ -67,30 +67,6 @@ describe('withImageLoaderConfig', () => {
       }
       expect(withImageLoaderConfig(withCustomLoader)).toEqual(withCustomLoader)
     })
-
-    it('should not add our image loader if there are domains defined by user', () => {
-      const withUserDomains = {
-        ...nextConfig,
-        images: {
-          domains: ['custom-domain.com'],
-        },
-      }
-      expect(withImageLoaderConfig(withUserDomains)).toEqual(withUserDomains)
-    })
-
-    it('should not add our image loader if there are remote patterns defined by user', () => {
-      const withUserRemotePatterns = {
-        ...nextConfig,
-        images: {
-          remotePatterns: [
-            {
-              hostname: 'custom-domain.com',
-            },
-          ],
-        },
-      }
-      expect(withImageLoaderConfig(withUserRemotePatterns)).toEqual(withUserRemotePatterns)
-    })
   })
 
   describe('Disabled Edgio Image Optimizer', () => {

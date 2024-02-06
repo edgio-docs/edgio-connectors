@@ -51,3 +51,9 @@ export const NEXT_PRERENDERED_PAGES_FOLDER = 'next_prerendered_pages'
  * The name of the file which is used to determine the root directory of the Next.js app.
  */
 export const NEXT_ROOT_DIR_FILE = 'NEXT_ROOT_DIR'
+
+/**
+ * @private
+ * The path where the Edgio Image Proxy is available.
+ */
+export const EDGIO_IMAGE_PROXY_PATH = '/__edgio__/image'
