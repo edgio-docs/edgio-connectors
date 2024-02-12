@@ -1,6 +1,6 @@
 {
   "name": "@edgio/vue-cva",
-  "version": "7.7.6",
+  "version": "7.8.0",
   "description": "Deploy Vue apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -26,9 +26,9 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.7.6"
+    "@edgio/core": "^7.8.0"
   },
   "dependencies": {
-    "@edgio/connectors": "^7.7.6"
+    "@edgio/connectors": "^7.8.0"
   }
 }
