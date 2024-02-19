@@ -61,8 +61,13 @@ export default class ConnectorBuilder {
     return this
   }
 
-  withServerless() {
-    this.connector.withServerless = true
+  withServerless(boolean: Connector['withServerless'] = true) {
+    this.connector.withServerless = boolean
+    return this
+  }
+
+  withStatic404Error(errorFile: Connector['static404Error']) {
+    this.connector.static404Error = errorFile
     return this
   }
 

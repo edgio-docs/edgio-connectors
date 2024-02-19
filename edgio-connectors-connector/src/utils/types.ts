@@ -3,7 +3,7 @@ import { DeploymentBuilder } from '@edgio/core/deploy'
 import DevServerOptions from '@edgio/core/dev/DevServerOptions'
 
 interface ProdOptions {
-  serverPath: string
+  serverPath?: string
   run?: (module: any) => void | Promise<void>
 }
 
@@ -33,7 +33,8 @@ interface BuildOptions {
 export interface Connector {
   name: string
   withServiceWorker?: { withGlob: boolean } | boolean
-  withServerless?: boolean
+  withServerless?: boolean | ((edgioConfig: any) => boolean)
+  static404Error?: string | ((edgioConfig: any) => string | void)
   templateConfig?: string
   templateRoutes?: string
   onRegister?: (router: Router) => void

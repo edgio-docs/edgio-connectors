@@ -44,8 +44,7 @@ export default class NextConfigBuilder {
   protected async getDependencies(): Promise<string[]> {
     console.log(`> Searching for dependencies of next config file`)
     const { fileList } = await nodeFileTrace([NEXT_CONFIG_FILE])
-    // filter out duplicates
-    return [...new Set(fileList)]
+    return Array.from(fileList)
   }
 
   /**

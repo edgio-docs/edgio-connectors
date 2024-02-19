@@ -238,8 +238,7 @@ export default class NextBuilder {
       .map(l => `--external:${l}`)
       .join(' ')}`
     const nextSourceFiles = join(
-      this.builder.jsAppDir,
-      this.nextRootDir,
+      this.builder.jsAppDir,   
       'node_modules',
       'next',
       'dist',
@@ -430,7 +429,7 @@ export default class NextBuilder {
 
       // Add dependencies of the pages
       const { fileList } = await nodeFileTrace(pageHandlerFiles)
-      fileList
+      Array.from(fileList)
         .filter(file => file.indexOf('node_modules') === 0)
         .forEach(file =>
           this.builder.copySync(file, join(this.builder.jsAppDir, this.nextRootDir, file))

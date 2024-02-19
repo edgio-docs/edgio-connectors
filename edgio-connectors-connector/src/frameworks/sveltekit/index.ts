@@ -1,6 +1,6 @@
 import { join } from 'path'
 import ConnectorBuilder from '../../utils/ConnectorBuilder'
-import fs from 'fs'
+import fs, { existsSync } from 'fs'
 import globby from 'globby'
 import { BundlerType } from '../../utils/types'
 import { PRERENDERED_PAGES_FOLDER } from './constants'
@@ -13,7 +13,7 @@ export default new ConnectorBuilder('sveltekit')
   .setInit(() => {
     // we copy service-worker manually, as the approach is different from other frameworks, and requires it to be in the src folder
     fs.copyFileSync(
-      join(__dirname, '../../../default-apps/service-worker/all/sw/service-worker.js'),
+      join(__dirname, '../../default-apps/service-worker/all/sw/service-worker.js'),
       join(appDir, 'src', 'service-worker.js')
     )
     // we transform config file so it uses edgio adapter
@@ -29,8 +29,14 @@ export default new ConnectorBuilder('sveltekit')
       bundler: BundlerType.NFT,
       entryFile: serverEntrypoint,
       addAssets: async builder => {
+        if (!existsSync(outputPath)) {
+          throw new Error(
+            `Couldn't find the '.svelte-kit/output' folder. Make sure that you're using the @edgio/sveltekit/adapter in 'svelte.config.js'.`
+          )
+        }
+
         // Add sveltekit/files/server.mjs file from this package to the .svelte-kit output directory.
-        builder.copySync(join(__dirname, 'files', 'server.mjs'), serverEntrypoint, {
+        builder.copySync(join(__dirname, 'assets', 'server.mjs'), serverEntrypoint, {
           overwrite: true,
         })
 

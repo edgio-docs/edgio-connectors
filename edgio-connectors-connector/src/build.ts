@@ -7,7 +7,7 @@ import bundleWithNft from '@edgio/core/deploy/bundle-nft'
 import bundleWithNcc from '@edgio/core/deploy/bundle-ncc'
 import { BundlerType } from './utils/types'
 import { getConfig } from '@edgio/core'
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import chalk from 'chalk'
 
 const appDir = process.cwd()
@@ -16,6 +16,7 @@ const SW_DEST = resolve(appDir, '.edgio', 's3', 'service-worker.js')
 
 export default async function build(options: BuildOptions) {
   const connector = ConnectorFactory.get()
+  const edgioConfig = getConfig()
 
   if (!connector.buildCommand) {
     throw new Error(`Connector '@edgio/${connector.name}' doesn't support 'build' command.`)
@@ -76,11 +77,36 @@ export default async function build(options: BuildOptions) {
         : {}),
     }))
 
-  // We add generic assets
+  // We add connector-defined assets.
+  // NOTE: This needs to be called after the build command.
+  await buildCommand.addAssets?.(builder)
+
+  // We add generic assets,
+  // build routes.js and collect static assets for serveStatic.
+  // NOTE: This needs to be called after addAssets,
+  // so we can later use them in serveStatic.
+  // For example: Pre-rendered pages in SvelteKit.
   await builder.build()
 
-  // We add connector-defined assets
-  await buildCommand.addAssets?.(builder)
+  const static404Error =
+    typeof connector.static404Error === 'function'
+      ? connector.static404Error(edgioConfig)
+      : connector.static404Error
+  const staticFolder =
+    typeof connector.staticFolder === 'function'
+      ? connector.staticFolder(edgioConfig)
+      : connector.staticFolder
+
+  // If specified static 404 error file doesn't exist,
+  // we'll create new one to not show ugly error page from S3
+  if (static404Error && staticFolder) {
+    const static404ErrorPath = resolve(staticFolder, static404Error)
+    if (!existsSync(static404ErrorPath)) {
+      console.log(`[Edgio] INFO: Static error file not found: ${static404ErrorPath}`)
+      console.log(`[Edgio] INFO: Creating new one...`)
+      writeFileSync(static404ErrorPath, 'ERROR: 404 - Not Found')
+    }
+  }
 
   // If entry file is set, we bundle it so it can be used in serverless
   if (buildCommand.entryFile) {

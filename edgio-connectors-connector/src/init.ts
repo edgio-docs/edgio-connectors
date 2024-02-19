@@ -14,8 +14,8 @@ module.exports = function init(name?: string) {
   builder
     .addDefaultAppResources(
       join(__dirname, 'default-apps/base'),
-      // We need to replace name of the connector thats gonna be used -> therefore we use
-      // replace function (in order to not worry about naming of files, and dont read/write twice).
+      // We need to replace name of the connector that's going to be used -> therefore we use
+      // replace function (in order to not worry about naming of files, and don't read/write twice).
       (content: string) =>
         content
           .replace('${CONNECTOR_NAME}', connector.name)

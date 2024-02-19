@@ -22,14 +22,14 @@ export default new ConnectorBuilder('nodejs-connector')
     const entryFileName = basename(edgioConfig.nodejsConnector?.entryFile!)
     const serverPath = resolve(entryFileName)
 
-    if (edgioConfig.nodejsConnector?.entryFile && existsSync(serverPath)) {
-      process.env[edgioConfig.nodejsConnector!.envPort!] = port.toString()
+    // Do nothing if entryFile is not specified
+    if (!entryFileName) {
+      return {}
+    }
 
+    if (existsSync(serverPath)) {
+      process.env[edgioConfig.nodejsConnector!.envPort!] = port.toString()
       return { serverPath }
-    } else if (!edgioConfig.nodejsConnector?.entryFile) {
-      throw new Error(
-        `Connector configuration for nodejsConnector is missing an 'entryFile' value.`
-      )
     } else {
       throw new Error(`Server path ${serverPath} doesn't exist.`)
     }
@@ -56,7 +56,15 @@ export default new ConnectorBuilder('nodejs-connector')
       ready,
     }
   })
-  .withStaticFolder(edgioConfig => edgioConfig.nodejsConnector?.staticFolder)
   .withServiceWorker()
-  .withServerless()
+  .withStaticFolder(edgioConfig => edgioConfig.nodejsConnector?.staticFolder)
+  .withServerless(edgioConfig => {
+    const { entryFile } = edgioConfig.nodejsConnector ?? {}
+    return entryFile && entryFile.length > 0
+  })
+  .withStatic404Error(edgioConfig => {
+    const { entryFile } = edgioConfig.nodejsConnector ?? {}
+    if (entryFile && entryFile.length > 0) return undefined
+    return '404.html'
+  })
   .toConnector()

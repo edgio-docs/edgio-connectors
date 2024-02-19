@@ -24,17 +24,42 @@ export default class ConnectorRoutes implements RouterPlugin {
     const config = getConfig()
     const connector = ConnectorFactory.get()
 
-    connector.withServerless &&
+    const withServerless =
+      typeof connector.withServerless === 'function'
+        ? connector.withServerless(config)
+        : connector.withServerless
+
+    if (withServerless) {
       router.match('/:path*', ({ renderWithApp }) => {
         renderWithApp()
       })
+    }
 
     if (isProductionBuild()) {
       const staticFolder =
         typeof connector.staticFolder === 'function'
           ? connector.staticFolder(config)
           : connector.staticFolder
-      staticFolder && router.static(staticFolder)
+
+      const static404Error =
+        typeof connector.static404Error === 'function'
+          ? connector.static404Error(config)
+          : connector.static404Error
+
+      // Add static 404 error,
+      // it needs to be before static folder
+      if (static404Error) {
+        router.match('/:path*', ({ serveStatic }) => {
+          serveStatic(
+            `${staticFolder ? `${staticFolder}/` : ''}${static404Error}`.replace(/\/+/g, '/')
+          )
+        })
+      }
+
+      // Add static folder assets
+      if (staticFolder) {
+        router.static(staticFolder)
+      }
     }
 
     connector.onRegister?.(router)

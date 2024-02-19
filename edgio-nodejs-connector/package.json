@@ -1,13 +1,13 @@
 {
   "name": "@edgio/nodejs-connector",
-  "version": "7.8.0",
+  "version": "7.8.1",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
-    "@edgio/connectors": "^7.8.0"
+    "@edgio/connectors": "^7.8.1"
   },
   "devDependencies": {
-    "@edgio/core": "^7.8.0"
+    "@edgio/core": "^7.8.1"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md ./dist; tsc; cp -r stage/nodejs-connector/src/* dist;",
