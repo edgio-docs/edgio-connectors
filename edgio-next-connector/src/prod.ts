@@ -5,7 +5,7 @@ import { createServer, Server } from 'http'
 import getNextRootDir from './util/getNextRootDir'
 import { getDistDirFromConfig } from './util/getDistDir'
 import getNextConfig from './getNextConfig'
-import { NEXT_PAGE_HEADER, REMOVE_HEADER_VALUE } from './constants'
+import { NEXT_PAGE_HEADER } from './constants'
 import { existsSync, createReadStream } from 'fs'
 import getNextVersion from './util/getNextVersion'
 import { satisfies } from 'semver'
@@ -142,7 +142,6 @@ const createStandAloneServer = async (
       // Here we add a default Cache-Control header before handing the request off to Next.js.
       // If Next.js sees this default value, it won't add its own default, which is Cache-Control: private, no-cache, no-store.
       // We later remove this value so that there is no Cache-Control header in NextRoutes#addDefaultSSRRoute.
-      res.setHeader('Cache-Control', REMOVE_HEADER_VALUE)
       handle(req, res)
     } catch (e) {
       if (e instanceof Error) {

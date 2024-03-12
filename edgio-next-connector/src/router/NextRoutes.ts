@@ -19,7 +19,6 @@ import {
   EDGIO_IMAGE_PROXY_PATH,
   NEXT_PAGE_HEADER,
   NEXT_PRERENDERED_PAGES_FOLDER,
-  REMOVE_HEADER_VALUE,
   SERVICE_WORKER_FILENAME,
 } from '../constants'
 import chalk from 'chalk'
@@ -37,7 +36,6 @@ import qs from 'qs'
 import ParamsExtractor from '@edgio/core/router/ParamsExtractor'
 import setNextPage from './setNextPage'
 import Request from '@edgio/core/runtime/Request'
-import Response from '@edgio/core/runtime/Response'
 import getBuildId from '../util/getBuildId'
 import { PreloadRequest } from '@edgio/core/router/Preload'
 import bindParams from '@edgio/core/utils/bindParams'
@@ -558,7 +556,7 @@ export default class NextRoutes implements RouterPlugin {
       this.addBasePath('/_next/(image|future/image)'),
       ({ proxy, cache, setComment }) => {
         setComment('Next Image Optimizer')
-        cache(PUBLIC_CACHE_CONFIG)
+        cache(SHORT_PUBLIC_CACHE_CONFIG)
         proxy(SERVERLESS_ORIGIN_NAME, {
           transformRequest: req => {
             // TODO: Remove EDGIO_IMAGE_OPTIMIZER_HOST here when console-api is setting EDGIO_PERMALINK_HOST env var
@@ -591,7 +589,7 @@ export default class NextRoutes implements RouterPlugin {
   protected addEdgioImageProxyRoutes() {
     this.router?.match(EDGIO_IMAGE_PROXY_PATH, ({ compute, cache, setComment, optimizeImages }) => {
       setComment('Edgio Image Proxy - Proxies images from remote hosts')
-      cache(PUBLIC_CACHE_CONFIG)
+      cache(SHORT_PUBLIC_CACHE_CONFIG)
       optimizeImages(true)
       compute(async (req, res) => {
         try {
@@ -686,26 +684,6 @@ export default class NextRoutes implements RouterPlugin {
         // Force Next.js server to serve fresh page
         req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
         if (this.renderMode === RENDER_MODES.serverless) this.addPageParamsToQuery(req)
-      },
-      transformResponse: (res: Response, _req: Request) => {
-        // Nothing to transform if there is no Cache-Control header
-        if (!res.getHeader('Cache-Control')) return
-
-        // {REMOVE_HEADER_VALUE} in Cache-Control header value prevents Next.js from
-        // adding Cache-Control: private, no-cache, no-store by default, which would disable caching at the edge.
-        // When user explicitly sets Cache-Control header in app folder of next.js v13+,
-        // the next.js appends value to current header value. That's why we need to remove just the part with {REMOVE_HEADER_VALUE} from it by regex below.
-        // Example: "{REMOVE_HEADER_VALUE}, private" => "private"
-        // Example: "{REMOVE_HEADER_VALUE}" => ""
-        const transformedHeader = res
-          .getHeader('Cache-Control')
-          ?.toString()
-          ?.replace(new RegExp(`${REMOVE_HEADER_VALUE}\\s*,?\\s*`), '')
-        if (transformedHeader && transformedHeader.length > 0) {
-          res.setHeader('Cache-Control', transformedHeader)
-        } else {
-          res.removeHeader('Cache-Control')
-        }
       },
     })
   }

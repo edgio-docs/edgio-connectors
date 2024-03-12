@@ -534,13 +534,15 @@ export default class NextBuilder {
   }
 
   private buildServiceWorker() {
+    // Base path is always without trailing slash
+    const basePath = this.nextConfig?.basePath || ''
     return this.builder.buildServiceWorker({
       swSrc: 'sw/service-worker.js',
       swDest: '.edgio/s3/service-worker.js',
       globDirectory: '.next',
       globPatterns: ['static/**/*'],
       modifyURLPrefix: {
-        'static/': '/_next/static/',
+        'static/': `${basePath}/_next/static/`,
       },
     })
   }

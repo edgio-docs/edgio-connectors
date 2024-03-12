@@ -16,12 +16,6 @@ export const FAR_FUTURE_TTL_WITH_UNIT = '1y'
 
 /**
  * @private
- * When NextRoutes sees this value in the Cache-Control header returned from Next.js, it removes the header.
- */
-export const REMOVE_HEADER_VALUE = '__edgio_remove__'
-
-/**
- * @private
  * Instructs our prod.js in serverless mode which page to render.
  */
 export const NEXT_PAGE_HEADER = 'x-next-page'

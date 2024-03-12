@@ -293,12 +293,12 @@ describe('NextRoutes', () => {
       })
 
       it('should add rule for Edgio Image Proxy (addEdgioImageProxyRoutes)', () => {
-        console.debug('nextconfig', mockNextConfig)
         const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/__edgio__/image')
         const { caching, origin, response } = rule?.if[1]
 
-        expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
-        expect(caching.bypass_client_cache).toBe(true)
+        expect(caching.max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+        expect(caching.client_max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.browser.maxAgeSeconds)
+        expect(caching.bypass_client_cache).toBe(undefined)
         expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
         expect(response.optimize_images).toBe(true)
       })
@@ -576,19 +576,18 @@ describe('NextRoutes', () => {
         afterAll(reset)
 
         it('should add rule for next image optimizer (addEdgioImageOptimizerRoutes)', () => {
-          console.debug('nextconfig', mockNextConfig)
           const rule = rules.find(
             rule => rule?.if?.[0]?.['==']?.[1] === '/_next/(image|future/image)'
           )
           const { caching, origin } = rule?.if[1]
 
-          expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
-          expect(caching.bypass_client_cache).toBe(true)
+          expect(caching.max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
+          expect(caching.client_max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.browser.maxAgeSeconds)
+          expect(caching.bypass_client_cache).toBe(undefined)
           expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
         })
 
         it('should not add rule for Edgio Image Proxy (addEdgioImageProxyRoutes)', () => {
-          console.debug('nextconfig', mockNextConfig)
           const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/__edgio__/image')
           expect(rule).not.toBeDefined()
         })
