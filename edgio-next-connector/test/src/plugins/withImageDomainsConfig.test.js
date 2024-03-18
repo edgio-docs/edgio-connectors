@@ -27,7 +27,14 @@ describe('withImageDomainsConfig', () => {
       modifiedNextConfig = {
         distDir: '.next',
         images: {
-          domains: ['SET_EDGIO_PERMALINK_HOST_HERE', 'custom-domain.com'],
+          domains: [
+            'SET_EDGIO_PERMALINK_HOST_HERE',
+            '127.0.0.1',
+            'localhost',
+            '127.0.0.1:3000',
+            'localhost:3000',
+            'custom-domain.com',
+          ],
         },
       }
     })
@@ -59,6 +66,18 @@ describe('withImageDomainsConfig', () => {
           remotePatterns: [
             {
               hostname: 'SET_EDGIO_PERMALINK_HOST_HERE',
+            },
+            {
+              hostname: '127.0.0.1',
+            },
+            {
+              hostname: 'localhost',
+            },
+            {
+              hostname: '127.0.0.1:3000',
+            },
+            {
+              hostname: 'localhost:3000',
             },
             {
               hostname: 'custom-domain.com',

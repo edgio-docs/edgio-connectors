@@ -15,7 +15,18 @@ export function withImageDomainsConfig(_nextConfig: any) {
   const plugin = (...args: any[]): any => {
     const nextConfig = normalizedNextConfig(...args)
     const nextVersion = getNextVersion() || '0.0.0'
-    const predefinedDomains = ['SET_EDGIO_PERMALINK_HOST_HERE']
+
+    // Remote patterns expect just hostname without port
+    // and images.domains expect hostname including port if it's not 80 or 443.
+    // That's why we need to include all possible combinations of domains
+    // that can user use locally to access the app.
+    const predefinedDomains = [
+      'SET_EDGIO_PERMALINK_HOST_HERE',
+      '127.0.0.1',
+      'localhost',
+      '127.0.0.1:3000',
+      'localhost:3000',
+    ]
     const predefinedRemotePatterns = predefinedDomains.map(domain => ({
       hostname: domain,
     }))

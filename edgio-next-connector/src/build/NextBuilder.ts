@@ -148,13 +148,15 @@ export default class NextBuilder {
       )
     }
 
-    // NOTE: We're adding our permalink as remote pattern
-    // to next.config.js. That's why we are checking if it has 2 or more patterns.
+    // NOTE: We add following remote patterns into the next.config.js file by default:
+    // ['SET_EDGIO_PERMALINK_HOST_HERE', '127.0.0.1', 'localhost', '127.0.0.1:3000', 'localhost:3000']
+    // That's why we are checking if it has more than 5 remote patterns here.
+    // See: /src/plugins/withImageDomainsConfig.ts
     const hasImagesRemotePatterns =
       this.nextConfig?.images?.remotePatterns &&
-      this.nextConfig?.images?.remotePatterns?.length >= 2
+      this.nextConfig?.images?.remotePatterns?.length > 5
     const hasImagesDomains =
-      this.nextConfig?.images?.domains && this.nextConfig?.images?.domains?.length >= 2
+      this.nextConfig?.images?.domains && this.nextConfig?.images?.domains?.length > 5
     if (hasImagesRemotePatterns || hasImagesDomains) {
       console.info(
         chalk.grey(`-----------------------------\r\n`) +

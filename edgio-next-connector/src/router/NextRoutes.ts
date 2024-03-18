@@ -533,10 +533,10 @@ export default class NextRoutes implements RouterPlugin {
    * - Next Image Optimizer
    */
   protected addImageOptimizerRoutes() {
+    // We also need to add rule for Next's image-optimizer
+    // when app is running in development mode
+    // just for case when proxyToServerlessByDefault is false.
     if (this.edgioConfig?.next?.disableImageOptimizer || !isProductionBuild()) {
-      // We also need to add rule for Next's image-optimizer
-      // when app is running in development mode
-      // just for case when proxyToServerlessByDefault is false.
       this.addNextImageOptimizerRoutes()
     }
     if (!this.edgioConfig?.next?.disableImageOptimizer) {
@@ -559,13 +559,13 @@ export default class NextRoutes implements RouterPlugin {
         cache(SHORT_PUBLIC_CACHE_CONFIG)
         proxy(SERVERLESS_ORIGIN_NAME, {
           transformRequest: req => {
-            // TODO: Remove EDGIO_IMAGE_OPTIMIZER_HOST here when console-api is setting EDGIO_PERMALINK_HOST env var
-            const permalinkHost =
-              process.env.EDGIO_PERMALINK_HOST || process.env.EDGIO_IMAGE_OPTIMIZER_HOST
             const protocol = req.secure ? 'https://' : 'http://'
             // The request will be proxied to the same host on local
             // Deployed app will use permalink host from EDGIO_PERMALINK_HOST env variable
-            const hostname = isLocal() ? req.headers['host'] : permalinkHost
+            const hostname =
+              process.env.EDGIO_PERMALINK_HOST ||
+              process.env.EDGIO_IMAGE_OPTIMIZER_HOST ||
+              req.headers.host
             const url = new URL(req.url, `${protocol}${hostname}`)
             const imgUrl = url.searchParams.get('url')
 
@@ -615,6 +615,20 @@ export default class NextRoutes implements RouterPlugin {
           // so we need to convert it to Buffer from Node.js here.
           const remoteRes = await fetch(imgUrl)
           const bufferedBody = Buffer.from(await remoteRes.arrayBuffer())
+
+          // Allow to proxy only images.
+          // We have localhost and 127.0.0.1 in allowed domains by default,
+          // and this would allow to expose potentially sensitive data from customer's app.
+          const contentType = remoteRes.headers.get(HTTP_HEADERS.contentType)
+          if (!contentType?.startsWith('image')) {
+            res.statusCode = 400
+            res.body = `ERROR: The requested asset on given URL is not an image.`
+            console.error(
+              `[Edgio] Image Proxy ERROR: The requested asset on given URL is not an image.`
+            )
+            return
+          }
+
           // Copy required headers from the remote response to the response
           // NOTE: Do not content-encoding header, because the response is already encoded
           // by @edgio/core with brotli or gzip, and it sets the correct content-encoding header.
@@ -627,6 +641,7 @@ export default class NextRoutes implements RouterPlugin {
               return
             res.setHeader(name, value)
           })
+
           res.write(bufferedBody)
           res.end()
         } catch (e: any) {
