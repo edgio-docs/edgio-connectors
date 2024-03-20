@@ -1,6 +1,6 @@
 {
   "name": "@edgio/next",
-  "version": "7.10.1",
+  "version": "7.10.2",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -20,7 +20,7 @@
     "webpack-sources": "^3.2.3"
   },
   "devDependencies": {
-    "@edgio/core": "^7.10.1",
+    "@edgio/core": "^7.10.2",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
     "@types/jscodeshift": "^0.11.11",
