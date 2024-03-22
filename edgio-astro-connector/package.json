@@ -1,6 +1,6 @@
 {
   "name": "@edgio/astro",
-  "version": "7.10.2",
+  "version": "7.10.3",
   "description": "Deploy Astro apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -26,9 +26,9 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.10.2"
+    "@edgio/core": "^7.10.3"
   },
   "dependencies": {
-    "@edgio/connectors": "^7.10.2"
+    "@edgio/connectors": "^7.10.3"
   }
 }
