@@ -78,54 +78,6 @@ describe('ManifestParser', () => {
         expect(manifestParser.getPreviewModeId()).toBe('15da6cc8a984bb9e0bcd4d9739e6b8f4')
       })
 
-      it('should sort pages from most dynamic to least dynamic', () => {
-        const unsortedPages = [
-          {
-            name: '/api/hello',
-            isDynamic: false,
-          },
-          {
-            name: '/ssg/my-ssg-page',
-            isDynamic: false,
-          },
-          {
-            name: '/ssg/my-ssg-page/[...slug]',
-            isDynamic: true,
-          },
-          {
-            name: '/api/[id]',
-            isDynamic: true,
-          },
-          {
-            name: '/[..slug]',
-            isDynamic: true,
-          },
-        ]
-        const sortedPages = [
-          {
-            isDynamic: true,
-            name: '/[..slug]',
-          },
-          {
-            isDynamic: true,
-            name: '/api/[id]',
-          },
-          {
-            isDynamic: true,
-            name: '/ssg/my-ssg-page/[...slug]',
-          },
-          {
-            isDynamic: false,
-            name: '/api/hello',
-          },
-          {
-            isDynamic: false,
-            name: '/ssg/my-ssg-page',
-          },
-        ]
-        expect(manifestParser.sortPages(unsortedPages)).toEqual(sortedPages)
-      })
-
       describe('pages', () => {
         let pages, pagesMap
 
@@ -297,6 +249,65 @@ describe('ManifestParser', () => {
             expect(pagesMap['/static'].pageSource).toBe(PAGE_SOURCE_TYPES.pages)
             expect(pagesMap['/app-folder-page'].pageSource).toBe(PAGE_SOURCE_TYPES.app)
           })
+        })
+      })
+
+      describe('sorting pages', () => {
+        beforeAll(() => {
+          process.chdir(join(__dirname, '..', '..', 'apps', 'sorting'))
+          nextConfig = getNextConfig()
+          distDir = getDistDirFromConfig(nextConfig)
+          renderMode = getRenderMode(nextConfig)
+          manifestParser = new ManifestParser('./', distDir, renderMode)
+        })
+
+        it('should sort pages from most dynamic to least dynamic', () => {
+          const unsortedPages = [
+            {
+              name: '/api/hello',
+              isDynamic: false,
+            },
+            {
+              name: '/ssg/my-ssg-page',
+              isDynamic: false,
+            },
+            {
+              name: '/ssg/my-ssg-page/[...slug]',
+              isDynamic: true,
+            },
+            {
+              name: '/api/[id]',
+              isDynamic: true,
+            },
+            {
+              name: '/[..slug]',
+              isDynamic: true,
+            },
+          ]
+          const sortedPages = [
+            {
+              isDynamic: true,
+              name: '/[..slug]',
+            },
+            {
+              isDynamic: true,
+              name: '/api/[id]',
+            },
+            {
+              isDynamic: true,
+              name: '/ssg/my-ssg-page/[...slug]',
+            },
+            {
+              isDynamic: false,
+              name: '/api/hello',
+            },
+            {
+              isDynamic: false,
+              name: '/ssg/my-ssg-page',
+            },
+          ]
+          const s = manifestParser.sortPages(unsortedPages)
+          expect(s).toEqual(sortedPages)
         })
       })
     })

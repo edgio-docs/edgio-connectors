@@ -69,6 +69,9 @@ export default async function build(options: BuildOptions) {
     (await builder.buildServiceWorker({
       swSrc: SW_SOURCE,
       swDest: SW_DEST,
+      // @ts-ignore - we shold not ignore this, but we need to fix this
+      // as this seems not right, withServiceWorker can be boolean or objects
+      // so it doesn't have purpose if we check it like this
       ...(connector.withServiceWorker.withGlob
         ? {
             globDirectory: buildCommand.buildFolder,
@@ -113,7 +116,10 @@ export default async function build(options: BuildOptions) {
     // If build folder is specified, we need to resolve entry file relative to build folder,
     // otherwise we resolve it relative to lambda root as build folder would be empty
     const entryFileSrc = resolve(buildCommand.buildFolder ?? '', buildCommand.entryFile)
-    const entryFileDest = resolve(builder.jsAppDir, buildCommand.entryFile)
+    const entryFileDest = resolve(
+      builder.jsAppDir,
+      buildCommand.entryOutputFile ?? buildCommand.entryFile
+    )
 
     // If entry file is set but doesn't exist, we throw an error
     if (!existsSync(entryFileSrc)) {

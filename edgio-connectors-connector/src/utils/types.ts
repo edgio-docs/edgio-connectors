@@ -22,6 +22,7 @@ interface BuildOptions {
   command?: string
   buildFolder?: string
   entryFile?: string
+  entryOutputFile?: string
   // executed after build command, before bundler
   addAssets?: (builder: DeploymentBuilder) => Promise<void> | void
   // works only if entryFile is defined, will be done as a last step in the build process

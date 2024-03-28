@@ -16,19 +16,30 @@ import {
   FALLBACK_TYPES,
   PrerenderedRoute,
 } from '../types'
+import {
+  MiddlewareManifest,
+  PrerenderManifest,
+  RoutesManifest,
+  PagesManifest,
+  AppPathsManifest,
+  DataRoute,
+  Redirect,
+  NextConfig,
+  Middleware,
+} from '../next.types'
 import { isCloud, isProductionBuild } from '@edgio/core/environment'
 import getBuildId from '../util/getBuildId'
 import globby from 'globby'
 import { getPageExtensionsFromConfig } from '../util/getPageExtensions'
 
 export default class ManifestParser {
-  protected routesManifest: any
-  protected prerenderManifest: any
-  protected middlewareManifest: any
-  protected pagesManifest: any
-  protected appPathsManifest: any
+  protected routesManifest?: RoutesManifest
+  protected prerenderManifest?: PrerenderManifest
+  protected middlewareManifest?: MiddlewareManifest
+  protected pagesManifest: PagesManifest = {}
+  protected appPathsManifest: AppPathsManifest = {}
 
-  protected pageFiles: any
+  protected pageFiles: PagesManifest | AppPathsManifest = {}
   protected nextRootDir: string
   protected distDir: string
   protected pagesDir: string
@@ -39,7 +50,7 @@ export default class ManifestParser {
   protected defaultLocale?: string
   protected nextPathFormatter: NextPathFormatter
   protected buildId: string = 'dev'
-  protected nextConfig: any
+  protected nextConfig: NextConfig
 
   /**
    * @param nextRootDir The path to project root
@@ -182,11 +193,18 @@ export default class ManifestParser {
    * Attempt to get redirects from routes-manifest.json in production
    * and from next.config.js in development.
    */
-  getRedirects(): any[] {
+  getRedirects(): Redirect[] {
     let redirects =
       isProductionBuild() || isCloud() ? this.routesManifest?.redirects : this.nextConfig?.redirects
     // We need to reverse the order to match the sailfish behavior when only the last one is applied.
     return Array.isArray(redirects) ? redirects.reverse() : []
+  }
+
+  /**
+   * Returns middlewares from middleware-manifest.json
+   */
+  getMiddlewares(): Middleware[] {
+    return Object.values(this.middlewareManifest?.middleware || {})
   }
 
   /**
@@ -230,28 +248,34 @@ export default class ManifestParser {
   /**
    * Returns the contents of routes-manifest.json
    */
-  public getRoutesManifest(): any {
+  public getRoutesManifest(): RoutesManifest | undefined {
     const routesManifestPath =
       process.env.NEXT_ROUTES_MANIFEST_PATH ||
       join(process.cwd(), this.nextRootDir, this.distDir, 'routes-manifest.json')
-
-    return nonWebpackRequire(routesManifestPath)
+    if (!existsSync(routesManifestPath)) return undefined
+    return nonWebpackRequire(routesManifestPath) as RoutesManifest
   }
 
   /**
    * Returns the contents of pages-manifest.json
    */
-  public getPagesManifest(): any {
-    return nonWebpackRequire(
-      join(process.cwd(), this.nextRootDir, this.distDir, this.renderMode, 'pages-manifest.json')
+  public getPagesManifest(): PagesManifest {
+    const pagesManifestPath = join(
+      process.cwd(),
+      this.nextRootDir,
+      this.distDir,
+      this.renderMode,
+      'pages-manifest.json'
     )
+    if (!existsSync(pagesManifestPath)) return {}
+    return nonWebpackRequire(pagesManifestPath) as PagesManifest
   }
 
   /**
    * Returns the content of app-paths-manifest.json
    * and changes the format of keys to correct URLs
    */
-  public getAppPathsManifest(): any {
+  public getAppPathsManifest(): AppPathsManifest {
     const location = join(
       process.cwd(),
       this.nextRootDir,
@@ -273,13 +297,14 @@ export default class ManifestParser {
         [editedPath]: appPaths[key],
       }
     })
-    return appPathsOutput
+
+    return appPathsOutput as AppPathsManifest
   }
 
   /**
    * Returns the contents of middleware-manifest.json
    */
-  public getMiddlewareManifest(): any {
+  public getMiddlewareManifest(): MiddlewareManifest {
     const path = join(
       process.cwd(),
       this.nextRootDir,
@@ -287,7 +312,7 @@ export default class ManifestParser {
       this.renderMode,
       'middleware-manifest.json'
     )
-    if (existsSync(path)) return nonWebpackRequire(path)
+    if (existsSync(path)) return nonWebpackRequire(path) as MiddlewareManifest
     return {
       sortedMiddleware: [],
       middleware: {},
@@ -297,13 +322,17 @@ export default class ManifestParser {
   /**
    * Returns the contents of prerender-manifest.json
    */
-  public getPrerenderManifest(): any {
+  public getPrerenderManifest(): PrerenderManifest {
     const path = join(process.cwd(), this.nextRootDir, this.distDir, 'prerender-manifest.json')
     try {
       return nonWebpackRequire(path)
     } catch (e) {
       if (process.env.DEBUG === 'true') console.log(`${path} not found`)
-      return {}
+      return {
+        routes: {},
+        dynamicRoutes: {},
+        notFoundRoutes: [],
+      }
     }
   }
 
@@ -313,7 +342,7 @@ export default class ManifestParser {
    */
   isDynamic(pageNameWithoutLocale: string): boolean {
     return (
-      this.routesManifest.dynamicRoutes.find((r: any) => r.page === pageNameWithoutLocale) !==
+      this.routesManifest?.dynamicRoutes.find((r: any) => r.page === pageNameWithoutLocale) !==
       undefined
     )
   }
@@ -334,8 +363,8 @@ export default class ManifestParser {
 
     return (
       file.endsWith('.html') ||
-      this.prerenderManifest.routes[routeKey] != null ||
-      this.prerenderManifest.dynamicRoutes[page] != null ||
+      this.prerenderManifest?.routes[routeKey] != null ||
+      this.prerenderManifest?.dynamicRoutes[page] != null ||
       existsSync(join(this.nextRootDir, this.distDir, this.renderMode, pageSource, `${page}.html`))
     )
   }
@@ -356,8 +385,10 @@ export default class ManifestParser {
    * @param pageName
    * @returns
    */
-  protected getDataRoute(pageName: string): string | undefined {
-    return this.routesManifest.dataRoutes.find((route: any) => route.page === pageName)
+  protected getDataRoute(pageName: string): DataRoute | undefined {
+    return this.routesManifest?.dataRoutes.find(
+      (dataRoute: DataRoute) => dataRoute.page === pageName
+    )
   }
 
   /**
@@ -368,8 +399,8 @@ export default class ManifestParser {
   protected getPrerenderedRoutes(page: Page): PrerenderedRoute[] {
     const localizedRouteRegex = pathToRegexp(page.localizedRoute)
 
-    let pageRoutes = Object.keys(this.prerenderManifest.routes).filter(route => {
-      const srcRoute = this.prerenderManifest.routes[route]?.srcRoute
+    let pageRoutes = Object.keys(this.prerenderManifest?.routes || {}).filter(route => {
+      const srcRoute = this.prerenderManifest?.routes[route]?.srcRoute
 
       // When we have srcRoute, we can pair prerendered route with page based on its page name.
       if (srcRoute) return srcRoute === page.name
@@ -473,24 +504,29 @@ export default class ManifestParser {
    * @param pages Page paths
    */
   sortPages(pages: Page[]): Page[] {
-    const indexFor = (lPage: Page) =>
-      pages.findIndex((rPage: Page) => rPage.name === lPage.name && rPage.isDynamic)
-    let staticRoutes = [],
-      dynamicRoutes = []
+    const staticRoutes = pages.filter(p => !p.isDynamic)
+    const dynamicRoutes = pages.filter(p => p.isDynamic)
+    const dynamicRoutesFromManifest = (this.routesManifest?.dynamicRoutes ?? []) as {
+      page: string
+    }[]
 
-    for (let page of pages) {
-      if (page.isDynamic) {
-        dynamicRoutes.push(page)
-        continue
-      }
-      staticRoutes.push(page)
-    }
+    // Gets the position of the dynamic pages in the routes-manifest.json
+    // This can be use to determine what is the precedence of the dynamic pages
+    // as more specific routes should be placed last in Edgio, but in next.js
+    // the order is reversed.
+    const sortedDynamicRoutes = dynamicRoutesFromManifest.map((p, i) => ({
+      route: p.page,
+      index: i,
+    }))
 
-    // Dynamic routes need to be ordered by priority (from most dynamic to least dynamic)
-    dynamicRoutes.sort((pageA: Page, pageB: Page) => {
-      return indexFor(pageB) - indexFor(pageA)
-    })
+    const dynamicRoutesSorted = dynamicRoutes
+      .map(p => {
+        const route = sortedDynamicRoutes.find(r => r.route === p.name)
+        return { page: p, order: route?.index || 0 }
+      })
+      .sort((a, b) => b.order - a.order)
+      .map(p => p.page)
 
-    return dynamicRoutes.concat(staticRoutes)
+    return dynamicRoutesSorted.concat(staticRoutes)
   }
 }

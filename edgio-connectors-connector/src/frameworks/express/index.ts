@@ -46,6 +46,7 @@ export default new ConnectorBuilder('express')
     return {
       bundler,
       entryFile: appPath,
+      entryOutputFile: 'index.js',
       addAssets: async builder => {
         if (bundler === BundlerType.ESBUILD) {
           // We need to override any existing package.json file to one with type: commonjs
@@ -61,7 +62,7 @@ export default new ConnectorBuilder('express')
   })
   .setProd(async (edgioConfig, port) => {
     return {
-      serverPath: edgioConfig?.express?.appPath || findDefaultAppPath() || 'index.js',
+      serverPath: 'index.js',
       run: async module => {
         try {
           // When the port is occupied,

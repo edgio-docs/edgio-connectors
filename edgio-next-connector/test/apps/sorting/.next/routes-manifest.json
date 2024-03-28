@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "pages404": true,
+  "basePath": "",
+  "redirects": [],
+  "rewrites": [],
+  "headers": [],
+  "dynamicRoutes": [
+    {
+      "page": "/ssg/my-ssg-page/[...slug]"
+    },
+    {
+      "page": "/api/[id]"
+    },
+    {
+      "page": "/[..slug]"
+    }
+  ],
+  "dataRoutes": [],
+  "staticRoutes": []
+}

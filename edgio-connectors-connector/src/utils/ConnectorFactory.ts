@@ -1,6 +1,7 @@
 import { getConfig } from '@edgio/core/config'
 import { nonWebpackRequire } from '@edgio/core/utils'
 import { join } from 'path'
+import { Connector } from './types'
 
 export default class ConnectorFactory {
   public static get(name?: string) {
@@ -17,6 +18,7 @@ export default class ConnectorFactory {
     // eg. users will just '.use(connectorRoutes)'
 
     // eslint-disable-line no-eval
-    return nonWebpackRequire(join('@edgio/connectors/frameworks', connectorName)).default
+    return nonWebpackRequire(join('@edgio/connectors/frameworks', connectorName))
+      .default as Connector
   }
 }

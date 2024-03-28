@@ -21,6 +21,7 @@ import getNodeOptions from '../util/getNodeOptions'
 import { NextConfig, isRewriteGroup } from '../next.types'
 import ManifestParser from '../router/ManifestParser'
 import brandify from '@edgio/core/utils/brandify'
+import { normalizePath } from '@edgio/core/utils/pathUtils'
 
 export default class NextBuilder {
   protected builder: DeploymentBuilder
@@ -392,8 +393,10 @@ export default class NextBuilder {
     // When Next.js is built in workspaces or the outputFileTracingRoot config option is explicitly set,
     // the standalone build folder will have different folder structure.
     // This is where we can get the project root folder where the server files are actually placed.
-    this.nextRootDir =
+    // We need to normalize the path because node paths are different on Windows and Unix systems.
+    this.nextRootDir = normalizePath(
       relative(this.nextConfig?.experimental!.outputFileTracingRoot!, process.cwd()) || './'
+    )
   }
 
   /**

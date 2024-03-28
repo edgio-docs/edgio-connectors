@@ -44,20 +44,22 @@ import { pathToRegexp } from 'path-to-regexp'
 import toEdgeRegex from '@edgio/core/utils/toEdgeRegex'
 import getNextRootDir from '../util/getNextRootDir'
 import isValidRemotePattern from '../util/isValidRemotePattern'
+import { Middleware, NextConfig, Redirect } from '../next.types'
+import { HttpStatusCode } from '@edgio/core/types'
 
 export default class NextRoutes implements RouterPlugin {
   protected router?: Router
   protected nextRootDir: string
   protected defaultLocale?: string
   protected locales: string[] = []
-  protected rewrites: any = {}
-  protected redirects: any[] = []
+  protected redirects: Redirect[] = []
   protected pages: Page[] = []
   protected pagesMap: { [key: string]: Page } = {}
+  protected middlewares: Middleware[] = []
   protected distDir: string
   protected buildId: string = 'dev'
   protected previewModeId: string | undefined
-  protected nextConfig: any
+  protected nextConfig: NextConfig
   protected edgioConfig: ExtendedConfig
   protected nextPathFormatter: NextPathFormatter
   protected manifestParser: ManifestParser
@@ -85,6 +87,7 @@ export default class NextRoutes implements RouterPlugin {
     this.redirects = this.manifestParser.getRedirects()
     this.locales = this.manifestParser.getLocales()
     this.defaultLocale = this.manifestParser.getDefaultLocale()
+    this.middlewares = this.manifestParser.getMiddlewares()
 
     // Production mode
     if (isProductionBuild() || isCloud()) {
@@ -380,7 +383,7 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
-   * Adds rewrites and redirects from next.config.js
+   * Adds redirects from next.config.js
    */
   protected addRedirects() {
     if (!this.redirects) return
@@ -415,7 +418,7 @@ export default class NextRoutes implements RouterPlugin {
             addFeatures({
               url: {
                 url_redirect: {
-                  code: statusCode,
+                  code: statusCode as HttpStatusCode,
                   syntax: 'regexp',
                   source: toEdgeRegex(new RegExp(pathToRegexp(source))),
                   destination: bindParams(destination, getBackReferences(source)),
@@ -428,7 +431,7 @@ export default class NextRoutes implements RouterPlugin {
           } else {
             redirect(destination, { statusCode: statusCode })
           }
-          setResponseCode(statusCode)
+          setResponseCode(statusCode as HttpStatusCode)
         }
       )
 
@@ -696,9 +699,23 @@ export default class NextRoutes implements RouterPlugin {
 
     routeHelper.proxy(SERVERLESS_ORIGIN_NAME, {
       transformRequest: (req: Request) => {
-        // Force Next.js server to serve fresh page
-        req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
         if (this.renderMode === RENDER_MODES.serverless) this.addPageParamsToQuery(req)
+
+        // Test if any middleware matches the request path
+        // NOTE: We can also loop through pages and match those that have revalidation
+        // and exclude them, but it's faster to loop through middlewares as there are fewer of them
+        // most of the time.
+        const matchedMiddleware = this.middlewares.find(middleware =>
+          middleware.matchers.some(matcher => new RegExp(matcher.regexp).test(req.path))
+        )
+
+        // Force Next.js server to serve fresh page if any middleware isn't matched for this req.
+        // The 'x-prerender-revalidate' header is needed for ISG/ISR pages with revalidation when page is requested by the Edge,
+        // so Next.js knows it shouldn't serve page from disk or cache.
+        // Disadvantage is that if this header is present, Next.js server doesn't run the middlewares.
+        if (!matchedMiddleware) {
+          req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
+        }
       },
     })
   }

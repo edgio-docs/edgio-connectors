@@ -1,9 +1,10 @@
 import slash from 'slash'
 import { getPageExtensionsFromConfig } from '../util/getPageExtensions'
 import { removeLocale, startsWithLocale } from '../util/localeUtils'
+import { NextConfig } from '../next.types'
 
 export default class NextPathFormatter {
-  private nextConfig: any
+  private nextConfig: NextConfig
 
   /**
    * Provides formatting functions for next paths
