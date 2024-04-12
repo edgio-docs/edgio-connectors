@@ -30,17 +30,12 @@ export default function isValidRemotePattern(nextConfig: NextConfig, url: string
 
   // If the image is from a remote pattern, check if it's allowed
   return !!remotePatterns.find(
-    ({
-      hostname = parsedUrl.hostname,
-      pathname = parsedUrl.pathname,
-      protocol = parsedUrl.protocol,
-      port = parsedUrl.port,
-    }) => {
+    ({ hostname, pathname, protocol = parsedUrl.protocol, port = parsedUrl.port }) => {
       // The hostname and pathname can contain wildcard patterns:
       // '*' - match a single path segment or subdomain
       // '**' - match any number of path segments at the end of subdomain or at the beginning
-      const hostnameRegex = hostnameToRegex(hostname)
-      const pathnameRegex = pathnameToRegex(pathname)
+      const hostnameRegex = hostname ? hostnameToRegex(hostname) : /.*/
+      const pathnameRegex = pathname ? pathnameToRegex(pathname) : /.*/
 
       return (
         hostnameRegex.test(parsedUrl.hostname) &&

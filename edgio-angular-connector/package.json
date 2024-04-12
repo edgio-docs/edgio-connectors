@@ -1,14 +1,14 @@
 {
   "name": "@edgio/angular",
-  "version": "7.10.6",
+  "version": "7.11.0",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "devDependencies": {
-    "@edgio/core": "^7.10.6",
+    "@edgio/core": "^7.11.0",
     "@types/cross-spawn": "^6.0.2"
   },
   "dependencies": {
-    "@edgio/connectors": "^7.10.6"
+    "@edgio/connectors": "^7.11.0"
   },
   "scripts": {
     "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md ./dist; tsc; cp -r stage/angular/src/* dist;",
