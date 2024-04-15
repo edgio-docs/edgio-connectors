@@ -4,7 +4,7 @@ import { getDistDirFromConfig } from '../util/getDistDir'
 import { join } from 'path'
 import { RouterPlugin } from '@edgio/core/router/Router'
 import Router from '@edgio/core/router/Router'
-import RouteCriteria, { and } from '@edgio/core/router/RouteCriteria'
+import RouteCriteria, { and, or } from '@edgio/core/router/RouteCriteria'
 import { getConfig } from '@edgio/core/config'
 import getNextConfig from '../getNextConfig'
 import RouteHelper, { FeatureCreator } from '@edgio/core/router/RouteHelper'
@@ -150,12 +150,21 @@ export default class NextRoutes implements RouterPlugin {
           if (page?.isDynamic && !page?.dataRoute) {
             const routeAsset = `${NEXT_PRERENDERED_PAGES_FOLDER}${nextRoute}/index.html`
 
+            // We need to match both methods and path, because next 14 introduces server actions
+            // where on the same static path is server action sent but with different method (POST, PUT, DELETE, etc.)
+            this.router?.if(
+              or({ method: 'get' }, { method: 'head' }),
+              ({ setComment }) => {
+                setComment('Serve pre-rendered page with dynamic route and no getStaticPaths')
+              },
+              new Router().match({ path: route }, ({ serveStatic, cache }) => {
+                serveStatic(routeAsset)
+                cache(PUBLIC_CACHE_CONFIG)
+              })
+            )
+
             // Create separate rule
-            this.router?.match(route, ({ serveStatic, cache, setComment }) => {
-              setComment('Serve pre-rendered page with dynamic route and no getStaticPaths')
-              serveStatic(routeAsset)
-              cache(PUBLIC_CACHE_CONFIG)
-            })
+
             // No need to add data route, so we're done
             return
           }
@@ -178,12 +187,15 @@ export default class NextRoutes implements RouterPlugin {
     // We can do this only for pre-rendered pages because the "IN" operator doesn't work with dynamic routes.
     // We need to disable browser cache for all HTML pages so the user always
     // have the latest version of the page when app is redeployed.
-    this.router?.match({ path: routes }, ({ serveStatic, setResponseCode, setComment, cache }) => {
-      setComment('Serve all pre-rendered HTML pages (getStaticPaths)')
-      serveStatic(`${NEXT_PRERENDERED_PAGES_FOLDER}/:path*/index.html`)
-      setResponseCode(200)
-      cache(PUBLIC_CACHE_CONFIG)
-    })
+    this.router?.if(
+      or({ method: 'get' }, { method: 'head' }),
+      ({ setComment }) => setComment('Serve all pre-rendered HTML pages (getStaticPaths)'),
+      new Router().match({ path: routes }, ({ serveStatic, setResponseCode, cache }) => {
+        serveStatic(`${NEXT_PRERENDERED_PAGES_FOLDER}/:path*/index.html`)
+        setResponseCode(200)
+        cache(PUBLIC_CACHE_CONFIG)
+      })
+    )
 
     // We're done when we don't have any data routes
     if (dataRoutes.length === 0) return

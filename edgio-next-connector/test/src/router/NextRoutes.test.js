@@ -157,9 +157,11 @@ describe('NextRoutes', () => {
 
       describe('should add rule for prerendered pages (addPrerenderedPages)', () => {
         it('should add rule for prendered routes of SSG/ISG/ISR pages', () => {
-          const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/static'))
-          const rulePaths = rule?.if?.[0]?.['in']?.[1]
-          const { caching, origin, response } = rule?.if[1]
+          const rule = rules.find(rule =>
+            rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]?.includes('/static')
+          )
+          const rulePaths = rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]
+          const { caching, origin, response } = rule?.if?.[1]?.[1]?.if?.[1]
 
           // Pre-rendered routes together with trailing slash variants
           expect(rulePaths).toContain('/dynamic/fallback_true/1')
@@ -218,8 +220,10 @@ describe('NextRoutes', () => {
         })
 
         it('should add separate rule for prendered SSG pages with dynamic route', () => {
-          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/dynamic/ssg/:id')
-          const { caching, origin } = rule?.if[1]
+          const rule = rules.find(
+            rule => rule?.if?.[1]?.[1]?.if?.[0]?.['==']?.[1] === '/dynamic/ssg/:id'
+          )
+          const { caching, origin } = rule?.if?.[1]?.[1]?.if?.[1]
 
           expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
           expect(caching.client_max_age).not.toBeDefined()
@@ -372,9 +376,11 @@ describe('NextRoutes', () => {
 
       describe('should add rule for prerendered pages (addPrerenderedPages)', () => {
         it('should add rule for prendered routes of SSG/ISG/ISR pages', () => {
-          const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/static'))
-          const rulePaths = rule?.if?.[0]?.['in']?.[1]
-          const { caching, origin, response } = rule?.if[1]
+          const rule = rules.find(rule =>
+            rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]?.includes('/static')
+          )
+          const rulePaths = rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]
+          const { caching, origin, response } = rule?.if?.[1]?.[1]?.if?.[1]
 
           // Pre-rendered routes together with trailing slash variants
           // Without default locale
@@ -462,8 +468,10 @@ describe('NextRoutes', () => {
         })
 
         it('should add separate rule for prendered SSG pages with dynamic route', () => {
-          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/en-US/dynamic/ssg/:id')
-          const { caching, origin } = rule?.if[1]
+          const rule = rules.find(
+            rule => rule?.if?.[1]?.[1]?.if?.[0]?.['==']?.[1] === '/en-US/dynamic/ssg/:id'
+          )
+          const { caching, origin } = rule?.if?.[1]?.[1]?.if?.[1]
 
           expect(caching.max_age).toBe(PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
           expect(caching.client_max_age).not.toBeDefined()
@@ -488,7 +496,9 @@ describe('NextRoutes', () => {
         afterAll(reset)
 
         it('should add base path in front of page route', () => {
-          const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/docs/dynamic/ssg/:id')
+          const rule = rules.find(
+            rule => rule?.if?.[1]?.[1]?.if?.[0]?.['==']?.[1] === '/docs/dynamic/ssg/:id'
+          )
           expect(rule).toBeDefined()
         })
       })
