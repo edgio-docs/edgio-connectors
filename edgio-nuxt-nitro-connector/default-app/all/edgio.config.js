@@ -13,8 +13,9 @@ module.exports = {
   // Overrides the default path to the routes file. The path should be relative to the root of your app.
   // routes: 'routes.js',
 
-  // When set to true or omitted entirely, Edgio includes the deployment number in the cache key,
+  // When set to true, Edgio includes the deployment number in the cache key,
   // effectively purging the cache each time you deploy.
+  // If omitted this will default to the "Automatic Purging" configuration on the environment's Caching tab.
   // purgeCacheOnDeploy: false,
 
   // If you need to proxy some URLs to an origin instead of your Next.js app, you can configure the origins here:

@@ -84,6 +84,12 @@ export default new ConnectorBuilder('express')
       const appPath = config?.express?.appPath || findDefaultAppPath()
 
       if (appPath) {
+        // Set the PORT environment variable to the port the server will run on. This needs to happen
+        // prior to the import. If the Express server module already calls `app.listen()`, we need the port
+        // to be set before the server starts. Otherwise if the module exports the app, we can invoke `app.listen()`
+        // with the desired port.
+        process.env.PORT = port.toString()
+
         // We need to use 'import()' with 'file://' prefix here as a workaround for Windows systems.
         let app = await import(/* webpackIgnore: true */ `file://${resolve(appPath)}`)
         // Find the default export
@@ -97,9 +103,19 @@ export default new ConnectorBuilder('express')
         }
 
         if (app.listen) {
+          // The server module may automatically start the Express app. We can detect this by checking if the port is bound.
+          // If it is, we assume the server started itself and exit early.
+          if (await isPortBound(port)) {
+            return
+          }
+
           port = (await getNearestUnboundPort(port)) || port
 
-          // Ideally the server module exports an express app and we simply start it on the desired poryt
+          // This recent port change may be different from the original port passed in. While we are starting the server
+          // directly with the port, we should update the environment variable to reflect the new port.
+          process.env.PORT = port.toString()
+
+          // Ideally the server module exports an express app and we simply start it on the desired port
           app.listen(port, () => {
             console.log(`Started Express server on port ${port}.`)
           })
