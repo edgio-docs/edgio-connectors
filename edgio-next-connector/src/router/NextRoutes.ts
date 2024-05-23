@@ -118,6 +118,7 @@ export default class NextRoutes implements RouterPlugin {
     this.addServiceWorker()
     this.addPrerendering()
     this.logDuringBuild('')
+    this.addImageOptimization()
 
     this.router.use(edgioRoutes)
   }
@@ -506,10 +507,9 @@ export default class NextRoutes implements RouterPlugin {
    */
   protected addPublicAssets() {
     this.router?.static('public', {
-      handler: ({ cache, setComment, optimizeImages }) => {
+      handler: ({ cache, setComment }) => {
         setComment('Serve all assets from public/ folder')
         cache(SHORT_PUBLIC_CACHE_CONFIG)
-        optimizeImages(true)
       },
     })
   }
@@ -520,14 +520,13 @@ export default class NextRoutes implements RouterPlugin {
   protected addAssets() {
     if (!isCloud()) this.router?.match(this.addBasePath('/_next/webpack-hmr'), this.ssrHandler)
 
-    const staticHandler: FeatureCreator = ({ serveStatic, cache, optimizeImages }) => {
+    const staticHandler: FeatureCreator = ({ serveStatic, cache }) => {
       serveStatic(`${this.distDir}/static/:path*`, {
         permanent: true,
       })
       // These files have unique names,
       // so we can cache them for a long time
       cache(FAR_FUTURE_CACHE_CONFIG)
-      optimizeImages(true)
     }
     const handler: FeatureCreator =
       isCloud() || isProductionBuild() ? staticHandler : this.ssrHandler
@@ -540,6 +539,21 @@ export default class NextRoutes implements RouterPlugin {
     //   non-unique filenames like 'service-worker.js'. This will
     this.router?.match(this.addBasePath('/_next/static/:path*'), handler)
     this.router?.match(this.addBasePath('/autostatic/:path*'), handler)
+  }
+
+  /**
+   * This is quick fix for bug in Sailfish, as it removes encoding-type when image optimization is enabled.
+   * With this fix the image optimization will reamin the same but as we are setting the rule only for images
+   * it won't affect other static files (like fonts, css, json, etc.)
+   */
+  protected addImageOptimization() {
+    this.router?.match(
+      /\.(jpg|jpeg|pjpg|pjpeg|png|ppng|gif|bmp|webp|ico|tif|tiff|jfif|jp2|j2k|jpf|jpx|jpm|mj2|xbm|wbmp)$/,
+      ({ optimizeImages, setComment }) => {
+        setComment('Generic image optimization rule for all image types.')
+        optimizeImages(true)
+      }
+    )
   }
 
   /**

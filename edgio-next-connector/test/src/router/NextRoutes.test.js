@@ -235,24 +235,22 @@ describe('NextRoutes', () => {
       describe('should add rules for public assets (addPublicAssets)', () => {
         it('should add rule for assets from public/ folder', () => {
           const rule = rules.find(rule => rule?.if?.[0]?.['in']?.[1]?.includes('/public.txt'))
-          const { caching, origin, response } = rule?.if[1]
+          const { caching, origin } = rule?.if[1]
 
           expect(caching.max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
           expect(caching.client_max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.browser.maxAgeSeconds)
           expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
-          expect(response.optimize_images).toBe(true)
         })
       })
 
       describe('should add rules for server assets (addAssets)', () => {
         it('should add rule for: "/_next/static/:path*"', () => {
           const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/_next/static/:path*')
-          const { caching, origin, response } = rule?.if[1]
+          const { caching, origin } = rule?.if[1]
 
           expect(caching.max_age).toBe(FAR_FUTURE_CACHE_CONFIG.edge.maxAgeSeconds)
           expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
           expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
-          expect(response.optimize_images).toBe(true)
         })
 
         it('should add rule for: "/autostatic/:path*"', () => {
