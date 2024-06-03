@@ -39,7 +39,7 @@ import Request from '@edgio/core/runtime/Request'
 import getBuildId from '../util/getBuildId'
 import { PreloadRequest } from '@edgio/core/router/Preload'
 import bindParams from '@edgio/core/utils/bindParams'
-import { getBackReferences } from '@edgio/core/router/path'
+import { getBackReferences, isAbsoluteUrl } from '@edgio/core/router/path'
 import { pathToRegexp } from 'path-to-regexp'
 import toEdgeRegex from '@edgio/core/utils/toEdgeRegex'
 import getNextRootDir from '../util/getNextRootDir'
@@ -441,6 +441,20 @@ export default class NextRoutes implements RouterPlugin {
             // We need to add this empty rewrite to delete any previous rewrites.
             // Otherwise, the redirect will not match the URL.
             rewritePath('/:path*', '/:path*')
+          } else if (isAbsoluteUrl(destination)) {
+            // When absolute URL is provided, we need to use Regex syntax,
+            // as using path-to-regexp would not work with absolute URLs.
+            // This is also more aligned with UI rule builder.
+            addFeatures({
+              url: {
+                url_redirect: {
+                  code: statusCode as HttpStatusCode,
+                  syntax: 'regexp',
+                  source: toEdgeRegex(new RegExp(pathToRegexp(source))),
+                  destination: bindParams(destination, getBackReferences(source)),
+                },
+              },
+            })
           } else {
             redirect(destination, { statusCode: statusCode })
           }
