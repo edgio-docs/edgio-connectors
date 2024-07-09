@@ -210,7 +210,10 @@ export default class NextBuilder {
     const nextServerFile = 'next-server.js'
     const outputFile = 'next-server-optimized.js'
 
-    const nextPackageJson = require(resolveInPackage('next', 'package.json'))
+    const nextPackageJsonPath = resolveInPackage('next', 'package.json')
+    if(!nextPackageJsonPath) throw new Error(`Couldn't find next's package.json`)
+
+    const nextPackageJson = require(nextPackageJsonPath)
 
     // Dependencies from the next server which we don't want to bundle
     const externalDependencies = [
@@ -309,7 +312,7 @@ export default class NextBuilder {
       join(appDir, 'index.json'),
     ]
 
-    const manifestParser = new ManifestParser('./', this.distDir, this.renderMode)
+    const manifestParser = new ManifestParser(process.cwd(), this.distDir, this.renderMode)
 
     // Add prerendered pages with fallback:false as we don't handle them on CDN
     // and we fallback to Next, but if fallback is set to false, Next won't regenerate

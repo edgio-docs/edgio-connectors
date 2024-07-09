@@ -29,7 +29,7 @@ export default class ConnectorRoutes implements RouterPlugin {
         ? connector.withServerless(config)
         : connector.withServerless
 
-    if (withServerless) {
+    if (withServerless && router.Config.proxyToServerlessByDefault !== false) {
       router.match('/:path*', ({ renderWithApp }) => {
         renderWithApp()
       })

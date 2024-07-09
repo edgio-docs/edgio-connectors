@@ -105,7 +105,10 @@ export default class NextRoutes implements RouterPlugin {
     this.logDuringBuild(`> Next.js routes (locales: ${this.locales?.join(', ') || 'none'})`)
     this.logDuringBuild('')
     this.logPages()
-    if (this.edgioConfig?.next?.proxyToServerlessByDefault !== false) {
+    if (
+      this.edgioConfig?.proxyToServerlessByDefault !== false &&
+      this.edgioConfig?.next?.proxyToServerlessByDefault !== false
+    ) {
       this.addDefaultSSRRoute()
     }
     this.addPages()
@@ -191,9 +194,10 @@ export default class NextRoutes implements RouterPlugin {
     this.router?.if(
       or({ method: 'get' }, { method: 'head' }),
       ({ setComment }) => setComment('Serve all pre-rendered HTML pages (getStaticPaths)'),
-      new Router().match({ path: routes }, ({ serveStatic, setResponseCode, cache }) => {
+      new Router().match({ path: routes }, ({ serveStatic, cache, removeRequestHeader }) => {
         serveStatic(`${NEXT_PRERENDERED_PAGES_FOLDER}/:path*/index.html`)
-        setResponseCode(200)
+        removeRequestHeader('if-modified-since')
+        removeRequestHeader('if-none-match')
         cache(PUBLIC_CACHE_CONFIG)
       })
     )
@@ -205,12 +209,13 @@ export default class NextRoutes implements RouterPlugin {
     // Data routes contains buildId in the path, so we can cache it in browser.
     this.router?.match(
       { path: dataRoutes },
-      ({ serveStatic, cache, setResponseCode, setComment }) => {
+      ({ serveStatic, cache, setComment, removeRequestHeader }) => {
         setComment('Serve all pre-rendered JSON data files (getStaticPaths)')
         serveStatic(`${NEXT_PRERENDERED_PAGES_FOLDER}/:path*`, {
           permanent: true,
         })
-        setResponseCode(200)
+        removeRequestHeader('if-modified-since')
+        removeRequestHeader('if-none-match')
         cache(FAR_FUTURE_CACHE_CONFIG)
       }
     )
@@ -229,7 +234,10 @@ export default class NextRoutes implements RouterPlugin {
 
       // Add SSR handler to all pages when addDefaultSSRRoute was not added.
       // This will generate a separate rule for all not pre-rendered pages.
-      if (this.edgioConfig?.next?.proxyToServerlessByDefault === false) {
+      if (
+        this.edgioConfig?.next?.proxyToServerlessByDefault === false ||
+        this.edgioConfig?.proxyToServerlessByDefault === false
+      ) {
         routeHandlers.push(this.ssrHandler)
         dataRouteHandlers.push(this.ssrHandler)
       }

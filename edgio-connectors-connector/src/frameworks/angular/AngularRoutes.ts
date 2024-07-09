@@ -15,10 +15,12 @@ export default class AngularRoutes implements RouterPlugin {
       // Determine SSR if server output path exists in angular.json
       const isSsr = !!getOutputPath('server')
       if (isSsr) {
-        // Rest of the requests go to SSR
-        router.match('/:path*', ({ renderWithApp }) => {
-          renderWithApp()
-        })
+        if (router.Config.proxyToServerlessByDefault !== false) {
+          // Rest of the requests go to SSR
+          router.match('/:path*', ({ renderWithApp }) => {
+            renderWithApp()
+          })
+        }
       } else {
         // If not SSR, serve SPA fallback
         router.match('/:path*', ({ serveStatic }) => {
@@ -28,10 +30,12 @@ export default class AngularRoutes implements RouterPlugin {
       // Cache the buildPath directory by default
       router.static(buildPath)
     } else {
-      // All requests go to SSR
-      router.match('/:path*', ({ renderWithApp }) => {
-        renderWithApp()
-      })
+      if (router.Config.proxyToServerlessByDefault !== false) {
+        // All requests go to SSR
+        router.match('/:path*', ({ renderWithApp }) => {
+          renderWithApp()
+        })
+      }
     }
   }
 }

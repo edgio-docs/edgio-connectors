@@ -1,16 +1,16 @@
 import { join } from 'path'
 import getNextConfig from '../../../src/getNextConfig'
 import ManifestParser from '../../../src/router/ManifestParser'
-import { EDGIO_DEPLOYMENT_TYPE_AWS, EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
 import { getDistDirFromConfig } from '../../../src/util/getDistDir'
 import getRenderMode from '../../../src/util/getRenderMode'
 import { FALLBACK_TYPES, PAGE_SOURCE_TYPES, PAGE_TYPES } from '../../../src/types'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
+import { createEdgioFS } from '@edgio/core/edgio.fs'
 
 describe('ManifestParser', () => {
-  let manifestParser, originalCwd, nextConfig, renderMode, distDir
+  let manifestParser, nextConfig, renderMode, distDir
 
   beforeAll(() => {
-    originalCwd = process.cwd()
     jest.isolateModules(() => {
       jest.spyOn(console, 'log').mockImplementation(() => {})
     })
@@ -18,16 +18,24 @@ describe('ManifestParser', () => {
 
   afterAll(() => {
     jest.resetAllMocks()
-    process.chdir(originalCwd)
   })
 
   describe('in development mode', () => {
     beforeAll(() => {
-      process.chdir(join(__dirname, '..', '..', 'apps', 'default'))
-      nextConfig = getNextConfig()
+      const fs = createEdgioFS(join(__dirname, '../../apps/with-localization'))
+      EdgioRuntimeGlobal.runtimeOptions = {
+        devMode: true,
+        isProductionBuild: false,
+        isCacheEnabled: false,
+        origins: [],
+        entryFile: '',
+        fs,
+      }
+
+      nextConfig = getNextConfig(fs.edgio.lambda.app.value)
       distDir = getDistDirFromConfig(nextConfig)
       renderMode = getRenderMode(nextConfig)
-      manifestParser = new ManifestParser('./', distDir, renderMode)
+      manifestParser = new ManifestParser(fs.edgio.lambda.app.value, distDir, renderMode)
     })
 
     it('should not throw error and return empty array for redirects', () => {
@@ -39,26 +47,31 @@ describe('ManifestParser', () => {
   })
 
   describe('in production mode', () => {
-    beforeAll(() => {
-      process.env.NODE_ENV = 'production'
-      process.env[EDGIO_ENV_VARIABLES.deploymentType] = EDGIO_DEPLOYMENT_TYPE_AWS
-    })
-
     describe('without localization', () => {
       beforeAll(() => {
-        process.chdir(join(__dirname, '..', '..', 'apps', 'default'))
-        nextConfig = getNextConfig()
+        const fs = createEdgioFS(join(__dirname, '../../apps/default'))
+        EdgioRuntimeGlobal.runtimeOptions = {
+          devMode: false,
+          isProductionBuild: true,
+          isCacheEnabled: false,
+          origins: [],
+          entryFile: '',
+          fs,
+        }
+
+        nextConfig = getNextConfig(fs.edgio.lambda.app.value)
         distDir = getDistDirFromConfig(nextConfig)
         renderMode = getRenderMode(nextConfig)
-        manifestParser = new ManifestParser('./', distDir, renderMode)
+        manifestParser = new ManifestParser(fs.edgio.lambda.app.value, distDir, renderMode)
       })
 
       it('should extract redirects from routes-manifest.json', () => {
         expect(manifestParser.getRedirects()).toEqual([
           {
-            source: '/perm-redirects/:id',
-            destination: '/p/:id',
+            source: '/:path+/',
+            destination: '/:path+',
             statusCode: 308,
+            regex: '^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$',
           },
           {
             source: '/temp-redirects/:id',
@@ -66,10 +79,9 @@ describe('ManifestParser', () => {
             statusCode: 307,
           },
           {
-            source: '/:path+/',
-            destination: '/:path+',
+            source: '/perm-redirects/:id',
+            destination: '/p/:id',
             statusCode: 308,
-            regex: '^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$',
           },
         ])
       })
@@ -254,11 +266,20 @@ describe('ManifestParser', () => {
 
       describe('sorting pages', () => {
         beforeAll(() => {
-          process.chdir(join(__dirname, '..', '..', 'apps', 'sorting'))
-          nextConfig = getNextConfig()
+          const fs = createEdgioFS(join(__dirname, '../../apps/sorting'))
+          EdgioRuntimeGlobal.runtimeOptions = {
+            devMode: false,
+            isProductionBuild: true,
+            isCacheEnabled: false,
+            origins: [],
+            entryFile: '',
+            fs,
+          }
+
+          nextConfig = getNextConfig(fs.edgio.lambda.app.value)
           distDir = getDistDirFromConfig(nextConfig)
           renderMode = getRenderMode(nextConfig)
-          manifestParser = new ManifestParser('./', distDir, renderMode)
+          manifestParser = new ManifestParser(fs.edgio.lambda.app.value, distDir, renderMode)
         })
 
         it('should sort pages from most dynamic to least dynamic', () => {
@@ -314,11 +335,20 @@ describe('ManifestParser', () => {
 
     describe('with localization', () => {
       beforeAll(() => {
-        process.chdir(join(__dirname, '..', '..', 'apps', 'with-localization'))
-        nextConfig = getNextConfig()
+        const fs = createEdgioFS(join(__dirname, '../../apps/with-localization'))
+        EdgioRuntimeGlobal.runtimeOptions = {
+          devMode: false,
+          isProductionBuild: true,
+          isCacheEnabled: false,
+          origins: [],
+          entryFile: '',
+          fs,
+        }
+
+        nextConfig = getNextConfig(fs.edgio.lambda.app.value)
         distDir = getDistDirFromConfig(nextConfig)
         renderMode = getRenderMode(nextConfig)
-        manifestParser = new ManifestParser('./', distDir, renderMode)
+        manifestParser = new ManifestParser(fs.edgio.lambda.app.value, distDir, renderMode)
       })
 
       it('should return locales from routes-manifest.json', () => {

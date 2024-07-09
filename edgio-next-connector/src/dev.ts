@@ -23,7 +23,10 @@ const appDir = existsSync(join(nextRootDir, 'src', 'app'))
 // There's no need to reload router when proxyToServerlessByDefault is enabled,
 // because we have just one rule in this case.
 const dirsToWatch =
-  edgioConfig?.next?.proxyToServerlessByDefault === false ? [pagesDir, appDir] : []
+  edgioConfig?.proxyToServerlessByDefault === false ||
+  edgioConfig?.next?.proxyToServerlessByDefault === false
+    ? [pagesDir, appDir]
+    : []
 
 export default async function dev() {
   // @ts-ignore

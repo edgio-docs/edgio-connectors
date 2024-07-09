@@ -8,6 +8,11 @@ export default class ConnectorFactory {
     // Name can be passed in cases where config is not yet created.
     const connectorName = name ?? getConfig().connector?.split('/')[1]
 
+    if (connectorName === 'connectors') {
+      throw new Error(
+        `The @edgio/connectors package is not a valid connector. Please specify a connector name such as '@edgio/express', '@edgio/astro', etc...`
+      )
+    }
     if (!connectorName) {
       throw new Error(`Connector '${connectorName}' doesn't exist.`)
     }

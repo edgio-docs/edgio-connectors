@@ -2,9 +2,15 @@
 import { createServer } from 'http'
 import fs from 'fs'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
+import { resolve } from 'path'
 
 export default async function prod(port: number) {
-  const config = JSON.parse(fs.readFileSync('.edgio/edgio-nuxt.config.json').toString())
+  const configLocation = resolve(
+    EdgioRuntimeGlobal.runtimeOptions!.fs.edgio.lambda.app.value,
+    '.edgio/edgio-nuxt.config.json'
+  )
+  const config = JSON.parse(fs.readFileSync(configLocation).toString())
   if (config.target !== 'static') {
     const { loadNuxt } = nonWebpackRequire('@nuxt/core')
     let nuxt: any

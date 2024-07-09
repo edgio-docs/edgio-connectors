@@ -1,6 +1,5 @@
 import { join } from 'path'
 import { Router } from '@edgio/core/router'
-import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
 import {
   SERVERLESS_ORIGIN_NAME,
   STATIC_ORIGIN_NAME,
@@ -11,19 +10,31 @@ import {
   PUBLIC_CACHE_CONFIG,
   SHORT_PUBLIC_CACHE_CONFIG,
 } from '../../../src/router/cacheConfig'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
+import { createEdgioFS } from '@edgio/core/edgio.fs'
 
 describe('NextRoutes', () => {
-  let originalCwd,
-    NextRoutes,
+  let NextRoutes,
     nextRoutes,
     mockNextConfig,
     mockEdgioConfig,
+    mockNextRootDir,
     router,
     rules,
     originalNextConfig,
     originalEdgioConfig
 
   beforeAll(() => {
+    const fs = createEdgioFS(join(__dirname, '../../apps/default'))
+    EdgioRuntimeGlobal.runtimeOptions = {
+      devMode: true,
+      isProductionBuild: true,
+      isCacheEnabled: false,
+      origins: [],
+      entryFile: '',
+      fs,
+    }
+
     global.EDGIO_NEXT_APP = {
       get nextConfig() {
         return mockNextConfig
@@ -34,17 +45,16 @@ describe('NextRoutes', () => {
     }
     jest.resetAllMocks()
 
-    originalCwd = process.cwd()
-    process.chdir(join(__dirname, '..', '..', 'apps', 'default'))
-
-    originalNextConfig = require(join(process.cwd(), 'next.config.js'))
-    originalEdgioConfig = require(join(process.cwd(), 'edgio.config.js'))
+    originalNextConfig = require(fs.edgio.lambda.app.file('next.config.js').value)
+    originalEdgioConfig = require(fs.edgio.lambda.internal.config.value)
     mockEdgioConfig = originalEdgioConfig
     mockNextConfig = originalNextConfig
+    mockNextRootDir = fs.edgio.lambda.app.value
 
     jest.isolateModules(() => {
       jest.spyOn(console, 'log').mockImplementation(() => {})
       jest.mock('../../../src/getNextConfig', () => jest.fn(() => mockNextConfig))
+      jest.mock('../../../src/util/getNextRootDir', () => jest.fn(() => mockNextRootDir))
       jest.mock('@edgio/core/config', () => ({
         getConfig: jest.fn(() => mockEdgioConfig),
       }))
@@ -54,7 +64,6 @@ describe('NextRoutes', () => {
 
   afterAll(() => {
     jest.resetAllMocks()
-    process.chdir(originalCwd)
     delete global.EDGIO_NEXT_APP
   })
 
@@ -86,9 +95,6 @@ describe('NextRoutes', () => {
 
   describe('production mode', () => {
     const init = () => {
-      process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-      process.env.NODE_ENV = 'production'
-
       nextRoutes = new NextRoutes()
       router = new Router()
       router.use(nextRoutes)
@@ -161,7 +167,7 @@ describe('NextRoutes', () => {
             rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]?.includes('/static')
           )
           const rulePaths = rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]
-          const { caching, origin, response } = rule?.if?.[1]?.[1]?.if?.[1]
+          const { caching, origin, headers } = rule?.if?.[1]?.[1]?.if?.[1]
 
           // Pre-rendered routes together with trailing slash variants
           expect(rulePaths).toContain('/dynamic/fallback_true/1')
@@ -189,7 +195,8 @@ describe('NextRoutes', () => {
           expect(caching.client_max_age).not.toBeDefined()
           expect(caching.bypass_client_cache).toBe(true)
           expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
-          expect(response.set_status_code).toBe(200)
+          expect(headers.set_request_headers['if-modified-since']).toBe('')
+          expect(headers.set_request_headers['if-none-match']).toBe('')
         })
 
         it('should add rule for prendered data routes of SSG/ISG/ISR pages', () => {
@@ -197,7 +204,7 @@ describe('NextRoutes', () => {
             rule?.if?.[0]?.['in']?.[1]?.includes('/_next/data/buildId/static.json')
           )
           const rulePaths = rule?.if?.[0]?.['in']?.[1]
-          const { caching, origin, response } = rule?.if[1]
+          const { caching, origin, headers } = rule?.if[1]
 
           expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_true/1.json')
           expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_true/2.json')
@@ -216,7 +223,8 @@ describe('NextRoutes', () => {
           expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
           expect(caching.bypass_client_cache).not.toBeDefined()
           expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
-          expect(response.set_status_code).toBe(200)
+          expect(headers.set_request_headers['if-modified-since']).toBe('')
+          expect(headers.set_request_headers['if-none-match']).toBe('')
         })
 
         it('should add separate rule for prendered SSG pages with dynamic route', () => {
@@ -330,12 +338,22 @@ describe('NextRoutes', () => {
 
     describe('with localization', () => {
       beforeAll(() => {
-        process.chdir(join(__dirname, '..', '..', 'apps', 'with-localization'))
-        mockNextConfig = require(join(process.cwd(), 'next.config.js'))
+        const fs = createEdgioFS(join(__dirname, '../../apps/with-localization'))
+        EdgioRuntimeGlobal.runtimeOptions = {
+          devMode: true,
+          isProductionBuild: true,
+          isCacheEnabled: false,
+          origins: [],
+          entryFile: '',
+          fs,
+        }
+
+        mockNextConfig = require(fs.edgio.lambda.app.file('next.config.js').value)
+        mockEdgioConfig = require(fs.edgio.lambda.internal.config.value)
+        mockNextRootDir = fs.edgio.lambda.app.value
         init()
       })
       afterAll(() => {
-        process.chdir(join(__dirname, '..', '..', 'apps', 'default'))
         mockNextConfig = originalNextConfig
         init()
       })
@@ -378,7 +396,7 @@ describe('NextRoutes', () => {
             rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]?.includes('/static')
           )
           const rulePaths = rule?.if?.[1]?.[1]?.if?.[0]?.['in']?.[1]
-          const { caching, origin, response } = rule?.if?.[1]?.[1]?.if?.[1]
+          const { caching, origin, headers } = rule?.if?.[1]?.[1]?.if?.[1]
 
           // Pre-rendered routes together with trailing slash variants
           // Without default locale
@@ -430,7 +448,8 @@ describe('NextRoutes', () => {
           expect(caching.client_max_age).not.toBeDefined()
           expect(caching.bypass_client_cache).toBe(true)
           expect(origin.set_origin).toBe(STATIC_ORIGIN_NAME)
-          expect(response.set_status_code).toBe(200)
+          expect(headers.set_request_headers['if-modified-since']).toBe('')
+          expect(headers.set_request_headers['if-none-match']).toBe('')
         })
 
         it('should add rule for prendered data routes of SSG/ISG/ISR pages', () => {
@@ -438,7 +457,7 @@ describe('NextRoutes', () => {
             rule?.if?.[0]?.['in']?.[1]?.includes('/_next/data/buildId/static.json')
           )
           const rulePaths = rule?.if?.[0]?.['in']?.[1]
-          const { caching, origin, response } = rule?.if[1]
+          const { caching, origin } = rule?.if[1]
 
           // Without default locale
           expect(rulePaths).toContain('/_next/data/buildId/dynamic/fallback_true/1.json')
@@ -462,7 +481,6 @@ describe('NextRoutes', () => {
           expect(caching.client_max_age).toBe(FAR_FUTURE_CACHE_CONFIG.browser.maxAgeSeconds)
           expect(caching.bypass_client_cache).not.toBeDefined()
           expect(origin.set_origin).toBe(PERMANENT_STATIC_ORIGIN_NAME)
-          expect(response.set_status_code).toBe(200)
         })
 
         it('should add separate rule for prendered SSG pages with dynamic route', () => {
@@ -480,6 +498,22 @@ describe('NextRoutes', () => {
     })
 
     describe('special cases', () => {
+      beforeAll(() => {
+        const fs = createEdgioFS(join(__dirname, '../../apps/default'))
+        EdgioRuntimeGlobal.runtimeOptions = {
+          devMode: true,
+          isProductionBuild: true,
+          isCacheEnabled: false,
+          origins: [],
+          entryFile: '',
+          fs,
+        }
+
+        mockNextConfig = require(fs.edgio.lambda.app.file('next.config.js').value)
+        mockEdgioConfig = require(fs.edgio.lambda.internal.config.value)
+        mockNextRootDir = fs.edgio.lambda.app.value
+      })
+
       const reset = () => {
         mockNextConfig = JSON.parse(JSON.stringify(originalNextConfig))
         mockEdgioConfig = JSON.parse(JSON.stringify(originalEdgioConfig))

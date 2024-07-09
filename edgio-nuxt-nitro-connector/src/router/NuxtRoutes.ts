@@ -37,7 +37,11 @@ export default class NuxtRoutes implements RouterPlugin {
    */
   onRegister(router: Router) {
     this.router = router
-    this.addFallback()
+
+    if (router.Config.proxyToServerlessByDefault !== false) {
+      this.addFallback()
+    }
+
     this.addAssets()
     router.use(edgioRoutes)
   }

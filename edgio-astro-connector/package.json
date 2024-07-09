@@ -1,11 +1,11 @@
 {
   "name": "@edgio/astro",
-  "version": "7.11.7",
+  "version": "7.12.6",
   "description": "Deploy Astro apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
-    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md default-app ./dist; tsc; cp -r stage/astro/src/* dist;",
+    "build": "rm -rf ./dist; mkdir ./dist; cp -r package.json README.md ./dist; tsc; cp -r stage/astro/src/* dist;",
     "watch": "npm-watch",
     "push-build": "npm run build && cd dist && yalc push && cd ..",
     "link": "npm run build; cd dist; npm unlink; npm link",
@@ -26,9 +26,9 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.11.7"
+    "@edgio/core": "^7.12.6"
   },
   "dependencies": {
-    "@edgio/connectors": "^7.11.7"
+    "@edgio/connectors": "^7.12.6"
   }
 }

@@ -17,7 +17,10 @@ export default class SvelteKitRoutes implements RouterPlugin {
    */
   onRegister(router: Router) {
     this.router = router
-    this.addDefaultSSRRoute()
+    if (router.Config.proxyToServerlessByDefault !== false) {
+      this.addDefaultSSRRoute()
+    }
+
     if (isProductionBuild()) {
       this.addStaticAssets()
       this.addPrerenderedPages()
@@ -31,7 +34,7 @@ export default class SvelteKitRoutes implements RouterPlugin {
   protected addDefaultSSRRoute() {
     this.router?.match('/:path*', ({ renderWithApp, setComment }) => {
       renderWithApp()
-      setComment('Send all requests to Astro server running in serverless by default')
+      setComment('Send all requests to Sveltekit server running in serverless by default')
     })
   }
 

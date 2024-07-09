@@ -7,7 +7,7 @@ describe('getNextConfig', () => {
   describe('with config', () => {
     beforeAll(() => {
       cwd = process.cwd()
-      process.chdir(join(__dirname, '..', 'apps', 'default'))
+      process.chdir(join(__dirname, '..', 'apps/default/.edgio/lambda/app'))
     })
     afterAll(() => {
       process.chdir(cwd)

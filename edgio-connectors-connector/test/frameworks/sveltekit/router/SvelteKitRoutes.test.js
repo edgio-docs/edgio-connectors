@@ -1,26 +1,35 @@
 import { Router } from '@edgio/core/router'
 import { SERVERLESS_ORIGIN_NAME, STATIC_ORIGIN_NAME } from '@edgio/core/origins'
-import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
 import { join } from 'path'
 import SvelteKitRoutes from '../../../../src/frameworks/sveltekit/SvelteKitRoutes'
 import {
   PUBLIC_CACHE_CONFIG,
   FAR_FUTURE_CACHE_CONFIG,
 } from '../../../../src/frameworks/sveltekit/constants'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
+import { createEdgioFS } from '@edgio/core/edgio.fs'
 
 describe('SvelteKitRoutes.ts', () => {
   let originalDir, svelteKitRoutes, router, rules
 
   beforeAll(() => {
     originalDir = process.cwd()
-    process.chdir(join(__dirname, '..', 'apps', 'default'))
   })
 
   afterAll(() => {
     process.chdir(originalDir)
   })
 
-  const init = () => {
+  const init = (devMode = false) => {
+    const fs = createEdgioFS(join(__dirname, '../apps/default'))
+    EdgioRuntimeGlobal.runtimeOptions = {
+      devMode,
+      isProductionBuild: !devMode,
+      isCacheEnabled: false,
+      origins: [],
+      entryFile: '',
+      fs,
+    }
     svelteKitRoutes = new SvelteKitRoutes()
     router = new Router().use(svelteKitRoutes)
     rules = router.rules
@@ -28,14 +37,7 @@ describe('SvelteKitRoutes.ts', () => {
 
   describe('production mode', () => {
     beforeEach(() => {
-      process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-      process.env.NODE_ENV = 'production'
-      init()
-    })
-
-    afterAll(() => {
-      delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-      delete process.env.NODE_ENV
+      init(false)
     })
 
     it('should render all pages with renderWithApp by default', () => {
@@ -88,7 +90,9 @@ describe('SvelteKitRoutes.ts', () => {
   })
 
   describe('development mode', () => {
-    beforeEach(init)
+    beforeEach(() => {
+      init(true)
+    })
     it('should render all pages with renderWithApp', () => {
       const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path*')
       const { origin } = rule?.if[1]

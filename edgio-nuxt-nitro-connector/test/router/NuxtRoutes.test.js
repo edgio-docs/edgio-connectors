@@ -13,6 +13,8 @@ import Cache from '../../../core/src/runtime/Cache'
 import { HTTP_HEADERS } from '../../../core/src/constants'
 import { join } from 'path'
 import { LambdaResponse } from '../../../core/src'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
+import { createEdgioFS } from '@edgio/core/edgio.fs'
 
 function request(url, options) {
   return new MockRequest(url, options)
@@ -23,17 +25,9 @@ function response() {
 }
 
 describe('NuxtRoutes', () => {
-  let router,
-    serverlessNock,
-    // staticNock,
-    staticPermaNock,
-    propertyContext,
-    env = process.env.NODE_ENV,
-    cwd = process.cwd()
+  let router, serverlessNock, staticPermaNock, propertyContext
 
   beforeEach(() => {
-    process.chdir(join(__dirname, '..', 'apps', 'test'))
-
     router = new Router().use(new NuxtRoutes())
 
     serverlessNock = nock('http://127.0.0.1:3001')
@@ -61,14 +55,80 @@ describe('NuxtRoutes', () => {
     })
   })
 
-  afterEach(() => {
-    process.env.NODE_ENV = env
-    process.chdir(cwd)
+  describe('config tests', () => {
+    it('should go to serverless by default', async () => {
+      const fs = createEdgioFS(join(__dirname, '../apps/default'))
+      EdgioRuntimeGlobal.runtimeOptions = {
+        devMode: false,
+        isProductionBuild: true,
+        isCacheEnabled: false,
+        origins: [],
+        entryFile: '',
+        fs,
+      }
+
+      serverlessNock.get('/whatever').reply(200, 'whatever')
+
+      const res = response()
+
+      router = new Router().use(new NuxtRoutes())
+      const { rules, functions } = router
+
+      await new RequestContext({
+        request: request('https://www.example.com/whatever', {}),
+        response: res,
+        propertyContext,
+        rules,
+        cache: new Cache(),
+        functions,
+      }).executeSimulator()
+
+      expect(res.body.toString()).toBe('whatever')
+    })
+
+    it('should NOT go to serverless by default when proxyToServerless is turned off in config', async () => {
+      const fs = createEdgioFS(join(__dirname, '../apps/no-serverless'))
+      EdgioRuntimeGlobal.runtimeOptions = {
+        devMode: false,
+        isProductionBuild: true,
+        isCacheEnabled: false,
+        origins: [],
+        entryFile: '',
+        fs,
+      }
+
+      serverlessNock.get('/whatever').reply(200, 'whatever')
+
+      const res = response()
+
+      router = new Router().use(new NuxtRoutes())
+      const { rules, functions } = router
+
+      await new RequestContext({
+        request: request('https://www.example.com/whatever', {}),
+        response: res,
+        propertyContext,
+        rules,
+        cache: new Cache(),
+        functions,
+      }).executeSimulator()
+
+      expect(res.statusCode).toBe(502)
+    })
   })
 
   describe('in production', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'production'
+      const fs = createEdgioFS(join(__dirname, '../apps/default'))
+      EdgioRuntimeGlobal.runtimeOptions = {
+        devMode: false,
+        isProductionBuild: true,
+        isCacheEnabled: false,
+        origins: [],
+        entryFile: '',
+        fs,
+      }
+
       router = new Router().use(new NuxtRoutes())
     })
 
@@ -170,7 +230,16 @@ describe('NuxtRoutes', () => {
 
   describe('in development', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development'
+      process.cwd = jest.fn(() => join(__dirname, '../apps/default'))
+      const fs = createEdgioFS(join(__dirname, '../apps/default'))
+      EdgioRuntimeGlobal.runtimeOptions = {
+        devMode: false,
+        isProductionBuild: false,
+        isCacheEnabled: false,
+        origins: [],
+        entryFile: '',
+        fs,
+      }
       router = new Router().use(new NuxtRoutes())
     })
 

@@ -77,5 +77,4 @@ export default new ConnectorBuilder('sveltekit')
     ready: [/ready in/i],
   })
   .setOnRegister(router => router.use(new SvelteKitRoutes()))
-  .withServerless()
   .toConnector()

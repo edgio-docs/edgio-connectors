@@ -31,7 +31,7 @@ export default new ConnectorBuilder('nodejs-connector')
       process.env[edgioConfig.nodejsConnector!.envPort!] = port.toString()
       return { serverPath }
     } else {
-      throw new Error(`Server path ${serverPath} doesn't exist.`)
+      throw new Error(`Server path '${serverPath}' doesn't exist.`)
     }
   })
   .setDev(edgioConfig => {

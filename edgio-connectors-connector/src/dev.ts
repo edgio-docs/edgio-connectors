@@ -1,4 +1,4 @@
-import createDevServer from '@edgio/core/dev'
+import createDevServer from '@edgio/core/dev/createDevServer'
 import ConnectorFactory from './utils/ConnectorFactory'
 import { resolve } from 'path'
 import { DeploymentBuilder } from '@edgio/core/deploy'

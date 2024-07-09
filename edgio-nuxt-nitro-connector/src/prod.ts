@@ -1,8 +1,15 @@
 import { resolve } from 'path'
 import { existsSync } from 'fs'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
 
 export default async function prod(port: number) {
-  const appFilePath = resolve('.output', 'server', 'index.mjs')
+  const appFilePath = resolve(
+    EdgioRuntimeGlobal.runtimeOptions!.fs.edgio.lambda.app.value,
+    '.output',
+    'server',
+    'index.mjs'
+  )
+
   // If .output/server/index.mjs exist, run it
   if (existsSync(appFilePath)) {
     // Set the NITRO_PORT per

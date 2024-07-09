@@ -43,10 +43,31 @@ export interface ExtendedConfig extends Config {
     optimizeServerBuild?: boolean
 
     /**
-     * Set this option to false to remove the default rule that proxies all requests to Next.js in serverless.
-     * This is useful if you want to proxy all unmatched pages to different origin.
+     * @deprecated use proxyToServerlessByDefault in Edgio config instead
+     * @example
+     *
+     * eddio.config.js
+     *
+     * Depricated:
+     * ```js     *
+     * {
+     *   next: {
+     *     proxyToServerlessByDefault: false
+     *   }
+     * }
+     * ```
+     *
+     * New:
+     *
+     * ```js
+     * {
+     *  proxyToServerlessByDefault: false
+     * }
+     * ```
+     *
      * @default true
      */
+
     proxyToServerlessByDefault?: boolean
 
     /**

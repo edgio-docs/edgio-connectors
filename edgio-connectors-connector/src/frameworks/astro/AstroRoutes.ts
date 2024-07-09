@@ -37,13 +37,18 @@ export default class AstroRoutes implements RouterPlugin {
       if (output === 'static') {
         // static - fallbacks to pre-rendered 404 page
         this.add404ErrorPage()
-      } else {
+      }
+
+      if (router.Config.proxyToServerlessByDefault !== false) {
         // server or hybrid - fallbacks to SSR
         this.addDefaultSSRRoute()
       }
+
       this.addStaticAssets()
     } else {
-      this.addDefaultSSRRoute()
+      if (router.Config.proxyToServerlessByDefault !== false) {
+        this.addDefaultSSRRoute()
+      }
     }
   }
 

@@ -1,8 +1,9 @@
 import { Router } from '@edgio/core/router'
 import { SERVERLESS_ORIGIN_NAME, STATIC_ORIGIN_NAME } from '@edgio/core/origins'
-import { EDGIO_ENV_VARIABLES } from '@edgio/core/constants'
 import { join } from 'path'
 import { FAR_FUTURE_TTL } from '@edgio/core/constants'
+import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
+import { createEdgioFS } from '@edgio/core/edgio.fs'
 
 describe('router/AngularRoutes.ts', () => {
   let originalDir, AngularRoutes, angularRoutes, router, rules, mockOutputPath
@@ -25,8 +26,16 @@ describe('router/AngularRoutes.ts', () => {
     jest.resetAllMocks()
   })
 
-  const init = () => {
-    process.chdir(join(__dirname, '..', 'apps', 'default'))
+  const init = (devMode = false) => {
+    const fs = createEdgioFS(join(__dirname, '../apps/default'))
+    EdgioRuntimeGlobal.runtimeOptions = {
+      devMode,
+      isProductionBuild: !devMode,
+      isCacheEnabled: false,
+      origins: [],
+      entryFile: '',
+      fs,
+    }
     angularRoutes = new AngularRoutes()
     router = new Router().use(angularRoutes)
     rules = router.rules
@@ -34,14 +43,7 @@ describe('router/AngularRoutes.ts', () => {
 
   describe('production mode', () => {
     beforeEach(() => {
-      process.env[EDGIO_ENV_VARIABLES.deploymentType] = 'AWS'
-      process.env.NODE_ENV = 'production'
-      init()
-    })
-
-    afterAll(() => {
-      delete process.env[EDGIO_ENV_VARIABLES.deploymentType]
-      delete process.env.NODE_ENV
+      init(false)
     })
 
     describe('server', () => {
@@ -98,7 +100,9 @@ describe('router/AngularRoutes.ts', () => {
   })
 
   describe('development mode', () => {
-    beforeEach(init)
+    beforeEach(() => {
+      init(true)
+    })
     it('should render all pages with renderWithApp', async () => {
       const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/:path*')
       const { origin } = rule?.if[1]

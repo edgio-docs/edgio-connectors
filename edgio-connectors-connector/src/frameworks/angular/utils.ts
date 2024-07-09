@@ -1,11 +1,15 @@
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { readFileSync } from 'fs'
+import { isCloud } from '@edgio/core/environment'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 
 /**
  * Gets the contents of angular.json as an object
  */
 export function getAngularConfig() {
-  return JSON.parse(readFileSync(join(process.cwd(), 'angular.json')).toString())
+  const angularJson = 'angular.json'
+  const angularJsonPath = isCloud() ? resolve(angularJson) : resolve(JS_APP_DIR, angularJson)
+  return JSON.parse(readFileSync(angularJsonPath).toString())
 }
 
 /**

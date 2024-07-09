@@ -61,7 +61,7 @@ export default class ManifestParser {
     this.nextRootDir = nextRootDir
     this.distDir = distDir
     this.renderMode = renderMode
-    this.nextConfig = getNextConfig()
+    this.nextConfig = getNextConfig(nextRootDir)
     this.nextPathFormatter = new NextPathFormatter(this.nextConfig)
 
     this.locales = this.nextConfig?.i18n?.locales || []
@@ -77,7 +77,7 @@ export default class ManifestParser {
     // Exit when we are in development mode
     if (!isProductionBuild() && !isCloud()) return
 
-    this.buildId = getBuildId(join(process.cwd(), this.nextRootDir, this.distDir))
+    this.buildId = getBuildId(join(this.nextRootDir, this.distDir))
     this.routesManifest = this.getRoutesManifest()
     this.prerenderManifest = this.getPrerenderManifest()
     this.middlewareManifest = this.getMiddlewareManifest()
@@ -196,8 +196,8 @@ export default class ManifestParser {
   getRedirects(): Redirect[] {
     let redirects =
       isProductionBuild() || isCloud() ? this.routesManifest?.redirects : this.nextConfig?.redirects
-    // We need to reverse the order to match the sailfish behavior when only the last one is applied.
-    return Array.isArray(redirects) ? redirects.reverse() : []
+
+    return Array.isArray(redirects) ? redirects : []
   }
 
   /**
@@ -251,7 +251,7 @@ export default class ManifestParser {
   public getRoutesManifest(): RoutesManifest | undefined {
     const routesManifestPath =
       process.env.NEXT_ROUTES_MANIFEST_PATH ||
-      join(process.cwd(), this.nextRootDir, this.distDir, 'routes-manifest.json')
+      join(this.nextRootDir, this.distDir, 'routes-manifest.json')
     if (!existsSync(routesManifestPath)) return undefined
     return nonWebpackRequire(routesManifestPath) as RoutesManifest
   }
@@ -261,7 +261,6 @@ export default class ManifestParser {
    */
   public getPagesManifest(): PagesManifest {
     const pagesManifestPath = join(
-      process.cwd(),
       this.nextRootDir,
       this.distDir,
       this.renderMode,
@@ -277,7 +276,6 @@ export default class ManifestParser {
    */
   public getAppPathsManifest(): AppPathsManifest {
     const location = join(
-      process.cwd(),
       this.nextRootDir,
       this.distDir,
       this.renderMode,
@@ -305,13 +303,7 @@ export default class ManifestParser {
    * Returns the contents of middleware-manifest.json
    */
   public getMiddlewareManifest(): MiddlewareManifest {
-    const path = join(
-      process.cwd(),
-      this.nextRootDir,
-      this.distDir,
-      this.renderMode,
-      'middleware-manifest.json'
-    )
+    const path = join(this.nextRootDir, this.distDir, this.renderMode, 'middleware-manifest.json')
     if (existsSync(path)) return nonWebpackRequire(path) as MiddlewareManifest
     return {
       sortedMiddleware: [],
@@ -323,7 +315,7 @@ export default class ManifestParser {
    * Returns the contents of prerender-manifest.json
    */
   public getPrerenderManifest(): PrerenderManifest {
-    const path = join(process.cwd(), this.nextRootDir, this.distDir, 'prerender-manifest.json')
+    const path = join(this.nextRootDir, this.distDir, 'prerender-manifest.json')
     try {
       return nonWebpackRequire(path)
     } catch (e) {
