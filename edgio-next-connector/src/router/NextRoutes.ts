@@ -564,11 +564,14 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
-   * This is quick fix for bug in Sailfish, as it removes encoding-type when image optimization is enabled.
-   * With this fix the image optimization will reamin the same but as we are setting the rule only for images
-   * it won't affect other static files (like fonts, css, json, etc.)
+   * Adds rule that enables image optimization for supported image types.
    */
   protected addImageOptimization() {
+    // NOTE: This is quick fix for bug in Sailfish, as it removes encoding-type when image optimization is enabled.
+    // With this fix the image optimization will remain the same but as we are setting the rule only for images
+    // it won't affect other static files (like fonts, css, json, etc.)
+    // Important thing is that SVG is not in the list of supported image types,
+    // otherwise sailfish throws 500 error.
     this.router?.match(
       /\.(jpg|jpeg|pjpg|pjpeg|png|ppng|gif|bmp|webp|ico|tif|tiff|jfif|jp2|j2k|jpf|jpx|jpm|mj2|xbm|wbmp)$/,
       ({ optimizeImages, setComment }) => {
@@ -638,10 +641,10 @@ export default class NextRoutes implements RouterPlugin {
    * without Next's image-optimizer. This rule is used by our imageLoader.
    */
   protected addEdgioImageProxyRoutes() {
-    this.router?.match(EDGIO_IMAGE_PROXY_PATH, ({ compute, cache, setComment, optimizeImages }) => {
+    // This feature proxies images from remote hosts
+    const imageProxyFeature: FeatureCreator = ({ compute, cache, setComment }) => {
       setComment('Edgio Image Proxy - Proxies images from remote hosts')
       cache(SHORT_PUBLIC_CACHE_CONFIG)
-      optimizeImages(true)
       compute(async (req, res) => {
         try {
           const url = new URL(req.url, `http://${req.headers['host']}`)
@@ -701,7 +704,31 @@ export default class NextRoutes implements RouterPlugin {
           console.error(`[Edgio] Image Proxy ERROR: ${e.message}`)
         }
       })
-    })
+    }
+
+    // This feature enables image optimization only for supported image types.
+    // NOTE: We need to use nested rule here, because console-ui can't
+    // currently display AND operator inside OR operator,
+    // and switches to JSON editor, although it's valid edge-control syntax.
+    const optimizeImagesFeature = new Router().match(
+      {
+        query: {
+          url: /\.(jpg|jpeg|pjpg|pjpeg|png|ppng|gif|bmp|webp|ico|tif|tiff|jfif|jp2|j2k|jpf|jpx|jpm|mj2|xbm|wbmp)$/i,
+        },
+      },
+      ({ optimizeImages }) => {
+        optimizeImages(true)
+      }
+    )
+
+    // Put both features into one rule
+    this.router?.if(
+      {
+        path: EDGIO_IMAGE_PROXY_PATH,
+      },
+      imageProxyFeature,
+      optimizeImagesFeature
+    )
   }
 
   /**

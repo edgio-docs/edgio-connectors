@@ -304,13 +304,12 @@ describe('NextRoutes', () => {
 
       it('should add rule for Edgio Image Proxy (addEdgioImageProxyRoutes)', () => {
         const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/__edgio__/image')
-        const { caching, origin, response } = rule?.if[1]
+        const { caching, origin } = rule?.if[1][0]
 
         expect(caching.max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.edge.maxAgeSeconds)
         expect(caching.client_max_age).toBe(SHORT_PUBLIC_CACHE_CONFIG.browser.maxAgeSeconds)
         expect(caching.bypass_client_cache).toBe(undefined)
         expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
-        expect(response.optimize_images).toBe(true)
       })
 
       it('should add rules in correct order', () => {
