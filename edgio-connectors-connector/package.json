@@ -1,6 +1,6 @@
 {
   "name": "@edgio/connectors",
-  "version": "7.12.8",
+  "version": "7.12.9",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
@@ -10,8 +10,7 @@
     "globby": "^11.0.2",
     "resolve-package-path": "^4.0.3",
     "slash": "^3.0.0",
-    "workbox-webpack-plugin": "^6.1.0",
-    "yargs": "^15.1.0"
+    "workbox-webpack-plugin": "^6.1.0"
   },
   "scripts": {
     "build": "rm -rf ./dist ./stage; mkdir ./dist; cp -r package.json README.md default-apps ./dist; tsc; cp -r stage/connectors/src/* dist; webpack; npm run build:copy-assets;",
@@ -65,7 +64,7 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.12.8",
+    "@edgio/core": "^7.12.9",
     "@types/node": "^14.0.9",
     "webpack": "^5.27.0"
   }
