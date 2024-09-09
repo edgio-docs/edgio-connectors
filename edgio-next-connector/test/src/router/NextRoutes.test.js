@@ -291,6 +291,23 @@ describe('NextRoutes', () => {
         expect(urlRewrite.syntax).toBe('path-to-regexp')
       })
 
+      it('should add rule for preview mode (addPreviewModeRoute)', () => {
+        const rule = rules.find(
+          rule =>
+            rule?.if?.[0]?.['and']?.[0]?.['=~']?.[0]?.['request.cookie'] === '__prerender_bypass'
+        )
+        const { origin, caching, url } = rule?.if[1]
+        expect(origin.set_origin).toBe(SERVERLESS_ORIGIN_NAME)
+        expect(caching.bypass_client_cache).toBe(true)
+        expect(caching.bypass_cache).toBe(true)
+
+        const urlRewrite = url?.url_rewrite[0]
+        // Should add empty rewrite to remove any previous rewrites that may have been added
+        expect(urlRewrite.source).toContain('/:path*')
+        expect(urlRewrite.destination).toContain('/:path*')
+        expect(urlRewrite.syntax).toBe('path-to-regexp')
+      })
+
       it('should add rule for service-worker', () => {
         const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/service-worker.js')
         const { origin } = rule?.if[1]
@@ -320,6 +337,10 @@ describe('NextRoutes', () => {
         const prerenderedRouteIndex = rules.findIndex(rule =>
           rule?.if?.[0]?.['in']?.[1]?.includes('/static')
         )
+        const previewModeRouteIndex = rules.findIndex(
+          rule =>
+            rule?.if?.[0]?.['and']?.[0]?.['=~']?.[0]?.['request.cookie'] === '__prerender_bypass'
+        )
         const publicAssetIndex = rules.findIndex(
           rule => rule?.if?.[0]?.['==']?.[1] === '/public.txt'
         )
@@ -329,6 +350,7 @@ describe('NextRoutes', () => {
           defaultSSRIndex <
             dynamicRouteIndex <
             prerenderedRouteIndex <
+            previewModeRouteIndex <
             publicAssetIndex <
             redirectIndex
         ).toBe(true)
@@ -646,6 +668,25 @@ describe('NextRoutes', () => {
 
         it('should not add rule for service-worker when "disableServiceWorker" is true', () => {
           const rule = rules.find(rule => rule?.if?.[0]?.['==']?.[1] === '/service-worker.js')
+          expect(rule).not.toBeDefined()
+        })
+      })
+
+      describe('disablePreviewMode is true', () => {
+        beforeAll(() => {
+          mockEdgioConfig = {
+            ...mockEdgioConfig,
+            next: { ...mockEdgioConfig.next, disablePreviewMode: true },
+          }
+          init()
+        })
+        afterAll(reset)
+
+        it('should not add rule for preview mode when "disablePreviewMode" is true', () => {
+          const rule = rules.find(
+            rule =>
+              rule?.if?.[0]?.['and']?.[0]?.['=~']?.[0]?.['request.cookie'] === '__prerender_bypass'
+          )
           expect(rule).not.toBeDefined()
         })
       })

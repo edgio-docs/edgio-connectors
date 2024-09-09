@@ -47,8 +47,8 @@ export default new ConnectorBuilder('angular')
     run: async module => new Promise(resolve => module.app().listen(port, resolve)),
   }))
   .setDev({
-    command: port => `npx ng serve --port ${port} --host=0.0.0.0`,
-    ready: [/compiled successfully|is listening/i],
+    command: port => `npx ng serve --port ${port} --host=127.0.0.1`,
+    ready: [/compiled successfully|is listening|localhost|127.0.0.1/i],
   })
   .setOnRegister(router => router.use(new AngularRoutes()))
   .withServiceWorker()

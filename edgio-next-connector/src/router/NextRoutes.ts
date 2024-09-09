@@ -18,7 +18,9 @@ import ManifestParser from './ManifestParser'
 import {
   EDGIO_IMAGE_PROXY_PATH,
   NEXT_PAGE_HEADER,
+  NEXT_PRERENDER_BYPASS_COOKIE,
   NEXT_PRERENDERED_PAGES_FOLDER,
+  NEXT_PREVIEW_DATA_COOKIE,
   SERVICE_WORKER_FILENAME,
 } from '../constants'
 import chalk from 'chalk'
@@ -114,6 +116,11 @@ export default class NextRoutes implements RouterPlugin {
     this.addPages()
     this.add404ErrorPages()
     this.addPrerenderedPages()
+    if (this.edgioConfig?.next?.disablePreviewMode !== true) {
+      // Preview mode route needs to be added after prerendered pages
+      // but before public assets, so it can be overridden by other rules.
+      this.addPreviewModeRoute()
+    }
     this.addPublicAssets()
     this.addAssets()
     this.addImageOptimizerRoutes()
@@ -157,6 +164,8 @@ export default class NextRoutes implements RouterPlugin {
             // We need to match both methods and path, because next 14 introduces server actions
             // where on the same static path is server action sent but with different method (POST, PUT, DELETE, etc.)
             this.router?.if(
+              // NOTE: This could be simplified to IN operator { path: ['get', 'head'] },
+              // but that's for some reason not supported for request.method, and it throws 500 error during edge-control deployment.
               or({ method: 'get' }, { method: 'head' }),
               ({ setComment }) => {
                 setComment('Serve pre-rendered page with dynamic route and no getStaticPaths')
@@ -192,6 +201,8 @@ export default class NextRoutes implements RouterPlugin {
     // We need to disable browser cache for all HTML pages so the user always
     // have the latest version of the page when app is redeployed.
     this.router?.if(
+      // NOTE: This could be simplified to IN operator { path: ['get', 'head'] },
+      // but that's for some reason not supported for request.method, and it throws 500 error during edge-control deployment.
       or({ method: 'get' }, { method: 'head' }),
       ({ setComment }) => setComment('Serve all pre-rendered HTML pages (getStaticPaths)'),
       new Router().match({ path: routes }, ({ serveStatic, cache, removeRequestHeader }) => {
@@ -564,6 +575,38 @@ export default class NextRoutes implements RouterPlugin {
   }
 
   /**
+   * Adds route for preview mode,
+   * that bypasses cache, overrides origin for pre-rendered pages
+   * and sets it to serverless when "__bypass-prerender" and "__preview_data" cookies are present.
+   */
+  protected addPreviewModeRoute() {
+    this.router?.match(
+      {
+        cookies: {
+          [NEXT_PRERENDER_BYPASS_COOKIE]: /(.+)/,
+          [NEXT_PREVIEW_DATA_COOKIE]: /(.+)/,
+        },
+      },
+      routeHelper => {
+        const { cache, setComment, setResponseHeader, rewritePath } = routeHelper
+        this.ssrHandler(routeHelper)
+        setComment('Bypass cache and pre-rendered pages with preview mode')
+        cache({
+          // Disable cache for preview mode,
+          // so the user immediately sees the changes.
+          edge: false,
+          browser: false,
+        })
+        // Override previously matched rewrites
+        rewritePath('/:path*', '/:path*')
+        // Indicate that the preview mode is enabled,
+        // so users are not surprised they don't see cache hits.
+        setResponseHeader('x-preview-mode', 'true')
+      }
+    )
+  }
+
+  /**
    * Adds rule that enables image optimization for supported image types.
    */
   protected addImageOptimization() {
@@ -668,7 +711,6 @@ export default class NextRoutes implements RouterPlugin {
           // Standard fetch func is returning arrayBuffer,
           // so we need to convert it to Buffer from Node.js here.
           const remoteRes = await fetch(imgUrl)
-          const bufferedBody = Buffer.from(await remoteRes.arrayBuffer())
 
           // Allow to proxy only images.
           // We have localhost and 127.0.0.1 in allowed domains by default,
@@ -696,8 +738,8 @@ export default class NextRoutes implements RouterPlugin {
             res.setHeader(name, value)
           })
 
-          res.write(bufferedBody)
-          res.end()
+          // Write the body of the response
+          res.body = Buffer.from(await remoteRes.arrayBuffer())
         } catch (e: any) {
           res.statusCode = 500
           res.body = `ERROR: Couldn't fetch the image from the provided URL.`
@@ -752,7 +794,6 @@ export default class NextRoutes implements RouterPlugin {
       this.ssrHandler(routeHelper)
     })
   }
-
   /**
    * The FeatureCreator which proxies all requests to Next in serverless.
    */
@@ -776,21 +817,29 @@ export default class NextRoutes implements RouterPlugin {
       transformRequest: (req: Request) => {
         if (this.renderMode === RENDER_MODES.serverless) this.addPageParamsToQuery(req)
 
-        // Test if any middleware matches the request path
+        // Check if any middleware matches the request path
         // NOTE: We can also loop through pages and match those that have revalidation
         // and exclude them, but it's faster to loop through middlewares as there are fewer of them
         // most of the time.
         const matchedMiddleware = this.middlewares.find(middleware =>
           middleware.matchers.some(matcher => new RegExp(matcher.regexp).test(req.path))
         )
+        // Exit early if middleware is matched, so 'x-prerender-revalidate' header is not set.
+        if (matchedMiddleware) return
 
-        // Force Next.js server to serve fresh page if any middleware isn't matched for this req.
+        // Check if the request has the prerender bypass cookie set.
+        const cookie = req.getHeader(HTTP_HEADERS.cookie)?.toString()
+        const bypassPrerender = cookie?.includes(`${NEXT_PRERENDER_BYPASS_COOKIE}=`)
+        // Exit early if bypassPrerender is set, so 'x-prerender-revalidate' header is not set,
+        // otherwise preview mode won't work.
+        if (bypassPrerender) return
+
+        // Force Next.js server to serve fresh page if any middleware isn't matched for this req
+        // and the prerender bypass cookie is not set.
         // The 'x-prerender-revalidate' header is needed for ISG/ISR pages with revalidation when page is requested by the Edge,
         // so Next.js knows it shouldn't serve page from disk or cache.
         // Disadvantage is that if this header is present, Next.js server doesn't run the middlewares.
-        if (!matchedMiddleware) {
-          req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
-        }
+        req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
       },
     })
   }

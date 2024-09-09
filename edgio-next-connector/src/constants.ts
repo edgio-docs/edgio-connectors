@@ -51,3 +51,15 @@ export const NEXT_ROOT_DIR_FILE = 'NEXT_ROOT_DIR'
  * The path where the Edgio Image Proxy is available.
  */
 export const EDGIO_IMAGE_PROXY_PATH = '/__edgio__/image'
+
+/**
+ * @private
+ * The name of the cookie that is used to bypass the prerendering.
+ */
+export const NEXT_PRERENDER_BYPASS_COOKIE = '__prerender_bypass'
+
+/**
+ * @private
+ * The name of the cookie that stores the preview data.
+ */
+export const NEXT_PREVIEW_DATA_COOKIE = '__next_preview_data'

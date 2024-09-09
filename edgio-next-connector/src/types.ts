@@ -28,6 +28,14 @@ export interface ExtendedConfig extends Config {
     disableServiceWorker?: boolean
 
     /**
+     * Disables cache bypassing for preview mode.
+     * Preview mode allows to bypass pre-rendered pages and edge cache,
+     * when it's enabled (the __bypass_prerender and __preview_data cookies are present).
+     * @default false
+     */
+    disablePreviewMode?: boolean
+
+    /**
      * Forces the @edgio/next connector to use the server build.
      * This config option replaces the NEXT_FORCE_SERVER_BUILD env variable.
      * @default false
