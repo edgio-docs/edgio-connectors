@@ -1,6 +1,6 @@
 {
   "name": "@edgio/sveltekit",
-  "version": "7.13.4",
+  "version": "7.13.5",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "scripts": {
@@ -26,11 +26,11 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.13.12",
-    "@edgio/core": "^7.13.4",
+    "@edgio/core": "^7.13.5",
     "babel-loader": "^8.2.2"
   },
   "dependencies": {
-    "@edgio/connectors": "^7.13.4"
+    "@edgio/connectors": "^7.13.5"
   },
   "./adapter": {
     "types": "./adapter.d.ts",

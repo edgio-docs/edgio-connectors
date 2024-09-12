@@ -1,6 +1,6 @@
 {
   "name": "@edgio/qwik",
-  "version": "7.13.4",
+  "version": "7.13.5",
   "description": "Deploy Qwik apps to Edgio",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
@@ -26,9 +26,9 @@
     "directory": "dist"
   },
   "devDependencies": {
-    "@edgio/core": "^7.13.4"
+    "@edgio/core": "^7.13.5"
   },
   "dependencies": {
-    "@edgio/connectors": "^7.13.4"
+    "@edgio/connectors": "^7.13.5"
   }
 }
