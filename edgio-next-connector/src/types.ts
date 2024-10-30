@@ -85,6 +85,12 @@ export interface ExtendedConfig extends Config {
      * @default true
      */
     enforceTrailingSlash?: boolean
+
+    /**
+     * Set this option to true to enable TurboPack for your Next.js app in development mode.
+     * @default false
+     */
+    turbopack?: boolean
   }
 }
 

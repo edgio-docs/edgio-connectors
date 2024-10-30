@@ -1,37 +1,39 @@
 /* istanbul ignore file */
-import { nonWebpackRequire } from '@edgio/core/utils'
 import { resolve } from 'path'
+import { existsSync } from 'fs'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
+import { nonWebpackRequire } from '@edgio/core/utils'
 
 /**
  * Gets the data in next.config.js
- * @param appDir The root directory of the app, defauts to the current working directory
+ * @param appDir The root directory of the app, defaults to the current working directory
+ * @param filename The name of the next.config.js file, defaults to 'next.config.js'
  * @returns
  */
-export default function getNextConfig(appDir = process.cwd()): any {
-  const configFile = resolve(appDir, 'next.config.js')
+export default function getNextConfig(appDir = process.cwd(), filename = 'next.config.js'): any {
+  const configFile = [
+    // Try to use next.config.js file from the app directory first if it's available.
+    resolve(appDir, filename),
+    resolve(appDir, filename.replace('.js', '.cjs')),
+    // If no compatible next.config.js|cjs file is found in the app directory,
+    // use built next.config.js file from the .edgio/app directory.
+    // This file is re-build by NextConfigBuilder on each edgio dev/build command call.
+    // We'll get here if project uses TypeScript/ESM with next.config.ts/mjs file
+    // and we cannot load the file directly or in sync way.
+    resolve(JS_APP_DIR, filename),
+    resolve(JS_APP_DIR, filename.replace('.js', '.cjs')),
+  ].find(existsSync)
 
-  if (moduleExists(configFile)) {
-    let config: any = nonWebpackRequire(configFile)
-
-    if (typeof config === 'function') {
-      config = config('phase-production-build')
-    }
-
-    return config
-  } else {
+  if (!configFile) {
     return {}
   }
-}
 
-/**
- * Returns `true` if a module exists, otherwise `false`.
- * @param mod A module path
- */
-function moduleExists(mod: string) {
-  try {
-    eval('require.resolve')(mod)
-    return true
-  } catch (e) {
-    return false
+  const module = nonWebpackRequire(configFile)
+  const config = module.default || module
+
+  if (typeof config === 'function') {
+    return config('phase-production-build', {})
   }
+
+  return config
 }

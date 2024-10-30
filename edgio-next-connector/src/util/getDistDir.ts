@@ -3,8 +3,8 @@ import getNextConfig from '../getNextConfig'
 /**
  * Gets the build output directory for Next.js
  */
-export default function getDistDir() {
-  return getDistDirFromConfig(getNextConfig())
+export default function getDistDir(nextConfig = getNextConfig()) {
+  return getDistDirFromConfig(nextConfig)
 }
 
 /**

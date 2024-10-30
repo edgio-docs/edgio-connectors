@@ -3,7 +3,6 @@ import { DeploymentBuilder, BuildOptions, resolveInPackage } from '@edgio/core/d
 import { join, relative } from 'path'
 import FrameworkBuildError from '@edgio/core/errors/FrameworkBuildError'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
-import validateNextConfig from './validateNextConfig'
 import { nodeFileTrace } from '@vercel/nft'
 import getNextConfig from '../getNextConfig'
 import NextConfigBuilder from './NextConfigBuilder'
@@ -22,57 +21,89 @@ import { NextConfig, isRewriteGroup } from '../next.types'
 import ManifestParser from '../router/ManifestParser'
 import brandify from '@edgio/core/utils/brandify'
 import { normalizePath } from '@edgio/core/utils/pathUtils'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
+import getDistDir from '../util/getDistDir'
 
 export default class NextBuilder {
   protected builder: DeploymentBuilder
-  protected srcDir: string
-  protected distDir: string
-  protected srcDirAbsolute: string
-  protected distDirAbsolute: string
-  protected nextRootDir: string
+  protected srcDir: string = './'
+  protected distDir: string = '.next'
   protected edgioConfig: ExtendedConfig
-  protected nextConfig: NextConfig
+  protected nextConfig: NextConfig = {}
+  protected renderMode: RenderMode = RENDER_MODES.server
   protected defaultLocale?: string
   protected buildId?: string
-  protected renderMode: RenderMode
   protected prerenderManifest?: any
-  protected nextVersion: string | null
+  protected nextVersion?: string | null
   protected buildCommand: string
 
-  constructor({ srcDir, distDir, buildCommand }: BuilderOptions) {
-    this.srcDir = srcDir
-    this.distDir = distDir
-    this.srcDirAbsolute = join(process.cwd(), srcDir)
-    this.distDirAbsolute = join(process.cwd(), distDir)
-    this.nextRootDir = './'
+  constructor({ buildCommand }: BuilderOptions) {
     this.builder = new DeploymentBuilder(process.cwd())
-    this.edgioConfig = getConfig() as ExtendedConfig
-    this.nextConfig = getNextConfig() as NextConfig
-    this.defaultLocale = this.nextConfig.i18n?.defaultLocale
-    this.renderMode = getRenderMode(this.nextConfig)
-    this.nextVersion = getNextVersion()
     this.buildCommand = buildCommand
+    this.edgioConfig = getConfig() as ExtendedConfig
+  }
+
+  protected get srcDirAbsolute() {
+    return join(process.cwd(), this.srcDir)
+  }
+
+  protected get distDirAbsolute() {
+    return join(process.cwd(), this.distDir)
+  }
+
+  protected get nextRootDir() {
+    // For Next.js <= 14, the outputFileTracingRoot is under experimental config.
+    // For Next.js >= 15, the outputFileTracingRoot is under the root config.
+    const outputFileTracingRoot = this.nextConfig?.experimental?.outputFileTracingRoot || this.nextConfig?.outputFileTracingRoot || './'
+    // When Next.js is built in workspaces or the outputFileTracingRoot config option is explicitly set,
+    // the standalone build folder will have different folder structure.
+    // This is where we can get the project root folder where the server files are actually placed.
+    // We need to normalize the path because node paths are different on Windows and Unix systems.
+    return normalizePath(
+      relative(outputFileTracingRoot, process.cwd()) || './'
+    )
   }
 
   async build(options: BuildOptions) {
     this.builder.clearPreviousBuildOutput()
+    // Load basic information about the app
+    // and next config from the source next.config.js file to
+    // determine the build mode (server/serverless).
+    this.nextConfig = getNextConfig() as NextConfig
+    this.renderMode = getRenderMode(this.nextConfig)
+    this.nextVersion = getNextVersion()
 
+    // Build the app
     if (!options?.skipFramework) {
       await this.buildNextApp()
     }
 
+    // Build the app's next.config.js file and load it with merged default values from the Next.js server.
+    // NOTE: This is necessary if app uses for example TypeScript/ESM with next.config.ts/mjs file,
+    if(this.renderMode === RENDER_MODES.server) {
+      await this.buildStandaloneNextConfig()
+    }else{
+      await this.buildServerlessNextConfig()
+    }
+    // Validate that built next.config it has all required Edgio plugins in it
+    this.validateNextConfig()
+
+    // Build the app's service worker
     if (!this.edgioConfig?.next?.disableServiceWorker) {
       await this.buildServiceWorker()
     }
 
-    // Load information about the app when it's built
+    // When both app and next.config are finally built and loaded,
+    // we can load all needed information about the app.
+    this.srcDir = './'
+    this.distDir = getDistDir(this.nextConfig)
     this.buildId = getBuildId(this.distDirAbsolute) || 'dev'
     this.prerenderManifest = this.getPrerenderManifest()
+    this.defaultLocale = this.nextConfig.i18n?.defaultLocale
 
     // Add Next.js runtime assets
     if (this.renderMode === RENDER_MODES.server) {
       console.log('> Using Next standalone build...')
-      await this.loadStandaloneBuildConfig()
       await this.addStandaloneBuildAssets()
     } else {
       console.log(`> Using Next ${this.nextConfig.target} build...`)
@@ -82,14 +113,6 @@ export default class NextBuilder {
     // Add the file with relative location to the Next.js app.
     // This is needed for Next.js 13 app which is built in workspaces.
     this.builder.writeFileSync(join(this.builder.jsAppDir, NEXT_ROOT_DIR_FILE), this.nextRootDir)
-
-    // builds the next.config.js file and add our config file handler
-    const nextConfigBuilder = new NextConfigBuilder(this.builder, {
-      nextConfig: this.nextConfig,
-      generateSourceMap: this.edgioConfig?.next?.generateSourceMaps ?? true,
-      nextRootDir: this.nextRootDir,
-    })
-    await nextConfigBuilder.build()
 
     // Add prerendered pages from pages folder to s3
     this.addSSGPages(
@@ -244,7 +267,7 @@ export default class NextBuilder {
       .map(l => `--external:${l}`)
       .join(' ')}`
     const nextSourceFiles = join(
-      this.builder.jsAppDir,   
+      this.builder.jsAppDir,
       'node_modules',
       'next',
       'dist',
@@ -260,7 +283,6 @@ export default class NextBuilder {
   async buildNextApp() {
     // clear .next directory
     this.builder.emptyDirSync(this.distDir)
-    validateNextConfig(this.srcDir)
 
     try {
       // run the next.js build
@@ -286,7 +308,7 @@ export default class NextBuilder {
       recursive: true,
     })
 
-    // As there is posibility to have both folders present in a build, we check for both 'pages' and 'app' folders
+    // As there is possibility to have both folders present in a build, we check for both 'pages' and 'app' folders
     const pagesDir = join(
       this.distDirAbsolute,
       'standalone',
@@ -382,24 +404,6 @@ export default class NextBuilder {
         )
       )
     }
-  }
-
-  /**
-   * Loads the config for the standalone build output
-   */
-  async loadStandaloneBuildConfig() {
-    // When app is using standalone build, we need to load the next config by next server
-    // to get all additional config and default values added by Next Server.
-    const loadConfig = nonWebpackRequire('next/dist/server/config').default
-    this.nextConfig = await loadConfig('phase-production-server', process.cwd())
-
-    // When Next.js is built in workspaces or the outputFileTracingRoot config option is explicitly set,
-    // the standalone build folder will have different folder structure.
-    // This is where we can get the project root folder where the server files are actually placed.
-    // We need to normalize the path because node paths are different on Windows and Unix systems.
-    this.nextRootDir = normalizePath(
-      relative(this.nextConfig?.experimental!.outputFileTracingRoot!, process.cwd()) || './'
-    )
   }
 
   /**
@@ -539,6 +543,83 @@ export default class NextBuilder {
           )
         }
       })
+  }
+
+  /**
+   * Builds the next.config.js file for standalone build
+   * with merged default values from the Next.js server.
+   */
+  private async buildStandaloneNextConfig() {
+    // When app is using standalone build, we need to load the next config by next server
+    // to get all additional config and default values added by Next Server.
+    const loadConfig = nonWebpackRequire('next/dist/server/config').default
+    const nextConfigWithDefaults = await loadConfig('phase-production-server', process.cwd())
+    // Update the nextConfig with the defaults from the Next.js server
+    this.nextConfig = nextConfigWithDefaults as NextConfig
+
+    await new NextConfigBuilder(
+      this.srcDirAbsolute,
+      // Output final file to configured outputFileTracingRoot option from next.config.js.
+      // This is needed for standalone builds in workspaces or when the outputFileTracingRoot is explicitly set,
+      // otherwise Next.js server throws an error that it can't find the file.
+      join(process.cwd(), JS_APP_DIR, this.nextRootDir),
+      {
+        nextConfig: nextConfigWithDefaults,
+        generateSourceMap: this.edgioConfig?.next?.generateSourceMaps !== false,
+      }
+    ).build()
+  }
+
+  /**
+   * Builds the next.config.js file for serverless builds.
+   */
+  private async buildServerlessNextConfig() {
+    await new NextConfigBuilder(
+      this.srcDirAbsolute,
+      // Output final file to root of the app directory.
+      join(process.cwd(), JS_APP_DIR, this.nextRootDir),
+      {
+        generateSourceMap: this.edgioConfig?.next?.generateSourceMaps !== false,
+      }
+    ).build()
+    // Update the nextConfig
+    this.nextConfig = getNextConfig() as NextConfig
+  }
+
+  /**
+   * Validates that it contains all required Edgio plugins
+   */
+  private validateNextConfig() {
+    if (process.env.WITH_SERVICE_WORKER_APPLIED) {
+      console.warn(
+        `[Edgio] ${chalk.yellow(
+          'Warning: The withServiceWorker function is no longer needed in next.config.js since Edgio version 7.x. Please remove it and see the migration guide to v7.'
+        )}`
+      )
+    }
+
+    // See withEdgio.ts
+    if(process.env.WITH_EDGIO_APPLIED !== 'true') {
+      console.error(
+        `${chalk.red(
+          'Error:'
+        )} Next.js is not properly configured for deployment on Edgio. Please add the ${chalk.green(
+          'withEdgio()'
+        )} plugin to next.config.js.
+      
+        For example:
+          ${chalk.cyan(`
+          const { withEdgio } = require('@edgio/next/config')
+          module.exports = withEdgio({
+            // additional Next.js config options here
+            // ...
+          })`)}
+        
+        Please update next.config.js file and try again. If that file does not exist, simply add the example above to the root directory of your app.
+        `
+      )
+      process.exit(1)
+    }
   }
 
   private buildServiceWorker() {

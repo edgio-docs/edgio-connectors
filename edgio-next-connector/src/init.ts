@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 import logo from '@edgio/core/utils/logo'
 import spawn from 'cross-spawn'
+import { existsSync } from 'fs'
 
 const ora = require('ora')
 const { join } = require('path')
@@ -8,11 +9,11 @@ const { DeploymentBuilder } = require('@edgio/core/deploy')
 const nextTransform = join(__dirname, 'mods', 'next-config.js')
 const jscodeshiftExecutable = require.resolve('.bin/jscodeshift')
 
-async function codemod(transform: string, path: string) {
+export async function runCodemod(transform: string, path: string) {
   return new Promise<string>((resolve, reject) => {
     const p = spawn(
       jscodeshiftExecutable,
-      ['--fail-on-error', '--run-in-band', '-t', transform, path],
+      ['--fail-on-error', '--run-in-band', '--parser=ts', '-t', transform, path],
       {
         stdio: 'pipe',
       }
@@ -42,11 +43,19 @@ export default async function init() {
     join(__dirname, 'default-app')
   )
 
-  const message = `Adding ${logo} plugins to next.config.js...`
+  const nextConfigName = ['next.config.js', 'next.config.ts', 'next.config.mjs'].find(name =>
+    existsSync(join(process.cwd(), name))
+  )
+
+  if (!nextConfigName) {
+    return console.error('ERROR: No next.config file found.')
+  }
+
+  const message = `Adding ${logo} plugins to ${nextConfigName}...`
   let spinner = ora(message).start()
 
   try {
-    await codemod(nextTransform, 'next.config.js')
+    await runCodemod(nextTransform, nextConfigName)
     spinner.succeed(message + ' done.')
   } catch (e: unknown) {
     if (e instanceof Error) {

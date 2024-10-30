@@ -1,7 +1,6 @@
 /*
   Only node build-in modules and connector imports are allowed. All other imports have to be dynamic.
 */
-import { resolve } from 'path'
 import nonWebpackRequire from '@edgio/core/utils/nonWebpackRequire'
 import { isCloud, isProductionBuild } from '@edgio/core/environment'
 
@@ -16,6 +15,6 @@ export = function withEdgio(_nextConfig: any) {
   // NOTE: webpackIgnore: true works only with import func, not with require, and this function can't be async.
   // Webpack config option 'external' still moves this import to the top of the file, so it's not dynamic anymore.
   // That's why we use nonWebpackRequire here.
-  const { default: applyPlugins } = nonWebpackRequire(resolve(__dirname, 'plugins', 'applyPlugins'))
+  const { default: applyPlugins } = nonWebpackRequire('@edgio/next/plugins/applyPlugins')
   return applyPlugins(_nextConfig)
 }

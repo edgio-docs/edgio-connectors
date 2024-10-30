@@ -8,8 +8,11 @@ import { getConfig } from '@edgio/core'
 import { ExtendedConfig } from './types'
 import getNextVersion from './util/getNextVersion'
 import getNodeOptions from './util/getNodeOptions'
+import NextConfigBuilder from './build/NextConfigBuilder'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 
 const edgioConfig = getConfig() as ExtendedConfig
+const turbopack = edgioConfig?.next?.turbopack ?? false
 const nextVersion = getNextVersion()
 
 const nextRootDir = process.cwd()
@@ -32,11 +35,14 @@ export default async function dev() {
   // @ts-ignore
   global.EDGIO_NEXT_APP = require('next')({ dev: true })
 
+  // Build next.config.js file, so we can later load it in NextRoutes.
+  // NOTE: Next.config can be for example Typescript file, so that's why.
+  await new NextConfigBuilder(nextRootDir, JS_APP_DIR).build()
   await new DeploymentBuilder().watchServiceWorker(SERVICE_WORKER_SOURCE_PATH)
 
   return createDevServer({
     label: 'Next',
-    command: port => `npx next dev -p ${port}`,
+    command: port => `npx next dev -p ${port} ${turbopack ? '--turbopack' : ''}`,
     env: {
       // We need to add these special NODE_OPTIONS to the build command
       // as a workaround for Next.js 10 and older versions on Node 18.

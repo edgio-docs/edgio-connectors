@@ -61,6 +61,10 @@ module.exports = {
     // so sites that fallback to serving from an origin do not add or remove the trailing slash for origin URLs.
     // @default true
     // enforceTrailingSlash: true
+    //
+    // Set this option to true to enable TurboPack for your Next.js app in development mode.
+    // @default false
+    // turbopack: false
   },
 
   // If you need to proxy some URLs to an origin instead of your Next.js app, you can configure the origins here:

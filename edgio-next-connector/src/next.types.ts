@@ -82,8 +82,12 @@ export interface NextConfig {
   // what the official name is, as it is js, it could be without it)
   rewrites?: () => Promise<RewriteGroup | Rewrite[]>
 
+  // Next 15 and above
+  outputFileTracingRoot?: string
   experimental?: {
+    // Next 14 and older
     outputFileTracingRoot?: string
+    after?: boolean
   }
 
   images?: Images

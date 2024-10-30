@@ -1,13 +1,13 @@
 {
   "name": "@edgio/next",
-  "version": "7.13.9",
+  "version": "7.13.10",
   "license": "Apache-2.0",
   "edgio-publish-to-repo": "edgio-docs/edgio-connectors",
   "dependencies": {
     "@vercel/nft": "^0.20.1",
     "chalk": "^4.1.2",
     "cross-spawn": "^7.0.3",
-    "esbuild": "^0.15.13",
+    "esbuild": "^0.18.20",
     "globby": "^11.0.1",
     "jscodeshift": "^0.16.1",
     "ora": "^4.0.0",
@@ -20,10 +20,10 @@
     "webpack-sources": "^3.2.3"
   },
   "devDependencies": {
-    "@edgio/core": "^7.13.9",
+    "@edgio/core": "^7.13.10",
     "@types/cross-spawn": "^6.0.2",
     "@types/fs-extra": "^8.1.1",
-    "@types/jscodeshift": "^0.11.11",
+    "@types/jscodeshift": "0.12.0",
     "@types/lodash": "^4.14.162",
     "@types/node": "^14.0.9",
     "@types/qs": "^6.9.3",
