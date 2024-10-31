@@ -3,25 +3,24 @@ import { DeploymentBuilder } from '@edgio/core/deploy'
 import createDevServer from '@edgio/core/dev/createDevServer'
 import { SERVICE_WORKER_SOURCE_PATH } from './constants'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { relative, resolve } from 'path'
 import { getConfig } from '@edgio/core'
 import { ExtendedConfig } from './types'
 import getNextVersion from './util/getNextVersion'
 import getNodeOptions from './util/getNodeOptions'
 import NextConfigBuilder from './build/NextConfigBuilder'
 import { JS_APP_DIR } from '@edgio/core/deploy/paths'
+import { findMonorepoRoot } from '@edgio/core/utils/monorepoUtils'
+import * as process from 'node:process'
 
 const edgioConfig = getConfig() as ExtendedConfig
 const turbopack = edgioConfig?.next?.turbopack ?? false
 const nextVersion = getNextVersion()
 
-const nextRootDir = process.cwd()
-const pagesDir = existsSync(join(nextRootDir, 'src', 'pages'))
-  ? join(nextRootDir, 'src', 'pages')
-  : join(nextRootDir, 'pages')
-const appDir = existsSync(join(nextRootDir, 'src', 'app'))
-  ? join(nextRootDir, 'src', 'app')
-  : join(nextRootDir, 'app')
+const monorepoRoot = findMonorepoRoot() || process.cwd()
+const nextRootDir = relative(monorepoRoot, process.cwd())
+const pagesDir = existsSync(resolve('src', 'pages')) ? resolve('src', 'pages') : resolve('pages')
+const appDir = existsSync(resolve('src', 'app')) ? resolve('src', 'app') : resolve('app')
 
 // There's no need to reload router when proxyToServerlessByDefault is enabled,
 // because we have just one rule in this case.
@@ -37,7 +36,10 @@ export default async function dev() {
 
   // Build next.config.js file, so we can later load it in NextRoutes.
   // NOTE: Next.config can be for example Typescript file, so that's why.
-  await new NextConfigBuilder(nextRootDir, JS_APP_DIR).build()
+  await new NextConfigBuilder(process.cwd(), resolve(JS_APP_DIR), {
+    nextRootDir,
+    skipNodeModules: true,
+  }).build()
   await new DeploymentBuilder().watchServiceWorker(SERVICE_WORKER_SOURCE_PATH)
 
   return createDevServer({

@@ -43,9 +43,12 @@ export default async function init() {
     join(__dirname, 'default-app')
   )
 
-  const nextConfigName = ['next.config.js', 'next.config.ts', 'next.config.mjs'].find(name =>
-    existsSync(join(process.cwd(), name))
-  )
+  const nextConfigName = [
+    'next.config.ts',
+    'next.config.mjs',
+    'next.config.cjs',
+    'next.config.js',
+  ].find(name => existsSync(join(process.cwd(), name)))
 
   if (!nextConfigName) {
     return console.error('ERROR: No next.config file found.')

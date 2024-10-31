@@ -7,7 +7,6 @@ import {
   unlinkSync,
   statSync
 } from 'fs'
-import { spawnSync } from 'child_process';
 import {
   NEXT_BUILDTIME_CONFIG_FILE,
   NEXT_RUNTIME_CONFIG_FILE,
@@ -17,6 +16,9 @@ import {
 import { nodeFileTrace } from '@vercel/nft'
 import getNextConfig from '../getNextConfig'
 import chalk from 'chalk';
+import spawn from 'cross-spawn'
+import { NEXT_ROOT_DIR_FILE } from '../constants'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 
 /**
  *  NextConfigBuilder creates the buildtime version and runtime version of next.config.js file.
@@ -33,17 +35,39 @@ export default class NextConfigBuilder {
   protected destDir: string
   protected generateSourceMap: boolean
   protected nextConfig?: any
+  protected nextRootDir: string
+  protected fileTracingRootDir: string
+  protected skipNodeModules = true
 
   constructor(
     srcDir: string,
     destDir: string,
     options: {
+      nextRootDir?: string
       nextConfig?: any
       generateSourceMap?: boolean
+      skipNodeModules?: boolean
     } = {}
   ) {
     this.srcDir = srcDir
     this.destDir = destDir
+    this.nextRootDir = options.nextRootDir || './'
+
+    // Get absolute path to the root directory of the project
+    // from where dependencies should be traced.
+    // For example:
+    // srcDir: /repo/packages/next/src
+    // destDir: /repo/packages/next/.edgio/lambda/app
+    // nextRootDir: packages/next
+    // fileTracingRootDir: /repo/
+    this.fileTracingRootDir = resolve(
+      relative(resolve(this.nextRootDir), this.srcDir)
+    )
+
+    // If next.config.js does not have runtime config, we can skip node_modules tracing
+    // to save time and space because next.config.runtime.js won't be ever run in lambda.
+    const hasRuntimeConfig = options.nextConfig?.serverRuntimeConfig || options.nextConfig?.publicRuntimeConfig
+    this.skipNodeModules = options.skipNodeModules ?? !hasRuntimeConfig
 
     // Find used next.config file in the project source directory
     const srcFile = [
@@ -54,7 +78,7 @@ export default class NextConfigBuilder {
     ].find(existsSync)
 
     if(!srcFile){
-      throw new Error('Next config file not found. Please create next.config.js in the root directory of your project.')
+      throw new Error('Next config file was not found. Please create next.config.js in the root directory of your project.')
     }
 
     this.srcFile = srcFile
@@ -65,14 +89,27 @@ export default class NextConfigBuilder {
   /**
    * Returns the list of next.config.js file dependencies
    * such as imported modules, json files, native modules etc...
+   * We cannot just bundle them, because some of them might have dynamic imports,
+   * ESM syntax not convertible to CJS, etc...
+   * and we need to trace them to the root of the project.
+   * For example: @next/bundle-analyzer depends on SWC binaries.
    * @return
    */
   protected async getDependencies(): Promise<string[]> {
     const { fileList } = await nodeFileTrace([this.srcFile], {
+      // Trace dependencies by default from the same directory as the next.config.js file
+      // and if nextRootDir is set, trace dependencies from the nextRootDir directory.
+      // For example: ../../
+      base: this.fileTracingRootDir,
+      processCwd: this.srcDir,
       ts: true,
-      base: resolve(this.srcDir)
+      // When we build next.config.ts locally just for dev mode,
+      // we can skip node_modules tracing to speed up the build.
+      ignore: file => this.skipNodeModules && !!file.match(/node_modules|.yalc/),
     })
     return Array.from(fileList)
+      // Workaround just for our .yalc symlinks that points to different directories
+      .map((file) => file.replace('.yalc', 'node_modules'))
   }
 
   /**
@@ -80,23 +117,59 @@ export default class NextConfigBuilder {
    * @return
    */
   protected async copyDependencies(dependencies: string[]): Promise<void> {
-    for (const srcFile of dependencies) {
-      const srcFileRelative = relative(this.srcDir, srcFile)
+    for (const srcFileRelative of dependencies) {
+      const srcFile = join(this.fileTracingRootDir, srcFileRelative)
       const srcFileRelativeDir = dirname(srcFileRelative)
       const destFile = join(this.destDir, srcFileRelative)
       const destFileDir = join(this.destDir, srcFileRelativeDir)
+
+      // Do not copy the original next.config.js file as dependency of itself
+      if(this.srcFile === srcFile){
+        continue
+      }
+      // Do not copy directories, non-existing files or symlinks
+      if(!existsSync(srcFile) || !statSync(srcFile).isFile()){
+        continue
+      }
+
       // Create the directory structure if it does not exist
       if(!existsSync(destFileDir)){
         mkdirSync(destFileDir, { recursive: true })
       }
-      // Do not copy the original next.config.js file as dependency of itself
-      if(this.srcFile === join(this.srcDir, srcFile)){
-        continue
+      copyFileSync(srcFile, destFile)
+      // If the dependency is TS file, we need to compile it to JS
+      if(destFile.endsWith('.ts')) await this.compileTs(destFile)
+    }
+  }
+
+  /**
+   * Compiles TS dependencies to JS
+   */
+  protected async compileTs(
+    srcFile: string,
+  ): Promise<void> {
+    const result = spawn.sync(
+      'npx',
+      [
+        'esbuild',
+        '--platform=node',
+        '--minify',
+        '--target=es6',
+        '--format=cjs',
+        ...(this.generateSourceMap ? ['--sourcemap'] : []),
+        '--outfile=' + srcFile.replace(/\.ts$/, '.js'),
+        srcFile,
+      ],
+      {
+        stdio: 'pipe',
+        cwd: this.srcDir
       }
-      // Copy only existing files and not symlinks and directories
-      if(existsSync(srcFile) && statSync(srcFile).isFile()){
-        copyFileSync(srcFile, destFile)
-      }
+    )
+    if (result.status !== 0) {
+      console.error(chalk.red("> Failed to compile Typescript dependency of next config:"))
+      console.error(chalk.red(`> Dependency: ${srcFile}`))
+      if(result.error) throw result.error
+      throw new Error(result.stderr?.toString())
     }
   }
 
@@ -106,17 +179,19 @@ export default class NextConfigBuilder {
    * @return
    */
   protected async writeRuntimeVersion(): Promise<void> {
-    const result = spawnSync(
-      'esbuild',
+    const result = spawn.sync(
+      'npx',
       [
-        this.srcFile,
+        // IMPORTANT: Do not put --bundle flag here,
+        // because it will fail on native modules such as @next/bunle-analyzer in most cases.
+        'esbuild',
         '--platform=node',
         '--minify',
-        '--bundle',
         '--target=es6',
         '--format=cjs',
         ...(this.generateSourceMap ? ['--sourcemap'] : []),
-        '--outfile=' + join(this.destDir, NEXT_RUNTIME_CONFIG_FILE),
+        '--outfile=' + join(this.destDir, this.nextRootDir, NEXT_RUNTIME_CONFIG_FILE),
+        this.srcFile,
       ],
       {
         stdio: 'pipe',
@@ -125,7 +200,8 @@ export default class NextConfigBuilder {
     )
     if (result.status !== 0) {
       console.error(chalk.red("> Failed to build next config file (runtime version)"))
-      throw new Error(result.stderr.toString())
+      if(result.error) throw result.error
+      throw new Error(result.stderr?.toString())
     }
   }
 
@@ -135,7 +211,10 @@ export default class NextConfigBuilder {
    * @return
    */
   protected async writeBuildtimeVersion(): Promise<void> {
-    this.nextConfig = this.nextConfig || getNextConfig(this.destDir, NEXT_RUNTIME_CONFIG_FILE)
+    this.nextConfig = this.nextConfig || getNextConfig(
+      join(this.destDir, this.nextRootDir),
+      NEXT_RUNTIME_CONFIG_FILE
+    )
 
     // All variables in domains config field are resolved during build time but
     // the process.env.EDGIO_IMAGE_OPTIMIZER_HOST is available during runtime.
@@ -149,7 +228,7 @@ export default class NextConfigBuilder {
     )
 
     writeFileSync(
-      join(this.destDir, NEXT_BUILDTIME_CONFIG_FILE),
+      join(this.destDir, this.nextRootDir, NEXT_BUILDTIME_CONFIG_FILE),
       serverConfigSrc
     )
   }
@@ -162,20 +241,21 @@ export default class NextConfigBuilder {
   async writeFinalVersion(): Promise<void> {
     copyFileSync(
       join(__dirname, 'nextConfigHandler.js'),
-      join(this.destDir, NEXT_CONFIG_HANDLER_FILE)
+      join(this.destDir, this.nextRootDir, NEXT_CONFIG_HANDLER_FILE)
     )
-    const result = spawnSync(
-      'esbuild',
+    const result = spawn.sync(
+      'npx',
       [
-        NEXT_CONFIG_HANDLER_FILE,
+        'esbuild',
         '--platform=node',
         '--target=es6',
         '--bundle',
         '--minify',
         '--format=cjs',
         ...(this.generateSourceMap ? ['--sourcemap'] : []),
-        '--outfile=' + NEXT_CONFIG_FILE,
-        `--external:./${NEXT_RUNTIME_CONFIG_FILE}`
+        '--outfile=' + join(this.destDir, this.nextRootDir, NEXT_CONFIG_FILE),
+        `--external:./${NEXT_RUNTIME_CONFIG_FILE}`,
+        join(this.destDir, this.nextRootDir, NEXT_CONFIG_HANDLER_FILE)
       ],
       {
         stdio: 'pipe',
@@ -185,7 +265,8 @@ export default class NextConfigBuilder {
 
     if (result.status !== 0) {
       console.error(chalk.red("> Failed to build next config file (final version)"))
-      throw new Error(result.stderr.toString())
+      if(result.error) throw result.error
+      throw new Error(result.stderr?.toString())
     }
   }
 
@@ -196,12 +277,25 @@ export default class NextConfigBuilder {
    */
   async build(): Promise<void> {
     process.stdout.write(`> Building next config... `)
+    this.addNextRootDirFile()
+
     await this.copyDependencies(await this.getDependencies())
     await this.writeRuntimeVersion()
     await this.writeBuildtimeVersion()
     await this.writeFinalVersion()
+
     this.cleanAfterBuild()
     process.stdout.write(`done.\r\n`)
+  }
+
+  /**
+   * Adds file with nextRootDir to the lambda directory,
+   * so we know where to look for the next project files, next.config.js etc...
+   * This is needed for the projects in NPM/YARN workspaces.
+   */
+  addNextRootDirFile(){
+    mkdirSync(resolve(JS_APP_DIR), { recursive: true })
+    writeFileSync(resolve(JS_APP_DIR, NEXT_ROOT_DIR_FILE), this.nextRootDir)
   }
 
   /**
@@ -210,8 +304,8 @@ export default class NextConfigBuilder {
    */
   protected cleanAfterBuild(): void {
     // Handler was replaced by bundled version
-    unlinkSync(join(this.destDir, NEXT_CONFIG_HANDLER_FILE))
+    unlinkSync(join(this.destDir, this.nextRootDir, NEXT_CONFIG_HANDLER_FILE))
     // The buildtime version is no longer needed because it's included in bundle
-    unlinkSync(join(this.destDir, NEXT_BUILDTIME_CONFIG_FILE))
+    unlinkSync(join(this.destDir, this.nextRootDir, NEXT_BUILDTIME_CONFIG_FILE))
   }
 }

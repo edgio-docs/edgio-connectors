@@ -8,7 +8,7 @@ import getNextConfig from '../getNextConfig'
 import NextConfigBuilder from './NextConfigBuilder'
 import { getConfig } from '@edgio/core/config'
 import { lt, gt } from 'semver'
-import { FAR_FUTURE_TTL, NEXT_PRERENDERED_PAGES_FOLDER, NEXT_ROOT_DIR_FILE } from '../constants'
+import { FAR_FUTURE_TTL, NEXT_PRERENDERED_PAGES_FOLDER } from '../constants'
 import { ExtendedConfig, RenderMode, RENDER_MODES } from '../types'
 import getNextVersion from '../util/getNextVersion'
 import { BuilderOptions } from './BuilderOptions'
@@ -60,7 +60,7 @@ export default class NextBuilder {
     // This is where we can get the project root folder where the server files are actually placed.
     // We need to normalize the path because node paths are different on Windows and Unix systems.
     return normalizePath(
-      relative(outputFileTracingRoot, process.cwd()) || './'
+      relative(outputFileTracingRoot, process.cwd())
     )
   }
 
@@ -109,10 +109,6 @@ export default class NextBuilder {
       console.log(`> Using Next ${this.nextConfig.target} build...`)
       await this.addLegacyBuildAssets()
     }
-
-    // Add the file with relative location to the Next.js app.
-    // This is needed for Next.js 13 app which is built in workspaces.
-    this.builder.writeFileSync(join(this.builder.jsAppDir, NEXT_ROOT_DIR_FILE), this.nextRootDir)
 
     // Add prerendered pages from pages folder to s3
     this.addSSGPages(
@@ -562,8 +558,9 @@ export default class NextBuilder {
       // Output final file to configured outputFileTracingRoot option from next.config.js.
       // This is needed for standalone builds in workspaces or when the outputFileTracingRoot is explicitly set,
       // otherwise Next.js server throws an error that it can't find the file.
-      join(process.cwd(), JS_APP_DIR, this.nextRootDir),
+      join(process.cwd(), JS_APP_DIR),
       {
+        nextRootDir: this.nextRootDir,
         nextConfig: nextConfigWithDefaults,
         generateSourceMap: this.edgioConfig?.next?.generateSourceMaps !== false,
       }
@@ -577,8 +574,9 @@ export default class NextBuilder {
     await new NextConfigBuilder(
       this.srcDirAbsolute,
       // Output final file to root of the app directory.
-      join(process.cwd(), JS_APP_DIR, this.nextRootDir),
+      join(process.cwd(), JS_APP_DIR),
       {
+        nextRootDir: this.nextRootDir,
         generateSourceMap: this.edgioConfig?.next?.generateSourceMaps !== false,
       }
     ).build()

@@ -1,8 +1,8 @@
 import { readFileSync, existsSync } from 'fs'
 import { NEXT_ROOT_DIR_FILE } from '../constants'
 import { EdgioRuntimeGlobal } from '@edgio/core/lambda/global.helpers'
-import { join } from 'path'
-import * as process from 'process'
+import { join, resolve } from 'path'
+import { JS_APP_DIR } from '@edgio/core/deploy/paths'
 
 /**
  * Returns the path relative to current working directory
@@ -10,14 +10,11 @@ import * as process from 'process'
  * However, when the project is built in NPM/YARN workspaces, the path is relative to the workspace root.
  */
 export default function getNextRootDir(): string {
-  const { isProductionBuild } = EdgioRuntimeGlobal.runtimeOptions || {}
-  const edgioAppDir = EdgioRuntimeGlobal.runtimeOptions?.fs.edgio.lambda.app.value
+  const edgioAppDir = EdgioRuntimeGlobal.runtimeOptions?.fs.edgio.lambda.app.value || JS_APP_DIR
 
-  if (isProductionBuild && edgioAppDir) {
-    const nextRootDir = join(edgioAppDir, NEXT_ROOT_DIR_FILE)
-    return existsSync(nextRootDir)
-      ? join(edgioAppDir, readFileSync(nextRootDir, 'utf8'))
-      : edgioAppDir
+  const nextRootDirFilePath = join(edgioAppDir, NEXT_ROOT_DIR_FILE)
+  if (existsSync(nextRootDirFilePath)) {
+    return resolve(edgioAppDir, readFileSync(nextRootDirFilePath, 'utf-8'))
   }
 
   return process.cwd()
