@@ -1,3 +1,5 @@
+import Response from '@edgio/core/runtime/Response'
+import Request from '@edgio/core/runtime/Request'
 export interface Redirect {
   source: string
   destination: string
@@ -219,4 +221,19 @@ export interface PagesManifest {
 
 export interface AppPathsManifest {
   [key: string]: string
+}
+
+export interface SSRHandlerOptions {
+  /**
+   * A function that transforms the request before it is sent to the Next SSR handler when in serverless mode.
+   * In general, this is used to alter the request headers or body based on some conditional logic.
+   * Note that this function may not be invoked if middleware matches the request path or the prerender bypass cookie is set.
+   */
+  transformRequest?: (request: Request) => void | Promise<void>
+
+  /**
+   * A function that transforms the response before it is returned to the browser. This function typically alters
+   * `response.body` to change the content sent to the browser. It can also add, remove, and alter response headers.
+   */
+  transformResponse?: (response: Response, request: Request) => void | Promise<void>
 }

@@ -46,7 +46,7 @@ import { pathToRegexp } from 'path-to-regexp'
 import toEdgeRegex from '@edgio/core/utils/toEdgeRegex'
 import getNextRootDir from '../util/getNextRootDir'
 import isValidRemotePattern from '../util/isValidRemotePattern'
-import { Middleware, NextConfig, Redirect } from '../next.types'
+import { Middleware, NextConfig, Redirect, SSRHandlerOptions } from '../next.types'
 import { HttpStatusCode } from '@edgio/core/types'
 
 export default class NextRoutes implements RouterPlugin {
@@ -66,6 +66,7 @@ export default class NextRoutes implements RouterPlugin {
   protected nextPathFormatter: NextPathFormatter
   protected manifestParser: ManifestParser
   protected renderMode: RenderMode
+  protected ssrOptions: SSRHandlerOptions = {}
 
   /**
    * Provides next registered routes to router
@@ -794,6 +795,15 @@ export default class NextRoutes implements RouterPlugin {
       this.ssrHandler(routeHelper)
     })
   }
+
+  /**
+   * Sets the SSR handler options that will be used when proxying requests to the Next SSR handler in serverless mode.
+   */
+  setSSROptions(options: SSRHandlerOptions) {
+    this.ssrOptions = options
+    return this
+  }
+
   /**
    * The FeatureCreator which proxies all requests to Next in serverless.
    */
@@ -814,7 +824,7 @@ export default class NextRoutes implements RouterPlugin {
     }
 
     routeHelper.proxy(SERVERLESS_ORIGIN_NAME, {
-      transformRequest: (req: Request) => {
+      transformRequest: async (req: Request) => {
         if (this.renderMode === RENDER_MODES.serverless) this.addPageParamsToQuery(req)
 
         // Check if any middleware matches the request path
@@ -834,12 +844,19 @@ export default class NextRoutes implements RouterPlugin {
         // otherwise preview mode won't work.
         if (bypassPrerender) return
 
+        // Allow the user to transform the request before it is sent to the Next SSR handler.
+        await this.ssrOptions.transformRequest?.(req)
+
         // Force Next.js server to serve fresh page if any middleware isn't matched for this req
         // and the prerender bypass cookie is not set.
         // The 'x-prerender-revalidate' header is needed for ISG/ISR pages with revalidation when page is requested by the Edge,
         // so Next.js knows it shouldn't serve page from disk or cache.
         // Disadvantage is that if this header is present, Next.js server doesn't run the middlewares.
         req.setHeader('x-prerender-revalidate', this.manifestParser?.getPreviewModeId() || '')
+      },
+      transformResponse: async (response, request) => {
+        // Allow the user to transform the response before it is returned to the browser.
+        await this.ssrOptions.transformResponse?.(response, request)
       },
     })
   }
