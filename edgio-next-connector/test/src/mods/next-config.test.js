@@ -87,7 +87,7 @@ describe('next-config codemod', () => {
     const expectedCode = `
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      import { withEdgio } from '@edgio/next/config'
+      import { withEdgio } from '@edgio/next/config/index.js'
 
       const _preEdgioExport = ({
         reactStrictMode: true
@@ -141,7 +141,7 @@ describe('next-config codemod', () => {
     const expectedCode = `
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      import { withEdgio } from '@edgio/next/config'
+      import { withEdgio } from '@edgio/next/config/index.js'
 
       const config = {
         reactStrictMode: true
@@ -215,7 +215,7 @@ describe('next-config codemod', () => {
     const expectedCode = `
       // This file was automatically added by edgio init.
       // You should commit this file to source control.
-      import { withEdgio } from '@edgio/next/config'
+      import { withEdgio } from '@edgio/next/config/index.js'
       import { PHASE_DEVELOPMENT_SERVER } from 'next/constants'
 
       const _preEdgioExport = (phase, { defaultConfig }) => {
